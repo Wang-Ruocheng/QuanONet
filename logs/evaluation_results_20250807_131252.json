@@ -1,0 +1,88 @@
+{
+  "MSE": 0.01923717961065122,
+  "MAE": 0.08534527244418859,
+  "Max_Error": 1.3442258834838867,
+  "config": {
+    "// \u901a\u7528PDE\u7b97\u5b50\u914d\u7f6e\u6587\u4ef6": "config_PDE.json",
+    "// \u652f\u6301\u7684\u7b97\u5b50\u7c7b\u578b": [
+      "Diffusion",
+      "Advection",
+      "Custom"
+    ],
+    "// \u6570\u636e\u751f\u6210\u53c2\u6570": "",
+    "num_train": 100,
+    "num_test": 100,
+    "num_sensors": 100,
+    "train_sample_num": 1000,
+    "test_sample_num": 10000,
+    "length_scale": 0.2,
+    "num_cal": 1000,
+    "// \u6a21\u578b\u53c2\u6570": "",
+    "branch_input_size": 100,
+    "trunk_input_size": 2,
+    "output_size": 1,
+    "num_qubits": 5,
+    "net_size": [
+      40,
+      2,
+      20,
+      2
+    ],
+    "scale_coeff": 0.01,
+    "model_type": "QuanONet",
+    "if_trainable_freq": true,
+    "// \u8bad\u7ec3\u53c2\u6570": "",
+    "learning_rate": 0.0001,
+    "num_epochs": 100,
+    "target_error": 0.0001,
+    "batch_size": 100,
+    "validation_split": 0,
+    "patience": 20,
+    "// \u7b97\u5b50\u7279\u5b9a\u53c2\u6570": "",
+    "operator_type": "Diffusion",
+    "custom_name": null,
+    "custom_ode_description": "\u4ec5\u5f53operator_type=Custom\u65f6\u4f7f\u7528\uff0c\u901a\u8fc7\u547d\u4ee4\u884c--custom_ode\u6307\u5b9a"
+  },
+  "training_history": [
+    {
+      "epoch": 0,
+      "train_loss": 0.1485854373574257
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.07163815113902092
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.0526851524990052
+    },
+    {
+      "epoch": 30,
+      "train_loss": 0.03832907594181597
+    },
+    {
+      "epoch": 40,
+      "train_loss": 0.030806990754790604
+    },
+    {
+      "epoch": 50,
+      "train_loss": 0.026429357149638236
+    },
+    {
+      "epoch": 60,
+      "train_loss": 0.023973275628872217
+    },
+    {
+      "epoch": 70,
+      "train_loss": 0.02217055265093222
+    },
+    {
+      "epoch": 80,
+      "train_loss": 0.020558635828550904
+    },
+    {
+      "epoch": 90,
+      "train_loss": 0.019329461440443993
+    }
+  ]
+}

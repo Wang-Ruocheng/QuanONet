@@ -1,0 +1,38 @@
+{
+  "MSE": 0.036250244778260825,
+  "MAE": 0.14481303206272422,
+  "Max_Error": 1.0710184574127197,
+  "Relative_Error": 227921.67293597411,
+  "config": {
+    "operator_type": "Inverse",
+    "num_train": 1000,
+    "num_test": 1000,
+    "num_sensors": 100,
+    "train_sample_num": 10,
+    "test_sample_num": 100,
+    "branch_input_size": 100,
+    "trunk_input_size": 1,
+    "output_size": 1,
+    "num_qubits": 5,
+    "net_size": [
+      20,
+      2,
+      10,
+      2
+    ],
+    "scale_coeff": 0.001,
+    "learning_rate": 0.0001,
+    "num_epochs": 10,
+    "target_error": 0.0001,
+    "model_type": "QuanONet",
+    "if_trainable_freq": true,
+    "batch_size": 100,
+    "validation_split": 0
+  },
+  "training_history": [
+    {
+      "epoch": 0,
+      "train_loss": 0.1752388571202755
+    }
+  ]
+}

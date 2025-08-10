@@ -1,0 +1,19 @@
+name: qonet
+channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - cudatoolkit=11.8
+  - cudnn=8.1
+  - numpy
+  - scipy
+  - matplotlib
+  - tqdm
+  - jupyter
+  - ipython
+  - pip
+  - pip:
+    - mindspore>=2.0.0
+    - mindquantum>=0.9.0
