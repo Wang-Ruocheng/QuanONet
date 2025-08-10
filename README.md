@@ -17,7 +17,6 @@ QON/
 │   ├── data_generation.py     # Data generation
 │   └── data_processing.py     # Data processing
 ├── utils/                      # Utility functions
-├── examples/                   # Example scripts
 ├── tests/                      # Test scripts
 ├── train_ODE_quanonet.py      # ODE training script
 └── train_PDE_quanonet.py      # PDE training script
@@ -190,9 +189,6 @@ QON/
 │   ├── visualization.py       # Visualization tools
 │   ├── loss_functions.py      # Loss functions
 │   └── utils.py               # General utilities
-├── examples/                  # Example scripts
-│   ├── batch_generate.py      # Batch data generation
-│   └── examples.py            # Usage examples
 ├── tests/                     # Test scripts
 ├── docs/                      # Documentation
 ├── train_ODE_quanonet.py      # ODE training script
@@ -252,14 +248,8 @@ The project includes multiple Jupyter Notebooks for result visualization:
 - `visualize_Inverse_results.ipynb` - Inverse operator results
 - `visualize_Nonlinear_results.ipynb` - Nonlinear operator results
 - `visualize_RDiffusion_results.ipynb` - Reaction-diffusion results
-- `dde_deeponet.ipynb` - DeepONet comparison experiments
 
 ## 🔧 Advanced Usage
-
-### Batch Data Generation
-```bash
-python examples/batch_generate.py --problems Inverse_Operator Burgers_Operator --parallel --max_workers 4
-```
 
 ### Custom Operators
 ```bash
@@ -275,22 +265,3 @@ CUDA_VISIBLE_DEVICES=0 python train_PDE_quanonet.py --operator Burgers --config 
 ```bash
 nohup python -u train_PDE_quanonet.py --operator Burgers --random_seed 0 > training.log 2>&1 &
 ```
-
-## 📚 Documentation
-
-For detailed documentation, please refer to:
-- [Data Generation Guide](docs/DATA_GENERATION_GUIDE.md)
-- [ODE Training Guide](docs/ODE_TRAINING_GUIDE.md)
-- [PDEBench Data Download](docs/PDEBENCH_DOWNLOAD_README.md)
-
-## 🤝 Contributing
-
-Welcome to submit Issues and Pull Requests to improve the project.
-
-## 📄 License
-
-[Add your license information]
-
-## 🙏 Acknowledgments
-
-This project is developed based on MindSpore and MindQuantum frameworks.
