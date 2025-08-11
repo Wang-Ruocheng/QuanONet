@@ -2,7 +2,6 @@
 Data generation functions for various operator problems.
 """
 
-# Direct dependency imports to avoid relative import issues
 import numpy as np
 import os
 import math
@@ -54,30 +53,23 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
-# Data generation configuration constants
+# 数据生成配置常量
 DATA_GENERATION_CONFIG = {
-    'save_interval': 100,      # Save data every N generations
-    'backup_interval': 500,    # Create backup every N samples
-    'progress_update': 10,     # Update progress info every N times
+    'save_interval': 100,      # Save data every 100 samples
+    'backup_interval': 500,    # Create a backup every 500 samples
+    'progress_update': 10,     # Update progress every 10 samples
 }
 
 def save_data_with_backup(data_path, u_cals, u0_cals, description, backup_interval=None):
     """
-    Save data and optionally create backup
-    
-    Args:
-        data_path: Main data file path
-        u_cals: u data list
-        u0_cals: u0 data list  
-        description: Data description
-        backup_interval: Interval for creating backups (number of samples), if None use config default
+    Save data to NPZ file with backup functionality.
     """
     if backup_interval is None:
         backup_interval = DATA_GENERATION_CONFIG['backup_interval']
-    
+
     # Save main file
     np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals, description=description)
-    
+
     # Create a timestamped backup every backup_interval samples
     if len(u_cals) % backup_interval == 0:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -92,13 +84,7 @@ def save_data_with_backup(data_path, u_cals, u0_cals, description, backup_interv
 
 def find_latest_backup(data_path):
     """
-    Find the latest backup file
-    
-    Args:
-        data_path: Main data file path
-    
-    Returns:
-        Latest backup file path, returns None if no backup exists
+    Find the latest backup file for the given data path.
     """
     backup_dir = os.path.join(os.path.dirname(data_path), 'backups')
     if not os.path.exists(backup_dir):
@@ -110,22 +96,16 @@ def find_latest_backup(data_path):
     if not backup_files:
         return None
     
-    # Sort by file modification time, return the latest
+    # Sort by modification time and return the latest one
     latest_backup = max(backup_files, key=os.path.getmtime)
     return latest_backup
 
 
 def load_data_with_recovery(data_path):
     """
-    Load data, try to recover from backup if main file is corrupted
-    
-    Args:
-        data_path: Main data file path
-    
-    Returns:
-        (u_cals, u0_cals) tuple, returns ([], []) if both loading fails
+    Load data from NPZ file with recovery from backup if necessary.
     """
-    # First try to load main file
+    # First, try to load the main file
     if os.path.exists(data_path):
         try:
             data = np.load(data_path, allow_pickle=True)
@@ -137,7 +117,7 @@ def load_data_with_recovery(data_path):
             print(f"Warning: Failed to load main data file: {e}")
             print("Attempting to recover from backup...")
     
-    # If main file doesn't exist or is corrupted, try to recover from backup
+    # If main file loading fails, try to find the latest backup
     latest_backup = find_latest_backup(data_path)
     if latest_backup:
         try:
@@ -213,22 +193,9 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test, num_points,
                               length_scale=0.2, num_cal=1000, custom_ode_func=None, 
                               custom_name=None):
     """
-    General ODE operator data generation function
-    
-    Args:
-        operator_type: Operator type, options: 'Inverse', 'Homogeneous', 'Nonlinear' or 'Custom'
-        num_train: Number of training samples
-        num_test: Number of test samples
-        num_points: Number of spatial discrete points
-        length_scale: Length scale of Gaussian field
-        num_cal: Number of high-precision grid points for calculation
-        custom_ode_func: Custom ODE function, format: lambda u0_fn: lambda x, u: your_equation
-        custom_name: Custom operator name, used for file path
-    
-    Returns:
-        Training and test data tuple: (train_u0, train_u, test_u0, test_u, x)
+    Generate data for ODE operator problems.
     """
-    # Determine operator name and ODE function
+    # Determine operator name and function
     if operator_type == 'Custom':
         if custom_ode_func is None or custom_name is None:
             raise ValueError("Custom operator requires both custom_ode_func and custom_name")
@@ -247,19 +214,19 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test, num_points,
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
     x_cal = np.linspace(0, 1, num_cal)
     
-    # Try to load existing data, support recovery from backup
+    #Try to load existing data, supporting recovery from backup
     u_cals, u0_cals = load_data_with_recovery(data_path)
     
-    # Generate insufficient data
+    # If not enough data, generate new samples
     if len(u_cals) < num_train + num_test:
         print(f"Generating {description}")
         total_needed = num_train + num_test - len(u_cals)
-        save_interval = DATA_GENERATION_CONFIG['save_interval']  # Use save interval from config
+        save_interval = DATA_GENERATION_CONFIG['save_interval']  # Use configuration for save interval
         
         for i in tqdm(range(total_needed), desc=f"Generating {operator_name} Data"):
             u0_fn, u0_cal_new = generate_random_gaussian_field(num_cal, length_scale)
             
-            # Use specified ODE system
+            # Use the ODE function generator to create the ODE system
             ode_system = ode_func_generator(u0_fn)
             
             try:
@@ -267,13 +234,13 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test, num_points,
                 u_cal_new = sol.y[0]
             except Exception as e:
                 print(f"Warning: ODE solving failed for one sample: {e}")
-                # Use backup method or skip
+                # Use zero array if ODE solving fails
                 u_cal_new = np.zeros_like(x_cal)
             
             u_cals.append(u_cal_new)
             u0_cals.append(u0_cal_new)
             
-            # Save data every save_interval times or at the last time
+            # Save data periodically
             if (i + 1) % save_interval == 0 or i == total_needed - 1:
                 print(f"Saving intermediate data... Generated {len(u_cals)}/{num_train + num_test} samples")
                 save_data_with_backup(data_path, u_cals, u0_cals, description)
@@ -283,7 +250,7 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test, num_points,
         save_data_with_backup(data_path, u_cals, u0_cals, description)
         data = np.load(data_path, allow_pickle=True)
     
-    # Load data
+    # Ensure data is loaded
     u_cals = data['u_cals']
     u0_cals = data['u0_cals']
     
@@ -296,7 +263,7 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test, num_points,
         us.append(u)
         u0s.append(u0)
     
-    # Randomly split training and test sets
+    # Randomly split into training and testing sets
     train_index = np.random.choice(num_train + num_test, num_train, replace=False)
     test_index = np.array([i for i in range(num_train + num_test) if i not in train_index])
     
@@ -326,76 +293,57 @@ def generate_PDE_Operator_data(pde_type, num_train, num_test, num_points,
                               length_scale=0.2, num_cal=100, custom_pde_func=None, 
                               custom_name=None, **pde_params):
     """
-    General PDE operator data generation function
-    
-    Args:
-        pde_type: PDE type, options: 'RDiffusion', 'Advection', 'Heat', 'Wave' or 'Custom'
-        num_train: Number of training samples
-        num_test: Number of test samples
-        num_points: Number of spatial discrete points
-        length_scale: Length scale of Gaussian field
-        num_cal: Number of high-precision grid points for calculation
-        custom_pde_func: Custom PDE solving function
-        custom_name: Custom PDE name, used for file path
-        **pde_params: PDE-specific parameters
-    
-    Returns:
-        Training and test data tuple: (train_u0, train_u, test_u0, test_u, x, t)
+    Generate data for PDE operator problems.
     """
-    # Determine PDE name and parameters
+    # Determine PDE name and solver
     if pde_type == 'Custom':
         if custom_pde_func is None or custom_name is None:
             raise ValueError("Custom PDE requires both custom_pde_func and custom_name")
         pde_name = custom_name
-        pde_func = custom_pde_func
         description = f"Custom PDE: {custom_name}"
-    elif pde_type in ['RDiffusion', 'Advection', 'Heat', 'Wave']:
+        pde_solver = custom_pde_func
+    elif pde_type in PDE_SYSTEMS:
         pde_name = pde_type
-        description = f"{pde_type} equation"
-        
-        # Define default parameters for each PDE type
-        default_params = {
-            'RDiffusion': {'alpha': 0.01, 'k': 0.01},
-            'Advection': {'nu': 0.001},
-            'Heat': {'alpha': 0.01},
-            'Wave': {'c': 1.0}
-        }
-        
-        # Merge default parameters with user parameters
-        final_params = default_params.get(pde_type, {})
-        final_params.update(pde_params)
-        
+        description = PDE_SYSTEMS[pde_type]['description']
+        default_params = PDE_SYSTEMS[pde_type]['default_params']
+        # Merge default parameters with provided parameters
+        merged_params = {**default_params, **pde_params}
+
         # Select solver based on PDE type
         if pde_type == 'RDiffusion':
-            pde_func = lambda: _solve_rdiffusion_pde(num_cal, length_scale, **final_params)
+            pde_solver = lambda: _solve_rdiffusion_pde(num_cal, length_scale, **merged_params)
         elif pde_type == 'Heat':
-            pde_func = lambda: _solve_heat_pde(num_cal, length_scale, **final_params)
+            pde_solver = lambda: _solve_heat_pde(num_cal, length_scale, **merged_params)
         elif pde_type == 'Wave':
-            pde_func = lambda: _solve_wave_pde(num_cal, length_scale, **final_params)
+            pde_solver = lambda: _solve_wave_pde(num_cal, length_scale, **merged_params)
+        else:
+            raise NotImplementedError(f"PDE solver for {pde_type} not implemented yet")
     else:
-        raise ValueError(f"Unknown PDE type: {pde_type}")
+        raise ValueError(f"Unknown PDE type: {pde_type}. Available: {list(PDE_SYSTEMS.keys())} or 'Custom'")
     
     # Data path
     data_path = f'data/{pde_name}_Operator_data/{pde_name}_Operator_data_{num_cal}_1.npz'
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
     
-    # Try to load existing data, support recovery from backup
+    # Try to load existing data, supporting recovery from backup
     u_cals, u0_cals = load_data_with_recovery(data_path)
-    
-    # Generate insufficient data
+
+    # Generate missing data
     if len(u_cals) < num_train + num_test:
         print(f"Generating {description}")
         total_needed = num_train + num_test - len(u_cals)
-        save_interval = DATA_GENERATION_CONFIG['save_interval']  # Use save interval from config
+        save_interval = DATA_GENERATION_CONFIG['save_interval']  # Use configuration for save interval
         
         for i in tqdm(range(total_needed), desc=f"Generating {pde_name} Data"):
-            # Call solver to get new samples
-            u_cal_new, u0_cal_new = pde_func()
+            if pde_type == 'Custom':
+                u_cal_new, u0_cal_new = pde_solver()
+            else:
+                u_cal_new, u0_cal_new = pde_solver()
             
             u_cals.append(u_cal_new)
             u0_cals.append(u0_cal_new)
             
-            # Save data every save_interval times or at the last time
+            # Save data periodically
             if (i + 1) % save_interval == 0 or i == total_needed - 1:
                 print(f"Saving intermediate data... Generated {len(u_cals)}/{num_train + num_test} samples")
                 save_data_with_backup(data_path, u_cals, u0_cals, description)
@@ -404,14 +352,12 @@ def generate_PDE_Operator_data(pde_type, num_train, num_test, num_points,
         print(f"Final save: Generated {len(u_cals)} samples total")
         save_data_with_backup(data_path, u_cals, u0_cals, description)
     
-    # Ensure data is loaded (whether newly generated or loaded from existing file)
-    # If data is loaded from file in list form, use directly
-    # If need to reload from file, then load file
-    if isinstance(u_cals, list) and len(u_cals) > 0:
-        # Data is already in list form, use directly
+    # Ensure data is loaded
+    if isinstance(u_cals, list) and len(u_cals) >= num_train + num_test:
+        # If data is already sufficient, do not regenerate
         pass
     else:
-        # Reload data from file
+        # If data is insufficient, load from file
         data = np.load(data_path, allow_pickle=True)
         u_cals = data['u_cals']
         u0_cals = data['u0_cals']
@@ -420,27 +366,27 @@ def generate_PDE_Operator_data(pde_type, num_train, num_test, num_points,
     x = np.linspace(0, 1, num_points)
     t = np.linspace(0, 1, num_points)
     us, u0s = [], []
+    
     for u_cal, u0_cal in zip(u_cals, u0_cals):
-        # For 2D data, perform space-time interpolation
-        if len(u_cal.shape) == 2:
-            # u_cal shape: (num_cal_x, num_cal_t)
-            u = np.array([np.interp(x, np.linspace(0, 1, u_cal.shape[0]), u_cal[:, t_idx]) 
-                         for t_idx in range(u_cal.shape[1])])  # Shape: (time, space)
+        # Handle different dimensions of u_cal
+        if u_cal.ndim == 2:
+            # Process 2D data
+            num_cal_x, num_cal_t = u_cal.shape
+            u = u_cal[::num_cal_x//num_points, ::num_cal_t//num_points]
         else:
-            # 1D data processing
+            # Process 1D data
             u = np.interp(x, np.linspace(0, 1, len(u_cal)), u_cal)
         
-        # u0 is initial condition, usually 1D
-        if len(u0_cal.shape) == 1:
+        # Handle different dimensions of u0_cal
+        if u0_cal.ndim == 1:
             u0 = np.interp(x, np.linspace(0, 1, len(u0_cal)), u0_cal)
         else:
-            # Multi-dimensional initial condition handling
-            u0 = np.interp(x, np.linspace(0, 1, u0_cal.shape[0]), u0_cal[:, 0])
+            u0 = u0_cal[::len(u0_cal)//num_points]
         
         us.append(u)
         u0s.append(u0)
     
-    # Randomly split training and test sets
+    # Randomly split into training and testing sets
     train_index = np.random.choice(num_train + num_test, num_train, replace=False)
     test_index = np.array([i for i in range(num_train + num_test) if i not in train_index])
     
@@ -448,18 +394,18 @@ def generate_PDE_Operator_data(pde_type, num_train, num_test, num_points,
             ms.Tensor(np.array(us)[train_index], ms.float32), 
             ms.Tensor(np.array(u0s)[test_index], ms.float32), 
             ms.Tensor(np.array(us)[test_index], ms.float32), 
-            ms.Tensor(x, ms.float32),
+            ms.Tensor(x, ms.float32), 
             ms.Tensor(t, ms.float32))
 
 
 def _solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01):
-    """Solve reaction-diffusion equation"""
+    """Solve rdiffusion PDE ∂u/∂t = α∇²u + k*u² + u0(x)"""
     x_cal = np.linspace(0, 1, num_cal)
     t_cal = np.linspace(0, 1, num_cal)
     
     # Calculate time step parameters
     dx = x_cal[1] - x_cal[0]
-    dt = min(dx**2 / (2 * alpha), t_cal[1] - t_cal[0])  # Ensure numerical stability
+    dt = min(dx**2 / (2 * alpha), t_cal[1] - t_cal[0])  # Ensure stability
     num_cal_t = int(1//dt)
     
     def rdiffusion_step(u, dx, dt, alpha, k, u0):
@@ -469,7 +415,7 @@ def _solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01):
         u_new[0] = u_new[-1] = 0  # Boundary conditions
         return u_new
     
-    # Generate initial conditions
+    # Generate initial condition and source term
     _, u0_cal = generate_random_gaussian_field(num_cal, length_scale)
     
     # Time evolution
@@ -477,13 +423,13 @@ def _solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01):
     for i in range(1, num_cal_t):
         u_cal[:, i] = rdiffusion_step(u_cal[:, i-1], dx, dt, alpha, k, u0_cal)
     
-    # Uniformly sample in time dimension, reduce to num_cal
+    # Sample the data to match num_cal
     u_cal_sampled = u_cal[:, ::max(1, num_cal_t//num_cal)][:, :num_cal]
     
     return u_cal_sampled, u0_cal
 
 def _solve_heat_pde(num_cal, length_scale, alpha=0.01):
-    """Solve heat conduction equation ∂u/∂t = α∇²u + u0(x)"""
+    """Solve heat equation ∂u/∂t = α∇²u + u0(x)."""
     x_cal = np.linspace(0, 1, num_cal)
     t_cal = np.linspace(0, 1, num_cal)
     
@@ -499,7 +445,7 @@ def _solve_heat_pde(num_cal, length_scale, alpha=0.01):
         u_new[0] = u_new[-1] = 0  # Boundary conditions
         return u_new
     
-    # Generate initial conditions and source term
+    # Generate initial condition and source term
     _, u0_cal = generate_random_gaussian_field(num_cal, length_scale)
     
     # Time evolution
@@ -511,13 +457,13 @@ def _solve_heat_pde(num_cal, length_scale, alpha=0.01):
     return u_cal, u0_cal
 
 def _solve_wave_pde(num_cal, length_scale, c=1.0):
-    """Solve wave equation ∂²u/∂t² = c²∇²u + u0(x,t)"""
+    """Solve wave equation ∂²u/∂t² = c²∇²u + u0(x,t)."""
     x_cal = np.linspace(0, 1, num_cal)
     t_cal = np.linspace(0, 1, num_cal)
     
     # Calculate time step parameters
     dx = x_cal[1] - x_cal[0]
-    dt = 0.5 * dx / abs(c)  # CFL condition
+    dt = 0.5 * dx / abs(c)  # CFL条件
     num_cal_t = int(1//dt)
     
     def wave_step(u_prev, u_curr, dx, dt, c, u0):
@@ -527,16 +473,16 @@ def _solve_wave_pde(num_cal, length_scale, c=1.0):
             u_new[i] = (2 * u_curr[i] - u_prev[i] + 
                        r * (u_curr[i+1] - 2*u_curr[i] + u_curr[i-1]) + 
                        dt**2 * u0[i])
-        u_new[0] = u_new[-1] = 0  # Boundary conditions
+        u_new[0] = u_new[-1] = 0  # 边界条件
         return u_new
     
-    # Generate initial conditions and source term
+    # Generate initial condition and source term
     _, u0_cal = generate_random_gaussian_field(num_cal, length_scale)
     
-    # Time evolution (requires initial conditions for two time steps)
+    # Time evolution
     u_cal = np.zeros((num_cal, num_cal_t))
     u_cal[:, 0] = u0_cal
-    u_cal[:, 1] = u0_cal * 0.9  # Simple second time step initial condition
+    u_cal[:, 1] = u0_cal * 0.9  # Initial velocity condition
     
     for i in range(2, num_cal_t):
         u_cal[:, i] = wave_step(u_cal[:, i-2], u_cal[:, i-1], dx, dt, c, u0_cal)
@@ -578,11 +524,6 @@ def generate_Custom_PDE_Operator_data(num_train, num_test, num_points, length_sc
                                      **custom_params):
     """
     Generate data for custom PDE operator problem.
-    
-    Args:
-        custom_pde_func: Custom PDE solving function, should return (u_cal, u0_cal)
-        custom_name: Custom PDE name
-        **custom_params: Custom PDE parameters
     """
     if custom_pde_func is None or custom_name is None:
         raise ValueError("Custom PDE requires both custom_pde_func and custom_name")
