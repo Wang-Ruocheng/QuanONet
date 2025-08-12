@@ -2,17 +2,25 @@
 """
 Universal PDE Operator QuanONet Training Script
 
-This script supports v1. RDiffusion: Reaction-diffusion equation (∂u/∂t = α∇²u + k*u² + u0(x))
+This script supports:
+1. RDiffusion: Reaction-diffusion equation (∂u/∂t = α∇²u + k*u² + u0(x))
 2. Heat: Heat conduction equation (∂u/∂t = α∇²u + u0(x))
 3. Wave: Wave equation (∂²u/∂t² = c²∇²u + u0(x,t))
-4. Custom: Custom PDE operator (user-defined PDE equations)
+4. Identity: Identity operator (u(x,t) = u0(x) for all t)
+5. Schrodinger: Schrödinger equation (iℏ∂ψ/∂t = -ℏ²/(2m)∇²ψ + V(x)ψ)
+6. Advection: Advection equation (∂u/∂t + c∇u = 0, with u0 as initial condition)
+7. Custom: Custom PDE operator (user-defined PDE equations)
 
 Usage:
 python train_PDE_quanonet.py --config configs/config_PDE.json --operator RDiffusion
+python train_PDE_quanonet.py --config configs/config_PDE.json --operator Advection
+nohup python -u train_PDE_quanonet.py --config configs/config_PDE.json --operator Schrodinger > training_Schrodinger.log 2>&1 &
 python train_PDE_quanonet.py --operator Custom --custom_pde "custom_equation" --custom_name "MyPDE"
 
 Custom PDE operator examples:
 - Reaction-diffusion: --custom_pde "reaction_rdiffusion" --custom_name "ReactionRDiffusion"
+- Schrödinger: --custom_pde "schrodinger" --custom_name "QuantumHarmonic"
+- Advection: --custom_pde "advection" --custom_name "AdvectionTransport"
 """
 
 import sys
@@ -32,6 +40,9 @@ from data_utils.data_generation import (
     generate_RDiffusion_Operator_data,
     generate_Heat_Operator_data,
     generate_Wave_Operator_data,
+    generate_Identity_Operator_data,
+    generate_Schrodinger_Operator_data,
+    generate_Advection_Operator_data,
     generate_Custom_PDE_Operator_data,
     PDE_SYSTEMS
 )
@@ -65,6 +76,9 @@ OPERATOR_TYPES = {
     'RDiffusion': generate_RDiffusion_Operator_data,
     'Heat': generate_Heat_Operator_data,
     'Wave': generate_Wave_Operator_data,
+    'Identity': generate_Identity_Operator_data,
+    'Schrodinger': generate_Schrodinger_Operator_data,
+    'Advection': generate_Advection_Operator_data,
     'Custom': 'custom'  # Special marker for custom PDE operators
 }
 
@@ -83,9 +97,15 @@ def parse_custom_pde_function(pde_string):
         "rdiffusion_custom": generate_RDiffusion_Operator_data,
         "heat_custom": generate_Heat_Operator_data,
         "wave_custom": generate_Wave_Operator_data,
+        "identity_custom": generate_Identity_Operator_data,
+        "schrodinger_custom": generate_Schrodinger_Operator_data,
+        "advection_custom": generate_Advection_Operator_data,
         "rdiffusion": generate_RDiffusion_Operator_data,
         "heat": generate_Heat_Operator_data,
-        "wave": generate_Wave_Operator_data
+        "wave": generate_Wave_Operator_data,
+        "identity": generate_Identity_Operator_data,
+        "schrodinger": generate_Schrodinger_Operator_data,
+        "advection": generate_Advection_Operator_data
     }
     
     pde_lower = pde_string.lower()
@@ -167,7 +187,11 @@ class PDEOperatorSolver:
                 "if_trainable_freq": False,
                 "batch_size": 32,
                 "validation_split": 0.2,
-                "random_seed": None  # Random seed, None means not set
+                "random_seed": None,  # Random seed, None means not set
+                # Schrödinger equation specific parameters
+                "hbar": 1.0,
+                "m": 1.0,
+                "sigma": 0.05
             }
             print("Using default configuration")
         
@@ -363,7 +387,8 @@ class PDEOperatorSolver:
                 'RDiffusion': 'RDiffusion operator (∂u/∂t = α∇²u + k*u² + u0(x))',
                 'Advection': 'Advection operator (∂u/∂t + c∇u = 0)',
                 'Heat': 'Heat operator (∂u/∂t = α∇²u + u0(x))',
-                'Wave': 'Wave operator (∂²u/∂t² = c²∇²u + u0(x,t))'
+                'Wave': 'Wave operator (∂²u/∂t² = c²∇²u + u0(x,t))',
+                'Schrodinger': 'Schrödinger operator (iℏ∂ψ/∂t = -ℏ²/(2m)∇²ψ + V(x)ψ)'
             }
             return descriptions.get(self.operator_type, f"{self.operator_type} PDE operator")
     
@@ -891,6 +916,14 @@ def main():
     parser.add_argument('--validation_split', type=float, help='Validation set proportion')
     parser.add_argument('--random_seed', type=int, help='Random seed for reproducible results')
     
+    # Schrödinger equation specific parameters
+    parser.add_argument('--hbar', type=float, help='Reduced Planck constant (for Schrödinger operator)')
+    parser.add_argument('--m', type=float, help='Particle mass (for Schrödinger operator)')
+    parser.add_argument('--sigma', type=float, help='Harmonic oscillator strength parameter (for Schrödinger operator)')
+    
+    # Advection equation specific parameters
+    parser.add_argument('--c', type=float, help='Advection velocity (for Advection operator)')
+    
     # Custom PDE operator parameters
     parser.add_argument('--custom_pde', type=str, default=None, 
                        help='Custom PDE function string (only when operator=Custom)')
@@ -942,6 +975,14 @@ def main():
     if args.random_seed is not None:
         print("Command line argument overrides random seed setting")
         solver.config['random_seed'] = args.random_seed
+    
+    # Schrödinger equation specific parameters
+    if args.hbar is not None:
+        solver.config['hbar'] = args.hbar
+    if args.m is not None:
+        solver.config['m'] = args.m
+    if args.sigma is not None:
+        solver.config['sigma'] = args.sigma
     
     # Uniformly set random seed (considering command line override and config file)
     final_seed = solver.config.get('random_seed', None)

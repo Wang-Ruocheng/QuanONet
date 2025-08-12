@@ -143,18 +143,31 @@ def RBF(x1, x2, params):
 
 
 def generate_random_gaussian_field(m, length_scale=0.2):
-    """Generate random Gaussian field using Gaussian process."""
+    """
+    Generate random Gaussian field using Gaussian process.
+    
+    Args:
+        m: Number of output points
+        length_scale: Length scale parameter for the RBF kernel
+    
+    Returns:
+        u_fn: Interpolation function
+        u: Sampled values at m points
+    """
     N = 1024
     jitter = 1e-10
     gp_params = (1.0, length_scale)
+
     X = np.linspace(0, 1, N)[:, None]
     K = RBF(X, X, gp_params)  # RBF is radial basis function (squared exponential kernel)
     L = np.linalg.cholesky(K + jitter * np.eye(N))
     key_train = ms.Tensor(np.random.randn(N)).asnumpy()
     gp_sample = np.dot(L, key_train)
+    
     u_fn = lambda x: np.interp(x, X.flatten(), gp_sample)
     x = np.linspace(0, 1, m)
     u = u_fn(x)
+    
     return u_fn, u
 
 # Predefined ODE systems
@@ -186,6 +199,18 @@ PDE_SYSTEMS = {
     'Wave': {
         'description': 'Wave equation: ∂²u/∂t² = c²∇²u + u0(x,t)',
         'default_params': {'c': 1.0}
+    },
+    'Identity': {
+        'description': 'Identity operator: u(x,t) = u0(x) for all t',
+        'default_params': {}
+    },
+    'Schrodinger': {
+        'description': 'Schrödinger equation: iℏ∂ψ/∂t = -ℏ²/(2m)∇²ψ + V(x)ψ',
+        'default_params': {'hbar': 1.0, 'm': 1.0, 'sigma': 0.05}
+    },
+    'Advection': {
+        'description': 'Advection equation: ∂u/∂t + c∇u = 0',
+        'default_params': {'c': 0.2}
     }
 }
 
@@ -224,7 +249,7 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test, num_points,
         save_interval = DATA_GENERATION_CONFIG['save_interval']  # Use configuration for save interval
         
         for i in tqdm(range(total_needed), desc=f"Generating {operator_name} Data"):
-            u0_fn, u0_cal_new = generate_random_gaussian_field(num_cal, length_scale)
+            u0_fn, u0_cal_new = generate_random_gaussian_field(num_cal, length_scale=length_scale)
             
             # Use the ODE function generator to create the ODE system
             ode_system = ode_func_generator(u0_fn)
@@ -316,6 +341,12 @@ def generate_PDE_Operator_data(pde_type, num_train, num_test, num_points,
             pde_solver = lambda: _solve_heat_pde(num_cal, length_scale, **merged_params)
         elif pde_type == 'Wave':
             pde_solver = lambda: _solve_wave_pde(num_cal, length_scale, **merged_params)
+        elif pde_type == 'Identity':
+            pde_solver = lambda: _solve_identity_pde(num_cal, length_scale, **merged_params)
+        elif pde_type == 'Schrodinger':
+            pde_solver = lambda: _solve_schrodinger_pde(num_cal, length_scale, **merged_params)
+        elif pde_type == 'Advection':
+            pde_solver = lambda: _solve_advection_pde(num_cal, length_scale, **merged_params)
         else:
             raise NotImplementedError(f"PDE solver for {pde_type} not implemented yet")
     else:
@@ -398,7 +429,7 @@ def generate_PDE_Operator_data(pde_type, num_train, num_test, num_points,
             ms.Tensor(t, ms.float32))
 
 
-def _solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01):
+def _solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01, u0_cal=None):
     """Solve rdiffusion PDE ∂u/∂t = α∇²u + k*u² + u0(x)"""
     x_cal = np.linspace(0, 1, num_cal)
     t_cal = np.linspace(0, 1, num_cal)
@@ -415,8 +446,9 @@ def _solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01):
         u_new[0] = u_new[-1] = 0  # Boundary conditions
         return u_new
     
-    # Generate initial condition and source term
-    _, u0_cal = generate_random_gaussian_field(num_cal, length_scale)
+    if u0_cal is None:
+        # Generate initial condition and source term
+        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
     
     # Time evolution
     u_cal = np.zeros((num_cal, num_cal_t))
@@ -428,7 +460,7 @@ def _solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01):
     
     return u_cal_sampled, u0_cal
 
-def _solve_heat_pde(num_cal, length_scale, alpha=0.01):
+def _solve_heat_pde(num_cal, length_scale, alpha=0.01, u0_cal=None):
     """Solve heat equation ∂u/∂t = α∇²u + u0(x)."""
     x_cal = np.linspace(0, 1, num_cal)
     t_cal = np.linspace(0, 1, num_cal)
@@ -445,8 +477,9 @@ def _solve_heat_pde(num_cal, length_scale, alpha=0.01):
         u_new[0] = u_new[-1] = 0  # Boundary conditions
         return u_new
     
-    # Generate initial condition and source term
-    _, u0_cal = generate_random_gaussian_field(num_cal, length_scale)
+    if u0_cal is None:
+        # Generate initial condition and source term
+        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
     
     # Time evolution
     u_cal = np.zeros((num_cal, num_cal_t))
@@ -456,7 +489,7 @@ def _solve_heat_pde(num_cal, length_scale, alpha=0.01):
     
     return u_cal, u0_cal
 
-def _solve_wave_pde(num_cal, length_scale, c=1.0):
+def _solve_wave_pde(num_cal, length_scale, c=1.0, u0_cal=None):
     """Solve wave equation ∂²u/∂t² = c²∇²u + u0(x,t)."""
     x_cal = np.linspace(0, 1, num_cal)
     t_cal = np.linspace(0, 1, num_cal)
@@ -476,8 +509,9 @@ def _solve_wave_pde(num_cal, length_scale, c=1.0):
         u_new[0] = u_new[-1] = 0  # 边界条件
         return u_new
     
-    # Generate initial condition and source term
-    _, u0_cal = generate_random_gaussian_field(num_cal, length_scale)
+    if u0_cal is None:
+        # Generate initial condition and source term
+        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
     
     # Time evolution
     u_cal = np.zeros((num_cal, num_cal_t))
@@ -488,6 +522,218 @@ def _solve_wave_pde(num_cal, length_scale, c=1.0):
         u_cal[:, i] = wave_step(u_cal[:, i-2], u_cal[:, i-1], dx, dt, c, u0_cal)
     
     return u_cal, u0_cal
+
+def _solve_identity_pde(num_cal, length_scale, u0_cal=None):
+    """Solve identity operator: u(x,t) = u0(x) for all t"""
+    # Generate initial condition
+    if u0_cal is None:
+        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
+
+    # For identity operator, u(x,t) = u0(x) for all t
+    # Create a 2D array where each time slice is identical to u0
+    u_cal = np.tile(u0_cal[:, np.newaxis], (1, num_cal))
+    
+    return u_cal, u0_cal
+
+def _solve_advection_pde(num_cal, length_scale, c=1.0, u0_cal=None):
+    """
+    Solve advection equation: ∂u/∂t + c∇u = 0
+    使用upwind有限差分方法求解对流方程
+    将输入函数u0作为t=0的初始条件
+    
+    Args:
+        num_cal: 计算网格点数
+        length_scale: 初始条件的长度尺度
+        c: 对流速度 (默认=1.0)
+    
+    Returns:
+        u_cal: 解 u(x,t), shape (num_cal, num_cal)
+        u0_cal: 初始条件 u0(x), shape (num_cal,)
+    """
+    # 空间网格设置
+    x_cal = np.linspace(0, 1, num_cal)
+    dx = x_cal[1] - x_cal[0]
+    
+    # 时间网格设置
+    t_final = 1.0
+    dt = 0.8 * dx / abs(c) if c != 0 else 0.01  # CFL条件确保稳定性
+    num_t = int(t_final / dt)
+    
+    if u0_cal is None:
+        # 生成初始条件 u0(x)
+        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
+
+    # 时间演化数组
+    u_cal = np.zeros((num_cal, num_t))
+    u_cal[:, 0] = u0_cal  # 设置初始条件
+    
+    # 对流方程求解：∂u/∂t + c∇u = 0
+    # 使用upwind有限差分格式
+    for j in range(1, num_t):
+        u_prev = u_cal[:, j-1].copy()
+        u_new = np.zeros_like(u_prev)
+        
+        if c > 0:
+            # 正向对流，使用后向差分
+            for i in range(num_cal):
+                if i == 0:
+                    # 周期性边界条件
+                    u_new[i] = u_prev[i] - c * dt / dx * (u_prev[i] - u_prev[-1])
+                else:
+                    u_new[i] = u_prev[i] - c * dt / dx * (u_prev[i] - u_prev[i-1])
+        elif c < 0:
+            # 负向对流，使用前向差分
+            for i in range(num_cal):
+                if i == num_cal - 1:
+                    # 周期性边界条件
+                    u_new[i] = u_prev[i] - c * dt / dx * (u_prev[0] - u_prev[i])
+                else:
+                    u_new[i] = u_prev[i] - c * dt / dx * (u_prev[i+1] - u_prev[i])
+        else:
+            # c = 0，没有对流
+            u_new = u_prev
+        
+        u_cal[:, j] = u_new
+    
+    # 对时间维进行下采样以匹配所需的网格大小
+    if num_t > num_cal:
+        # 下采样到num_cal个时间点
+        time_indices = np.linspace(0, num_t-1, num_cal, dtype=int)
+        u_cal_sampled = u_cal[:, time_indices]
+    else:
+        # 如果时间点不够，进行插值
+        from scipy.interpolate import interp1d
+        t_old = np.linspace(0, 1, num_t)
+        t_new = np.linspace(0, 1, num_cal)
+        u_cal_sampled = np.zeros((num_cal, num_cal))
+        for i in range(num_cal):
+            interp_func = interp1d(t_old, u_cal[i, :], kind='linear', 
+                                  bounds_error=False, fill_value='extrapolate')
+            u_cal_sampled[i, :] = interp_func(t_new)
+    
+    return u_cal_sampled, u0_cal
+
+def _solve_schrodinger_pde(num_cal, length_scale, hbar=1.0, m=10.0, sigma=0.05, u0_cal=None):
+    """
+    Solve Schrödinger equation: iℏ∂ψ/∂t = -ℏ²/(2m)∇²ψ + V(x)ψ
+    使用改进的Crank-Nicolson有限差分方法求解薛定谔方程
+    在谐振子势下计算随机初始波函数的时间演化
+    
+    Args:
+        num_cal: 计算网格点数
+        length_scale: 初始波函数的长度尺度
+        hbar: 约化普朗克常数 (默认=1)
+        m: 粒子质量 (默认=1)
+        sigma: 谐振子势的强度参数 (默认=0.05)
+    
+    Returns:
+        u_cal: 波函数概率密度 |ψ|², shape (num_cal, num_cal)
+        u0_cal: 初始波函数概率密度 |ψ₀|², shape (num_cal,)
+    """
+    # 空间网格设置
+    L = 1.0
+    x_cal = np.linspace(0, L, num_cal)
+    dx = x_cal[1] - x_cal[0]
+    
+    # 时间参数 - 使用更短的时间和更多步数确保稳定性
+    t_final = 1  # 适中的演化时间
+    num_t = num_cal  # 时间步数与空间网格一致
+    dt = t_final / num_t
+    
+    # 检查CFL条件以确保数值稳定性
+    # cfl_condition = hbar * dt / (m * dx**2)
+    # if cfl_condition > 0.5:
+    #     # 调整时间步长以满足CFL条件
+    #     dt = 0.5 * m * dx**2 / hbar
+    #     num_t = int(t_final / dt)
+    #     print(f"Warning: Adjusted dt={dt:.6f} to satisfy CFL condition")
+    
+    # 生成谐振子势能函数 V(x) = (1/2)mω²(x-x₀)²
+    omega = sigma  # 谐振子频率，由sigma参数控制强度
+    x0_potential = 0.5    # 势阱中心
+    V = 0.5 * m * (omega**2) * (x_cal - x0_potential)**2
+    
+    if u0_cal is None:
+        # 随机生成初始波函数（使用高斯过程）
+        _, psi_real = generate_random_gaussian_field(num_cal, length_scale=length_scale)
+    
+    # 构造复数波函数并施加边界条件
+    psi = psi_real
+    psi[0] = psi[-1] = 0.0  # 边界条件：波函数在边界为零
+    
+    # 记录初始波函数的概率密度
+    u0_cal = np.abs(psi)**2
+    
+    # Crank-Nicolson系数 - 修正的稳定公式
+    alpha = 1j * hbar * dt / (4 * m * dx**2)  # 动能项系数
+    
+    # 构建矩阵
+    A = np.zeros((num_cal, num_cal), dtype=complex)
+    B = np.zeros((num_cal, num_cal), dtype=complex)
+    
+    for i in range(num_cal):
+        if i == 0 or i == num_cal - 1:
+            # 边界条件: psi = 0
+            A[i, i] = 1.0
+            B[i, i] = 0.0
+        else:
+            # 势能项系数
+            beta_i = 1j * dt * V[i] / (2 * hbar)
+            
+            # A矩阵 (左侧): (1 + i*dt*H/2)*psi^(n+1)
+            A[i, i-1] = alpha
+            A[i, i] = 1.0 - 2*alpha + beta_i
+            A[i, i+1] = alpha
+            
+            # B矩阵 (右侧): (1 - i*dt*H/2)*psi^n
+            B[i, i-1] = -alpha
+            B[i, i] = 1.0 + 2*alpha - beta_i
+            B[i, i+1] = -alpha
+    
+    # 时间演化
+    psi_t = np.zeros((num_cal, num_t), dtype=complex)
+    psi_t[:, 0] = psi
+    
+    # 导入scipy.linalg.solve以获得更好的数值稳定性
+    from scipy.linalg import solve
+    
+    for j in range(1, num_t):
+        rhs = B @ psi
+        rhs[0] = rhs[-1] = 0.0  # 在右端强制边界条件
+        
+        try:
+            psi = solve(A, rhs)
+            psi[0] = psi[-1] = 0.0  # 强制边界条件
+            
+            # 更严格的数值稳定性检查
+            norm = np.sqrt(np.trapz(np.abs(psi)**2, x_cal))
+            max_val = np.max(np.abs(psi))
+            
+            # 检查是否出现NaN或inf
+            if np.any(np.isnan(psi)) or np.any(np.isinf(psi)):
+                print(f"Warning: NaN/Inf detected at t={j*dt:.4f}")
+                break
+            
+            # # 检查数值范围
+            # if norm > 1e-10 and norm < 10.0 and max_val < 100.0:
+            #     # 可选择性归一化，仅在偏差较大时
+            #     if abs(norm - 1.0) > 0.2:
+            #         psi = psi / norm
+            # else:
+            #     # 数值不稳定，停止演化
+            #     print(f"Warning: Numerical instability at t={j*dt:.4f}, norm={norm:.4f}, max_val={max_val:.4f}")
+            #     break
+                
+        except Exception as e:
+            print(f"Warning: Failed to solve linear system at t={j*dt:.4f}: {e}")
+            break
+        
+        psi_t[:, j] = psi
+    
+    # 返回概率密度 |ψ|²
+    u_cal_prob = np.abs(psi_t)**2
+    
+    return u_cal_prob, u0_cal
 
 def generate_RDiffusion_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
                                      k=0.01, alpha=0.01, num_cal=100):
@@ -514,6 +760,63 @@ def generate_Wave_Operator_data(num_train, num_test, num_points, length_scale=0.
     """Generate data for wave equation: ∂²u/∂t² = c²∇²u + u0(x,t)."""
     return generate_PDE_Operator_data(
         'Wave', num_train, num_test, num_points,
+        length_scale=length_scale, num_cal=num_cal,
+        c=c
+    )
+
+
+def generate_Identity_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
+                                   num_cal=100):
+    """Generate data for identity operator: u(x,t) = u0(x) for all t."""
+    return generate_PDE_Operator_data(
+        'Identity', num_train, num_test, num_points,
+        length_scale=length_scale, num_cal=num_cal
+    )
+
+
+def generate_Schrodinger_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
+                                      num_cal=100, hbar=1.0, m=1.0, sigma=0.05):
+    """
+    Generate data for Schrödinger operator: iℏ∂ψ/∂t = -ℏ²/(2m)∇²ψ + V(x)ψ
+    
+    Args:
+        num_train: 训练样本数
+        num_test: 测试样本数  
+        num_points: 网格点数
+        length_scale: 势能函数的长度尺度
+        num_cal: 计算网格分辨率
+        hbar: 约化普朗克常数
+        m: 粒子质量
+        sigma: 初始高斯波包宽度
+    
+    Returns:
+        训练和测试数据集
+    """
+    return generate_PDE_Operator_data(
+        'Schrodinger', num_train, num_test, num_points,
+        length_scale=length_scale, num_cal=num_cal,
+        hbar=hbar, m=m, sigma=sigma
+    )
+
+
+def generate_Advection_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
+                                    num_cal=100, c=1.0):
+    """
+    Generate data for advection operator: ∂u/∂t + c∇u = 0
+    
+    Args:
+        num_train: 训练样本数
+        num_test: 测试样本数
+        num_points: 网格点数
+        length_scale: 初始条件的长度尺度
+        num_cal: 计算网格分辨率
+        c: 对流速度
+    
+    Returns:
+        训练和测试数据集，其中u0作为t=0的初始条件
+    """
+    return generate_PDE_Operator_data(
+        'Advection', num_train, num_test, num_points,
         length_scale=length_scale, num_cal=num_cal,
         c=c
     )
