@@ -133,4 +133,4 @@ Mapping from boundary conditions:
 
 ## 🎯 Visualization
 
-visualize_ODE_results.ipynb and visualize_PDE_results.ipynb provide a visualization of the model results, which are stored in visualization_results.
+`visualize_ODE_results.ipynb` and `visualize_PDE_results.ipynb` provide a visualization of the model results, which are stored in visualization_results.
