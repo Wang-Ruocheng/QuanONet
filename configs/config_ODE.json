@@ -5,7 +5,7 @@
   "// Data generation parameters": "",
   "num_train": 1000,
   "num_test": 1000,
-  "num_sensors": 100,
+  "num_points": 100,
   "train_sample_num": 10,
   "test_sample_num": 100,
   "length_scale": 0.2,
@@ -30,7 +30,6 @@
   "patience": 20,
   
   "// Operator-specific parameters": "",
-  "operator_type": "Inverse",
   "custom_name": null,
   "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode"
 }
