@@ -23,7 +23,7 @@ class QuanONet(nn.Cell):
     """Quantum Operator Network with optional trainable frequency support."""
     
     def __init__(self, num_qubits, branch_input_size, trunk_input_size, net_size, 
-                 ham, scale_coeff=1, noise_adder=None, if_trainable_freq=False):
+                 ham, scale_coeff=1, if_trainable_freq=False):
         super(QuanONet, self).__init__()
         (self.branch_depth, self.branch_linear_depth, 
          self.trunk_depth, self.trunk_linear_depth) = net_size
@@ -31,7 +31,7 @@ class QuanONet(nn.Cell):
         self.if_trainable_freq = if_trainable_freq
         
         QuanONet_circuit = QuanONet_build(
-            num_qubits, branch_input_size, trunk_input_size, net_size, noise_adder
+            num_qubits, branch_input_size, trunk_input_size, net_size
         )
         self.circuit = QuanONet_circuit
         self.QuanONet = circuit2network(QuanONet_circuit, ham)

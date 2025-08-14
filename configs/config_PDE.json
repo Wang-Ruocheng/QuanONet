@@ -1,11 +1,11 @@
 {
   "// Universal PDE operator configuration file": "config_PDE.json",
-  "// Supported operator types": ["RDiffusion", "Heat", "Wave", "Custom"],
   
   "// Data generation parameters": "",
   "num_train": 1000,
   "num_test": 1000,
-  "num_sensors": 100,
+  "num_points": 100,
+  "num_points_0": 100,
   "train_sample_num": 100,
   "test_sample_num": 1000,
   "length_scale": 0.2,
@@ -27,10 +27,5 @@
   "target_error": 1e-4,
   "batch_size": 100,
   "validation_split": 0,
-  "patience": 20,
-  
-  "// Operator-specific parameters": "",
-  "operator_type": "RDiffusion",
-  "custom_name": null,
-  "custom_pde_description": "Only used when operator_type=Custom, specify via command line --custom_pde"
+  "patience": 20
 }

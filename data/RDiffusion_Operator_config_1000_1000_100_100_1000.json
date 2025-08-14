@@ -9,7 +9,7 @@
   "// Data generation parameters": "",
   "num_train": 1000,
   "num_test": 1000,
-  "num_sensors": 100,
+  "num_points": 100,
   "train_sample_num": 100,
   "test_sample_num": 1000,
   "length_scale": 0.2,

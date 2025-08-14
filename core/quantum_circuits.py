@@ -84,8 +84,7 @@ def add_parameter(num_list, num_para, num):
     return num_list, num_para
 
 
-def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size, 
-                   noise_adder=None, if_print_circuit=False):
+def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size, if_print_circuit=False):
     """Build quantum circuit for QuanONet."""
     circuit = Circuit()
     (branch_depth, branch_linear_depth, trunk_depth, trunk_linear_depth) = net_size
@@ -123,9 +122,6 @@ def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size,
     
     if if_print_circuit:
         circuit.summary()
-    
-    if noise_adder is not None:
-        circuit = noise_adder(circuit)
     
     return circuit   
 
