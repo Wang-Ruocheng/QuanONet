@@ -1,0 +1,80 @@
+{
+  "MSE": 0.005634705248539103,
+  "MAE": 0.03980223206467926,
+  "Max_Error": 2.4046614170074463,
+  "config": {
+    "// Data generation parameters": "",
+    "num_train": 1000,
+    "num_test": 1000,
+    "num_points": 25,
+    "num_points_0": 100,
+    "train_sample_num": 100,
+    "test_sample_num": 500,
+    "length_scale": 0.2,
+    "num_cal": 25,
+    "// Model parameters": "",
+    "branch_input_size": 100,
+    "trunk_input_size": 2,
+    "output_size": 1,
+    "num_qubits": 5,
+    "net_size": [
+      64,
+      2
+    ],
+    "scale_coeff": 0.1,
+    "model_type": "HEAQNN",
+    "if_trainable_freq": true,
+    "// Training parameters": "",
+    "learning_rate": 0.0001,
+    "num_epochs": 100,
+    "target_error": 0.0001,
+    "batch_size": 100,
+    "validation_split": 0,
+    "patience": 20,
+    "// Operator-specific parameters": "",
+    "operator_type": "Darcy",
+    "random_seed": 2
+  },
+  "training_history": [
+    {
+      "epoch": 0,
+      "train_loss": 0.33793984532356264
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.03433677535317838
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.014842056600842625
+    },
+    {
+      "epoch": 30,
+      "train_loss": 0.010543721746420489
+    },
+    {
+      "epoch": 40,
+      "train_loss": 0.008642794091021642
+    },
+    {
+      "epoch": 50,
+      "train_loss": 0.007577351151267067
+    },
+    {
+      "epoch": 60,
+      "train_loss": 0.006829790297080762
+    },
+    {
+      "epoch": 70,
+      "train_loss": 0.006264961683191359
+    },
+    {
+      "epoch": 80,
+      "train_loss": 0.005829244450898841
+    },
+    {
+      "epoch": 90,
+      "train_loss": 0.005537386020645499
+    }
+  ]
+}

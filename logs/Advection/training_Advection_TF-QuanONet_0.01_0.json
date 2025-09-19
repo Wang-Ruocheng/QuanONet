@@ -1,0 +1,83 @@
+{
+  "MSE": 0.08876948070838116,
+  "MAE": 0.22444795537516474,
+  "Max_Error": 2.5601441860198975,
+  "config": {
+    "// Universal PDE operator configuration file": "config_PDE.json",
+    "// Data generation parameters": "",
+    "num_train": 1000,
+    "num_test": 1000,
+    "num_points": 100,
+    "num_points_0": 100,
+    "train_sample_num": 100,
+    "test_sample_num": 1000,
+    "length_scale": 0.2,
+    "num_cal": 100,
+    "// Model parameters": "",
+    "branch_input_size": 100,
+    "trunk_input_size": 2,
+    "output_size": 1,
+    "num_qubits": 5,
+    "net_size": [
+      40,
+      2,
+      20,
+      2
+    ],
+    "scale_coeff": 0.01,
+    "model_type": "QuanONet",
+    "if_trainable_freq": true,
+    "// Training parameters": "",
+    "learning_rate": 0.0001,
+    "num_epochs": 100,
+    "target_error": 0.0001,
+    "batch_size": 100,
+    "validation_split": 0,
+    "patience": 20,
+    "// Operator-specific parameters": "",
+    "operator_type": "Advection",
+    "random_seed": 0
+  },
+  "training_history": [
+    {
+      "epoch": 0,
+      "train_loss": 0.5584706749916076
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.533826518625021
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.5332735332548618
+    },
+    {
+      "epoch": 30,
+      "train_loss": 0.5326266490519047
+    },
+    {
+      "epoch": 40,
+      "train_loss": 0.516060355335474
+    },
+    {
+      "epoch": 50,
+      "train_loss": 0.1860581194907427
+    },
+    {
+      "epoch": 60,
+      "train_loss": 0.09659812666475773
+    },
+    {
+      "epoch": 70,
+      "train_loss": 0.09361043929681181
+    },
+    {
+      "epoch": 80,
+      "train_loss": 0.09149286615103483
+    },
+    {
+      "epoch": 90,
+      "train_loss": 0.0888795060403645
+    }
+  ]
+}

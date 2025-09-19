@@ -29,5 +29,7 @@
   "target_error": 0.0001,
   "batch_size": 100,
   "validation_split": 0,
-  "patience": 20
+  "patience": 20,
+  "// Operator-specific parameters": "",
+  "operator_type": "Burgers"
 }

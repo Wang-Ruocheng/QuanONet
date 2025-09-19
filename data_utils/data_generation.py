@@ -146,8 +146,8 @@ ODE_SYSTEMS = {
         'ode_func': lambda u0_fn: lambda x, u: u + u0_fn(x)
     },
     'Nonlinear': {
-        'description': 'Nonlinear operator problem: du/dx = u - u0²(x)',
-        'ode_func': lambda u0_fn: lambda x, u: u - u0_fn(x) ** 2
+        'description': 'Nonlinear operator problem: du/dx = u0(x) - u²',
+        'ode_func': lambda u0_fn: lambda x, u: u - u0_fn(x)**2
     }
 }
 
@@ -212,9 +212,9 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test, num_points,
         save_data_with_backup(data_path, u_cals, u0_cals, description)
         data = np.load(data_path, allow_pickle=True)
     
-    # Ensure data is loaded
-    u_cals = data['u_cals']
-    u0_cals = data['u0_cals']
+        # Ensure data is loaded
+        u_cals = data['u_cals']
+        u0_cals = data['u0_cals']
     
     # Interpolate to target grid
     x = np.linspace(0, 1, num_points)
@@ -252,12 +252,12 @@ def generate_Homogeneous_Operator_data(num_train, num_test, num_points, length_s
                                      length_scale, num_cal)
 
 def generate_PDE_Operator_data(operator_type, num_train, num_test, num_points, num_points_0=None, 
-                              length_scale=0.2, num_cal=100):
+                              length_scale=0.2):
     """
     Generate data for PDE operator problems.
     """
     # Data path
-    data_path = f'data/{operator_type}_Operator_data/{operator_type}_Operator_data_{num_cal}_1.npz'
+    data_path = f'data/{operator_type}_Operator_data/{operator_type}_Operator_data_{num_points}_1.npz'
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
     
     # Try to load existing data, supporting recovery from backup
@@ -272,7 +272,7 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test, num_points, n
         for i in tqdm(range(total_needed), desc=f"Generating {operator_type} Data"):
             func_operator_type = f"solve_{operator_type.lower()}_pde"
             solve_func = globals()[func_operator_type]
-            u_cal_new, u0_cal_new = solve_func(num_cal, length_scale=length_scale)
+            u_cal_new, u0_cal_new = solve_func(num_points, length_scale=length_scale)
             u_cals.append(u_cal_new)
             u0_cals.append(u0_cal_new)
             
@@ -330,75 +330,3 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test, num_points, n
             ms.Tensor(np.array(us)[test_index], ms.float32), 
             ms.Tensor(x, ms.float32), 
             ms.Tensor(t, ms.float32))
-
-# def generate_Burgers_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
-#                                nu=0.02, num_cal=100):
-#     """Generate data for burgers equation: ∂u/∂t + u∂u/∂x = ν∂²u/∂x² + u0(x,t)."""
-#     return generate_PDE_Operator_data(
-#         'Burgers', num_train, num_test, num_points,
-#         length_scale=length_scale, num_cal=num_cal,
-#         nu=nu
-#     )
-
-# def generate_Identity_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
-#                                    num_cal=100):
-#     """Generate data for identity operator: u(x,t) = u0(x) for all t."""
-#     return generate_PDE_Operator_data(
-#         'Identity', num_train, num_test, num_points,
-#         length_scale=length_scale, num_cal=num_cal
-#     )
-
-# def generate_Schrodinger_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
-#                                       num_cal=100, hbar=1.0, m=1.0, sigma=0.05):
-#     """
-#     Generate data for Schrödinger operator: iℏ∂ψ/∂t = -ℏ²/(2m)∇²ψ + V(x)ψ
-    
-#     Args:
-#         num_train: 训练样本数
-#         num_test: 测试样本数  
-#         num_points: 网格点数
-#         length_scale: 势能函数的长度尺度
-#         num_cal: 计算网格分辨率
-#         hbar: 约化普朗克常数
-#         m: 粒子质量
-#         sigma: 初始高斯波包宽度
-    
-#     Returns:
-#         训练和测试数据集
-#     """
-#     return generate_PDE_Operator_data(
-#         'Schrodinger', num_train, num_test, num_points,
-#         length_scale=length_scale, num_cal=num_cal,
-#         hbar=hbar, m=m, sigma=sigma
-#     )
-
-# def generate_Advection_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
-#                                     num_cal=100, c=1.0):
-#     """
-#     Generate data for advection operator: ∂u/∂t + c∇u = 0
-    
-#     Args:
-#         num_train: 训练样本数
-#         num_test: 测试样本数
-#         num_points: 网格点数
-#         length_scale: 初始条件的长度尺度
-#         num_cal: 计算网格分辨率
-#         c: 对流速度
-    
-#     Returns:
-#         训练和测试数据集，其中u0作为t=0的初始条件
-#     """
-#     return generate_PDE_Operator_data(
-#         'Advection', num_train, num_test, num_points,
-#         length_scale=length_scale, num_cal=num_cal,
-#         c=c
-#     )
-
-# def generate_Darcy_Operator_data(num_train, num_test, num_points, length_scale=0.2, 
-#                                  num_cal=25, K=0.1, f=-1.0):
-#     """Generate data for Darcy's law: -∇p = μ/κ u + f(x,y)"""
-#     return generate_PDE_Operator_data(
-#         'Darcy', num_train, num_test, num_points,
-#         length_scale=length_scale, num_cal=num_cal,
-#         K=K, f=f, num_points_0=4*num_points
-#     )

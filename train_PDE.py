@@ -12,10 +12,11 @@ This script supports:
 
 Usage:
 python train_PDE.py --operator RDiffusion
-python train_PDE.py --operator Advection
-nohup python -u train_PDE.py --operator Burgers > logs/training_Burgers.log 2>&1 &
-nohup python -u train_PDE.py --config configs/config_Darcy.json --operator Darcy > logs/training_Darcy.log 2>&1 &
-
+python train_PDE.py --operator Advection --model_type QuanONet --net_size 40 2 20 2 --scale_coeff 0.001 --random_seed 0 --if_trainable_freq true
+nohup python -u train_PDE.py --operator Burgers > training_Burgers.log 2>&1 &
+nohup python -u train_PDE.py --config configs/config_Darcy.json --operator Darcy > training_Darcy.log 2>&1 &
+CUDA_VISIBLE_DEVICES=2 nohup python -u train_PDE.py --operator RDiffusion --scale_coeff 0.1 --random_seed 0 --if_trainable_freq false --net_size 40 2 40 2 > training_RDiffusion_QuanONet_0.1_0.log 2>&1 &
+nohup python -u train_PDE.py --operator RDiffusion --model_type HEAQNN --scale_coeff 0.001 --random_seed 0 --if_trainable_freq false --net_size 40 2 > training_RDiffusion_HEAQNN_0.001_0.log 2>&1 &
 !!! Note that Darcy operator requires the unique config file, due to the resolution difference between u0 and u!!!
 """
 
@@ -35,7 +36,7 @@ from datetime import datetime
 from data_utils.data_generation import generate_PDE_Operator_data
 from data_utils import PDE_SYSTEMS
 from data_utils.data_processing import PDE_encode
-from core.models import QuanONet, HEAQNN
+from core.models import QuanONet, HEAQNN, FNN, DeepONet
 from core.quantum_circuits import generate_simple_hamiltonian
 from utils.utils import count_parameters
 
@@ -75,6 +76,7 @@ class PDEOperatorSolver:
 
         self.operator_type = operator_type
         self.config = self.load_config(config_file)
+        self.config['operator_type'] = operator_type
         self.model = None
         self.data = {}
         self.training_history = []
@@ -86,11 +88,10 @@ class PDEOperatorSolver:
         self.saved_checkpoints = []
         
         # Create necessary directories
-        os.makedirs("data", exist_ok=True)
-        os.makedirs("checkpoints", exist_ok=True)
-        os.makedirs("logs", exist_ok=True)
+        os.makedirs("/mnt/nas-new/home/yange/wangruocheng/QON/data", exist_ok=True)
+        os.makedirs("/mnt/nas-new/home/yange/wangruocheng/QON/checkpoints", exist_ok=True)
+        os.makedirs("/mnt/nas-new/home/yange/wangruocheng/QON/logs", exist_ok=True)
 
-        # 构造数据生成器
         self.data_generator = lambda *args, **kwargs: generate_PDE_Operator_data(
             self.operator_type, *args, **kwargs, num_points_0=self.config['num_points_0']
         )
@@ -143,7 +144,10 @@ class PDEOperatorSolver:
         operator_name = self.operator_type
         
         # Data file path - includes all parameters affecting data size
-        data_file = f"data/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
+        log_subdir = "/mnt/nas-new/home/yange/wangruocheng/QON/logs"
+
+        data_file = os.path.join(log_subdir, f"{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz")
+        # _{self.config['if_trainable_freq']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}
         
         if os.path.exists(data_file):
             print(f"Loading existing data from {data_file}...")
@@ -279,7 +283,7 @@ class PDEOperatorSolver:
         # Save data
         operator_name = self.operator_type
             
-        data_file = f"data/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
+        data_file = f"/mnt/nas-new/home/yange/wangruocheng/QON/data/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
         
         print(f"Saving data to {data_file}...")
         np.savez_compressed(
@@ -295,7 +299,7 @@ class PDEOperatorSolver:
         )
         
         # Also save configuration
-        config_file = f"data/{operator_name}_Operator_config_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.json"
+        config_file = f"/mnt/nas-new/home/yange/wangruocheng/QON/data/{operator_name}_Operator_config_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.json"
         with open(config_file, 'w') as f:
             json.dump(self.config, f, indent=2)
         
@@ -319,7 +323,7 @@ class PDEOperatorSolver:
         print("\n=== Model Creation ===")
         
         # Create Hamiltonian
-        ham = generate_simple_hamiltonian(self.config['num_qubits'])
+        ham = generate_simple_hamiltonian(self.config['num_qubits'], lower_bound=-5, upper_bound=5)
         print(f"Using Hamiltonian: {ham}")
         # Get input dimensions
         if 'train_branch_input' in self.data:
@@ -354,14 +358,28 @@ class PDEOperatorSolver:
                 scale_coeff=self.config['scale_coeff'],
                 if_trainable_freq=if_trainable_freq
             )
+        elif model_type == 'FNN':
+            self.model = FNN(
+                branch_input_size=branch_input_size,
+                trunk_input_size=trunk_input_size,
+                output_size = 1,
+                net_size=tuple(self.config['net_size']),
+            )
+        elif model_type == 'DeepONet':
+            self.model = DeepONet(
+                branch_input_size=branch_input_size,
+                trunk_input_size=trunk_input_size,
+                net_size=tuple(self.config['net_size']),
+            )
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
         
         # Calculate parameter count
         total_params = count_parameters(self.model)
         print(f"Model type: {model_type}")
-        print(f"Circuit parameters: ")
-        self.model.circuit.summary()
+        if hasattr(self.model, 'circuit'):
+            print(f"Circuit parameters: ")
+            self.model.circuit.summary()
         print(f"Trainable frequency: {'Enabled' if if_trainable_freq else 'Disabled'}")
         print(f"Network structure: {self.config['net_size']}")
         print(f"Trainable parameters: {total_params:,}")
@@ -623,9 +641,15 @@ class PDEOperatorSolver:
         if suffix == "best" and overwrite:
             # Best models: fixed filename, overwrite save
             operator_name = self.operator_type
-            filename = f"best_{operator_name}_{self.config['model_type']}.ckpt"
-            filepath = os.path.join("checkpoints", filename)
-            
+            if self.config['if_trainable_freq']:
+                filename = f"best_{operator_name}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}.ckpt"
+            else:
+                filename = f"best_{operator_name}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}.ckpt"
+
+            # subdir = os.path.join("checkpoints", operator_name)
+            subdir = os.path.join("/mnt/nas-new/home/yange/wangruocheng/QON/checkpoints", operator_name)
+            os.makedirs(subdir, exist_ok=True)
+            filepath = os.path.join(subdir, filename)
             # Delete old best model file
             if self.best_model_path and os.path.exists(self.best_model_path):
                 try:
@@ -643,8 +667,10 @@ class PDEOperatorSolver:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             operator_name = self.operator_type
             filename = f"{operator_name}_{self.config['model_type']}_{suffix}_{timestamp}.ckpt"
-            filepath = os.path.join("checkpoints", filename)
-            
+            subdir = os.path.join("/mnt/nas-new/home/yange/wangruocheng/QON/checkpoints", operator_name)
+            os.makedirs(subdir, exist_ok=True)
+            filepath = os.path.join(subdir, filename)
+
             save_checkpoint(self.model, filepath)
             # print(f"    Saved model: {os.path.basename(filepath)}")
             
@@ -666,7 +692,7 @@ class PDEOperatorSolver:
         """Print saved models summary"""
         print(f"\n=== Saved Model Summary ===")
         
-        checkpoint_dir = "checkpoints"
+        checkpoint_dir = "/mnt/nas-new/home/yange/wangruocheng/QON/checkpoints"
         if not os.path.exists(checkpoint_dir):
             print("No saved models")
             return
@@ -771,7 +797,13 @@ class PDEOperatorSolver:
             print(f"  {metric}: {value:.6f}")
         
         # Save evaluation results
-        results_file = f"logs/evaluation_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        log_subdir = os.path.join("/mnt/nas-new/home/yange/wangruocheng/QON/logs", self.operator_type)
+        os.makedirs(log_subdir, exist_ok=True)
+        # results_file = f"logs/evaluation_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        # if self.config['if_trainable_freq']:
+        #     results_file = os.path.join(log_subdir, f"training_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}.json")
+        # else:
+        #     results_file = os.path.join(log_subdir, f"training_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}.json")
         results['config'] = self.config
         results['training_history'] = self.training_history
         
@@ -794,10 +826,19 @@ class PDEOperatorSolver:
             # 2. Model creation
             self.create_model()
             
-            # 3. Model training
-            final_loss = self.train_model()
+            # # 3. Model training
+            # final_loss = self.train_model()
             
             # 4. Model evaluation
+            if self.config['if_trainable_freq']:
+                self.best_model_path = f"checkpoints/{self.operator_type}/best_TF-{self.operator_type}_{self.config['model_type']}_{self.config['scale_coeff']}_seed{self.config['random_seed']}.ckpt"
+            else:
+                self.best_model_path = f"checkpoints/{self.operator_type}/best_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_seed{self.config['random_seed']}.ckpt"
+            print(f"Best model path set to: {self.best_model_path}")
+            best_checkpoint = self.best_model_path
+            if best_checkpoint and os.path.exists(best_checkpoint):
+                print(f"\nLoading best model from {best_checkpoint} for final evaluation...")
+                load_checkpoint(best_checkpoint, self.model)
             results = self.evaluate_model()
             
             print(f"\n=== Complete Pipeline Execution Successful ===")
@@ -815,25 +856,19 @@ class PDEOperatorSolver:
 def main():
     """Main function"""
     parser = argparse.ArgumentParser(description='PDE operator solving')
-    parser.add_argument('--operator', type=str, default='RDiffusion', help='PDE Operator Type')
+    parser.add_argument('--operator', type=str, help='PDE Operator Type')
     parser.add_argument('--config', type=str, default='configs/config_PDE.json', help='Configuration file path')
-    parser.add_argument('--model_type', type=str, default='QuanONet', 
-                       choices=['QuanONet', 'HEAQNN'], help='Model type')
+    parser.add_argument('--model_type', type=str, choices=['QuanONet', 'HEAQNN', 'FNN', 'DeepONet'], help='Model type')
+    parser.add_argument('--net_size', type=int, nargs='+', help='Network size')
     parser.add_argument('--num_qubits', type=int, help='Number of qubits')
     parser.add_argument('--learning_rate', type=float, help='Learning rate')
     parser.add_argument('--num_epochs', type=int, help='Number of training epochs')
     parser.add_argument('--batch_size', type=int, help='Batch size')
     parser.add_argument('--validation_split', type=float, help='Validation set proportion')
     parser.add_argument('--random_seed', type=int, help='Random seed for reproducible results')
-    
-    # Schrödinger equation specific parameters
-    parser.add_argument('--hbar', type=float, help='Reduced Planck constant (for Schrödinger operator)')
-    parser.add_argument('--m', type=float, help='Particle mass (for Schrödinger operator)')
-    parser.add_argument('--sigma', type=float, help='Harmonic oscillator strength parameter (for Schrödinger operator)')
-    
-    # Advection equation specific parameters
-    parser.add_argument('--c', type=float, help='Advection velocity (for Advection operator)')
-    
+    parser.add_argument('--scale_coeff', type=float, help='Scaling coefficient for the input data')
+    parser.add_argument('--if_trainable_freq', type=str, help='Whether to use trainable frequency (true/false)')
+
     
     args = parser.parse_args()
 
@@ -850,6 +885,8 @@ def main():
     # Override configuration with command line arguments (only when command line arguments exist)
     if args.model_type:
         solver.config['model_type'] = args.model_type
+    if args.net_size:
+        solver.config['net_size'] = args.net_size
     if args.num_qubits is not None:
         solver.config['num_qubits'] = args.num_qubits
     if args.learning_rate is not None:
@@ -863,15 +900,11 @@ def main():
     if args.random_seed is not None:
         print("Command line argument overrides random seed setting")
         solver.config['random_seed'] = args.random_seed
-    
-    # Schrödinger equation specific parameters
-    if args.hbar is not None:
-        solver.config['hbar'] = args.hbar
-    if args.m is not None:
-        solver.config['m'] = args.m
-    if args.sigma is not None:
-        solver.config['sigma'] = args.sigma
-    
+    if args.scale_coeff is not None:
+        solver.config['scale_coeff'] = args.scale_coeff
+    if args.if_trainable_freq is not None:
+        solver.config['if_trainable_freq'] = args.if_trainable_freq.lower() == 'true'
+
     # Uniformly set random seed (considering command line override and config file)
     final_seed = solver.config.get('random_seed', None)
     set_random_seed(final_seed)

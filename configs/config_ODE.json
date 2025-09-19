@@ -24,7 +24,7 @@
   "// Training parameters": "",
   "learning_rate": 0.0001,
   "num_epochs": 1000,
-  "target_error": 1e-4,
+  "target_error": 1e-10,
   "batch_size": 100,
   "validation_split": 0,
   "patience": 20,

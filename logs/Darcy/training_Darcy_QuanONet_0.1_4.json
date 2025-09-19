@@ -1,0 +1,82 @@
+{
+  "MSE": 0.015373624983988702,
+  "MAE": 0.0769196188993752,
+  "Max_Error": 2.3368735313415527,
+  "config": {
+    "// Data generation parameters": "",
+    "num_train": 1000,
+    "num_test": 1000,
+    "num_points": 25,
+    "num_points_0": 100,
+    "train_sample_num": 100,
+    "test_sample_num": 500,
+    "length_scale": 0.2,
+    "num_cal": 25,
+    "// Model parameters": "",
+    "branch_input_size": 100,
+    "trunk_input_size": 2,
+    "output_size": 1,
+    "num_qubits": 5,
+    "net_size": [
+      40,
+      2,
+      40,
+      2
+    ],
+    "scale_coeff": 0.1,
+    "model_type": "QuanONet",
+    "if_trainable_freq": false,
+    "// Training parameters": "",
+    "learning_rate": 0.0001,
+    "num_epochs": 100,
+    "target_error": 0.0001,
+    "batch_size": 100,
+    "validation_split": 0,
+    "patience": 20,
+    "// Operator-specific parameters": "",
+    "operator_type": "Darcy",
+    "random_seed": 4
+  },
+  "training_history": [
+    {
+      "epoch": 0,
+      "train_loss": 0.24202232883870603
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.03815360213350505
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.026551797363907097
+    },
+    {
+      "epoch": 30,
+      "train_loss": 0.021515199610963463
+    },
+    {
+      "epoch": 40,
+      "train_loss": 0.019116472895257176
+    },
+    {
+      "epoch": 50,
+      "train_loss": 0.017483566084410995
+    },
+    {
+      "epoch": 60,
+      "train_loss": 0.01644859916670248
+    },
+    {
+      "epoch": 70,
+      "train_loss": 0.015588932681363075
+    },
+    {
+      "epoch": 80,
+      "train_loss": 0.01490017480775714
+    },
+    {
+      "epoch": 90,
+      "train_loss": 0.014308527489192783
+    }
+  ]
+}

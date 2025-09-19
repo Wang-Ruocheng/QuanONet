@@ -36,7 +36,7 @@
   "validation_split": 0,
   "patience": 20,
   "// Operator-specific parameters": "",
-  "operator_type": "Inverse",
   "custom_name": null,
-  "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode"
+  "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode",
+  "operator_type": "Inverse"
 }

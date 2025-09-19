@@ -32,8 +32,7 @@
   "batch_size": 100,
   "validation_split": 0,
   "patience": 20,
+
   "// Operator-specific parameters": "",
-  "operator_type": "Darcy",
-  "custom_name": null,
-  "custom_pde_description": "Only used when operator_type=Custom, specify via command line --custom_pde"
+  "operator_type": "Darcy"
 }

@@ -24,8 +24,10 @@
   "// Training parameters": "",
   "learning_rate": 0.0001,
   "num_epochs": 100,
-  "target_error": 1e-4,
+  "target_error": 1e-10,
   "batch_size": 100,
   "validation_split": 0,
-  "patience": 20
+  "patience": 20,
+
+  "// Operator-specific parameters": ""
 }

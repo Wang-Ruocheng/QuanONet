@@ -1,12 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import torch
-import torch.nn as nn
 import sys
 import json
 from pathlib import Path
-import seaborn as sns
 from mpl_toolkits.mplot3d import Axes3D
 import warnings
 import mindspore as ms
@@ -29,9 +26,9 @@ def plot_comparison(result, save_path=None):
     t_coords = result['t_coords']
     abs_error = np.abs(u_true - u_pred)
     fig, axes = plt.subplots(1, 4, figsize=(24, 5))
-    axes[0].plot(np.linspace(0, 1, len(u0)), u0, 'b-', linewidth=2, label='Initial Condition u₀(x)')
+    axes[0].plot(np.linspace(0, 1, len(u0)), u0, 'b-', linewidth=2, label='Initial Condition u0(x)')
     axes[0].set_xlabel('Space (x)')
-    axes[0].set_ylabel('u₀(x)')
+    axes[0].set_ylabel('u0(x)')
     axes[0].set_title(f'Sample {sample_idx}: Initial Condition')
     axes[0].grid(True, alpha=0.3)
     axes[0].legend()

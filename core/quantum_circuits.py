@@ -39,12 +39,12 @@ def generate_simple_hamiltonian(num_qubits, lower_bound=None, upper_bound=None, 
     return ham
 
 
-def Encode_layer(num_qubits, input_size, e_name_list):
+def Encode_layer(num_qubits, input_size, e_name_list, PauliRotGate=RX):
     """Create encoding layer for quantum circuit."""
     circ = Circuit()
     if e_name_list != []:
         for i in range(num_qubits):
-            circ += RZ(f'{e_name_list[i%len(e_name_list)]}_q{i}').on(i)
+            circ += PauliRotGate(f'{e_name_list[i%len(e_name_list)]}_q{i}').on(i)
     circ.as_encoder()
     return circ
     
@@ -96,7 +96,7 @@ def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size, if
     # Build branch network
     for j in range(branch_depth):
         e_num_list = [f"xi_l{j}" for _ in range(num_qubits)]
-        branch += Encode_layer(num_qubits, num_qubits, e_num_list)
+        branch += Encode_layer(num_qubits, num_qubits, e_num_list, PauliRotGate=RX)
         for _ in range(branch_linear_depth):
             a_num_list, num_para = params_update(a_num_list, num_para, 3*num_qubits)
             branch += Ansatz_layer(num_qubits, a_num_list[-3*num_qubits:-2*num_qubits], RY)

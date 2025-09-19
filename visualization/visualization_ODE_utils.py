@@ -6,7 +6,6 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import seaborn as sns
 from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
@@ -71,8 +70,6 @@ def load_data(config):
             test_branch_input=test_branch_input.asnumpy(),
             test_trunk_input=test_trunk_input.asnumpy(),
             test_output=test_output.asnumpy(),
-            original_test_u0=test_u0_np,        # Original function u0(x) (input)
-            original_test_u=test_u_np,          # Solution function u(x) satisfying du/dx = u - u0²(x) (output/target)
             x_points=x_points
         )
         print(f"✅ 数据已生成并保存")
@@ -84,8 +81,6 @@ def load_data(config):
         'test_branch_input': ms.Tensor(data['test_branch_input'], ms.float32),
         'test_trunk_input': ms.Tensor(data['test_trunk_input'], ms.float32), 
         'test_output': ms.Tensor(data['test_output'], ms.float32),
-        'original_test_u0': data['original_test_u0'] if 'original_test_u0' in data else None,  # Original function (input)
-        'original_test_u': data['original_test_u'] if 'original_test_u' in data else None,    # Solution function (output)
         'x_points': data['x_points'] if 'x_points' in data else None
     }
 
@@ -227,116 +222,68 @@ def plot_single_sample_comparison(sample_idx, data, results, config, save_path=N
     true_u = results['true_values'][start_idx:end_idx].flatten()
     pred_x = data['test_trunk_input'].asnumpy()[start_idx:end_idx].flatten()
     
-    # Check if original function data is available
-    has_original_data = (data.get('original_test_u0') is not None and 
-                        data.get('original_test_u') is not None and 
-                        data.get('x_points') is not None)
+    samples_per_func = config['test_sample_num']
+    start_idx = sample_idx * samples_per_func
+    branch_input = data['test_branch_input'].asnumpy()[start_idx]  # Take first sample of this function
     
-    if has_original_data:
-        # Full comparison with original functions
-        x_points = data['x_points']
-        original_u0 = data['original_test_u0'][sample_idx]  # Input: original function u0(x)
-        original_u = data['original_test_u'][sample_idx]    # Target: solution function u(x) satisfying du/dx = u - u0²(x)
-        
-        # Create horizontal layout with 3 subplots
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
-        
-        # Subplot 1: Input original function u0(x)
-        ax1.plot(x_points, original_u0, 'b-', linewidth=2, label='Original Function u₀(x)')
-        ax1.scatter(pred_x, original_u0[np.searchsorted(x_points, pred_x)], 
-                    c='blue', s=50, alpha=0.7, label='Sampling Points')
-        ax1.set_xlabel('x')
-        ax1.set_ylabel('u₀(x)')
-        ax1.set_title(f'Sample {sample_idx}: Original Function u₀(x)')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        
-        # Subplot 2: True vs Predicted solution function
-        ax2.plot(x_points, original_u, 'g-', linewidth=2, label='True Solution Function')
-        ax2.scatter(pred_x, true_u, c='green', s=50, alpha=0.7, label='True Values')
-        ax2.scatter(pred_x, pred_u, c='red', s=50, alpha=0.7, label='Predicted Values', marker='^')
-        ax2.set_xlabel('x')
-        ax2.set_ylabel('u(x)')
-        ax2.set_title('True vs Predicted Solution Function')
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
-        
-        # Subplot 3: Error analysis
-        errors = np.abs(pred_u - true_u)
-        ax3.scatter(pred_x, errors, c='purple', s=50, alpha=0.7)
-        ax3.plot(pred_x, errors, 'purple', alpha=0.5, linewidth=1)
-        ax3.set_xlabel('x')
-        ax3.set_ylabel('|Predicted - True|')
-        ax3.set_title(f'Absolute Error (MAE: {np.mean(errors):.6f})')
-        ax3.grid(True, alpha=0.3)
-        
-    else:
-        # Use branch_input to reconstruct original function through interpolation
-        print(f"⚠️ 原始函数数据不可用，通过 branch_input 插值重建输入函数")
-        
-        # Get branch input for this sample (input function values at sensor points)
-        samples_per_func = config['test_sample_num']
-        start_idx = sample_idx * samples_per_func
-        branch_input = data['test_branch_input'].asnumpy()[start_idx]  # Take first sample of this function
-        
-        # Create x coordinates for branch input (assumed to be evenly spaced from 0 to 1)
-        num_points = len(branch_input)
-        x_points = np.linspace(0, 1, num_points)
-        
-        # Sort points for interpolation
-        sort_indices = np.argsort(pred_x)
-        sorted_x = pred_x[sort_indices]
-        sorted_true_u = true_u[sort_indices]
-        sorted_pred_u = pred_u[sort_indices]
-        
-        # Create interpolated curves for visualization
-        from scipy.interpolate import interp1d
-        
-        # Create finer x grid for smooth curves
-        x_fine = np.linspace(sorted_x.min(), sorted_x.max(), 200)
-        
-        # Interpolate true and predicted values
-        f_true = interp1d(sorted_x, sorted_true_u, kind='cubic', fill_value='extrapolate')
-        f_pred = interp1d(sorted_x, sorted_pred_u, kind='cubic', fill_value='extrapolate')
-        
-        true_u_interp = f_true(x_fine)
-        pred_u_interp = f_pred(x_fine)
-        
-        # Interpolate branch input (original function) to sampling points
-        f_branch = interp1d(x_points, branch_input, kind='cubic', fill_value='extrapolate')
-        branch_at_pred_x = f_branch(pred_x)
-        
-        # Create horizontal layout with 3 subplots
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
-        
-        # Subplot 1: Original function reconstructed from branch_input
-        ax1.plot(x_points, branch_input, 'b-', linewidth=2, label='Original Function u₀(x) (from branch_input)')
-        ax1.scatter(pred_x, branch_at_pred_x, c='blue', s=50, alpha=0.7, label='Sampling Points')
-        ax1.set_xlabel('x')
-        ax1.set_ylabel('u₀(x)')
-        ax1.set_title(f'Sample {sample_idx}: Original Function u₀(x)')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        
-        # Subplot 2: True vs Predicted solution function (interpolated)
-        ax2.plot(x_fine, true_u_interp, 'g-', linewidth=2, alpha=0.8, label='True Solution Function (Interpolated)')
-        ax2.plot(x_fine, pred_u_interp, 'r-', linewidth=2, alpha=0.8, label='Predicted Solution Function (Interpolated)')
-        ax2.scatter(sorted_x, sorted_true_u, c='green', s=50, alpha=0.8, label='True Values', zorder=5)
-        ax2.scatter(sorted_x, sorted_pred_u, c='red', s=50, alpha=0.8, label='Predicted Values', marker='^', zorder=5)
-        ax2.set_xlabel('x')
-        ax2.set_ylabel('u(x)')
-        ax2.set_title('True vs Predicted Solution Function')
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
-        
-        # Subplot 3: Error analysis
-        errors = np.abs(sorted_pred_u - sorted_true_u)
-        ax3.scatter(sorted_x, errors, c='purple', s=50, alpha=0.7)
-        ax3.plot(sorted_x, errors, 'purple', alpha=0.5, linewidth=1)
-        ax3.set_xlabel('x')
-        ax3.set_ylabel('|Predicted - True|')
-        ax3.set_title(f'Absolute Error (MAE: {np.mean(errors):.6f})')
-        ax3.grid(True, alpha=0.3)
+    # Create x coordinates for branch input (assumed to be evenly spaced from 0 to 1)
+    num_points = len(branch_input)
+    x_points = np.linspace(0, 1, num_points)
+    
+    # Sort points for interpolation
+    sort_indices = np.argsort(pred_x)
+    sorted_x = pred_x[sort_indices]
+    sorted_true_u = true_u[sort_indices]
+    sorted_pred_u = pred_u[sort_indices]
+    
+    # Create interpolated curves for visualization
+    from scipy.interpolate import interp1d
+    
+    # Create finer x grid for smooth curves
+    x_fine = np.linspace(sorted_x.min(), sorted_x.max(), 200)
+    
+    # Interpolate true and predicted values
+    f_true = interp1d(sorted_x, sorted_true_u, kind='cubic', fill_value='extrapolate')
+    f_pred = interp1d(sorted_x, sorted_pred_u, kind='cubic', fill_value='extrapolate')
+    
+    true_u_interp = f_true(x_fine)
+    pred_u_interp = f_pred(x_fine)
+    
+    # Interpolate branch input (original function) to sampling points
+    f_branch = interp1d(x_points, branch_input, kind='cubic', fill_value='extrapolate')
+    branch_at_pred_x = f_branch(pred_x)
+    
+    # Create horizontal layout with 3 subplots
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+    
+    # Subplot 1: Original function reconstructed from branch_input
+    ax1.plot(x_points, branch_input, 'b-', linewidth=2, label='Original Function u0(x) (from branch_input)')
+    ax1.scatter(pred_x, branch_at_pred_x, c='blue', s=50, alpha=0.7, label='Sampling Points')
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('u0(x)')
+    ax1.set_title(f'Sample {sample_idx}: Original Function u0(x)')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # Subplot 2: True vs Predicted solution function (interpolated)
+    ax2.plot(x_fine, true_u_interp, 'g-', linewidth=2, alpha=0.8, label='True Solution Function (Interpolated)')
+    ax2.plot(x_fine, pred_u_interp, 'r-', linewidth=2, alpha=0.8, label='Predicted Solution Function (Interpolated)')
+    ax2.scatter(sorted_x, sorted_true_u, c='green', s=50, alpha=0.8, label='True Values', zorder=5)
+    ax2.scatter(sorted_x, sorted_pred_u, c='red', s=50, alpha=0.8, label='Predicted Values', marker='^', zorder=5)
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('u(x)')
+    ax2.set_title('True vs Predicted Solution Function')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # Subplot 3: Error analysis
+    errors = np.abs(sorted_pred_u - sorted_true_u)
+    ax3.scatter(sorted_x, errors, c='purple', s=50, alpha=0.7)
+    ax3.plot(sorted_x, errors, 'purple', alpha=0.5, linewidth=1)
+    ax3.set_xlabel('x')
+    ax3.set_ylabel('|Predicted - True|')
+    ax3.set_title(f'Absolute Error (MAE: {np.mean(errors):.6f})')
+    ax3.grid(True, alpha=0.3)
     
     plt.tight_layout()
     
@@ -350,7 +297,7 @@ def plot_single_sample_comparison(sample_idx, data, results, config, save_path=N
 def plot_special_functions_comparison(model, config, save_path=None):
     """绘制特定函数对比图：u0=x 和 u0=sin(πx)，使用微分方程数值解"""
     
-    print("🔧 构造特定函数 u₀=x 和 u₀=sin(πx) 进行预测...")
+    print("🔧 构造特定函数 u0=x 和 u0=sin(πx) 进行预测...")
     
     # 获取特定函数的预测结果
     special_results = predict_special_functions(model, config)
@@ -366,11 +313,11 @@ def plot_special_functions_comparison(model, config, save_path=None):
         true_u = func_result['true_u']
         
         # 子图 1：原始函数
-        axes[0].plot(x_points, u0, 'b-', linewidth=2, label='Original Function u₀(x)')
+        axes[0].plot(x_points, u0, 'b-', linewidth=2, label='Original Function u0(x)')
         axes[0].scatter(sample_x, u0[np.searchsorted(x_points, sample_x)], 
                            c='blue', s=50, alpha=0.7, label='Sampling Points')
         axes[0].set_xlabel('x')
-        axes[0].set_ylabel('u₀(x)')
+        axes[0].set_ylabel('u0(x)')
         axes[0].set_title(f'{func_operator_type}: Original Function')
         axes[0].legend()
         axes[0].grid(True, alpha=0.3)
@@ -409,144 +356,6 @@ def plot_special_functions_comparison(model, config, save_path=None):
     
     return special_results
 
-def plot_multiple_samples_grid(data, results, config, num_samples=4, save_path=None):
-    """Plot grid comparison for multiple samples with horizontal layout"""
-    
-    # Check if original function data is available
-    has_original_data = (data.get('original_test_u0') is not None and 
-                        data.get('original_test_u') is not None and 
-                        data.get('x_points') is not None)
-    
-    # Select samples
-    if has_original_data:
-        total_samples = data['original_test_u0'].shape[0]
-    else:
-        total_samples = data['test_branch_input'].shape[0] // config['test_sample_num']
-    
-    selected_indices = np.linspace(0, total_samples-1, num_samples, dtype=int)
-    
-    # Create grid layout: 4 rows x 3 columns
-    rows = num_samples
-    cols = 3
-    fig, axes = plt.subplots(rows, cols, figsize=(18, 4*rows))
-    if rows == 1:
-        axes = axes.reshape(1, -1)
-    
-    samples_per_func = config['test_sample_num']
-    
-    for i, sample_idx in enumerate(selected_indices):
-        # Get prediction data
-        start_idx = sample_idx * samples_per_func
-        end_idx = start_idx + samples_per_func
-        
-        pred_u = results['predictions'][start_idx:end_idx].flatten()
-        true_u = results['true_values'][start_idx:end_idx].flatten()
-        pred_x = data['test_trunk_input'].asnumpy()[start_idx:end_idx].flatten()
-        
-        if has_original_data:
-            # Use original function data
-            x_points = data['x_points']
-            original_u0 = data['original_test_u0'][sample_idx]
-            original_u = data['original_test_u'][sample_idx]
-            
-            # Column 1: Original function
-            axes[i, 0].plot(x_points, original_u0, 'b-', linewidth=2, label='Original Function u₀(x)')
-            axes[i, 0].scatter(pred_x, original_u0[np.searchsorted(x_points, pred_x)], 
-                             c='blue', s=30, alpha=0.7, label='Sampling Points')
-            axes[i, 0].set_xlabel('x')
-            axes[i, 0].set_ylabel('u₀(x)')
-            axes[i, 0].set_title(f'Sample {sample_idx}: Original Function')
-            if i == 0:
-                axes[i, 0].legend()
-            axes[i, 0].grid(True, alpha=0.3)
-            
-            # Column 2: True vs Predicted
-            axes[i, 1].plot(x_points, original_u, 'g-', linewidth=2, alpha=0.7, label='True Solution Function')
-            axes[i, 1].scatter(pred_x, true_u, c='green', s=30, alpha=0.8, label='True Values')
-            axes[i, 1].scatter(pred_x, pred_u, c='red', s=30, alpha=0.8, label='Predicted Values', marker='^')
-            axes[i, 1].set_xlabel('x')
-            axes[i, 1].set_ylabel('u(x)')
-            axes[i, 1].set_title('True vs Predicted')
-            if i == 0:
-                axes[i, 1].legend()
-            axes[i, 1].grid(True, alpha=0.3)
-            
-            # Column 3: Error
-            errors = np.abs(pred_u - true_u)
-            axes[i, 2].scatter(pred_x, errors, c='purple', s=30, alpha=0.7)
-            axes[i, 2].plot(pred_x, errors, 'purple', alpha=0.5, linewidth=1)
-            sample_mae = np.mean(errors)
-            axes[i, 2].set_xlabel('x')
-            axes[i, 2].set_ylabel('|Predicted - True|')
-            axes[i, 2].set_title(f'Error (MAE: {sample_mae:.4f})')
-            axes[i, 2].grid(True, alpha=0.3)
-        else:
-            # Use branch_input to reconstruct original function
-            from scipy.interpolate import interp1d
-            
-            # Get branch input for this sample
-            branch_input = data['test_branch_input'].asnumpy()[start_idx]  # Take first sample of this function
-            num_points = len(branch_input)
-            x_points = np.linspace(0, 1, num_points)
-            
-            # Sort points for interpolation
-            sort_indices = np.argsort(pred_x)
-            sorted_x = pred_x[sort_indices]
-            sorted_true_u = true_u[sort_indices]
-            sorted_pred_u = pred_u[sort_indices]
-            
-            # Create interpolated curves
-            x_fine = np.linspace(sorted_x.min(), sorted_x.max(), 100)
-            f_true = interp1d(sorted_x, sorted_true_u, kind='linear', fill_value='extrapolate')
-            f_pred = interp1d(sorted_x, sorted_pred_u, kind='linear', fill_value='extrapolate')
-            
-            true_u_interp = f_true(x_fine)
-            pred_u_interp = f_pred(x_fine)
-            
-            # Interpolate branch input to sampling points
-            f_branch = interp1d(x_points, branch_input, kind='cubic', fill_value='extrapolate')
-            branch_at_pred_x = f_branch(pred_x)
-            
-            # Column 1: Original function from branch_input
-            axes[i, 0].plot(x_points, branch_input, 'b-', linewidth=2, label='Original Function u₀(x)')
-            axes[i, 0].scatter(pred_x, branch_at_pred_x, c='blue', s=30, alpha=0.7, label='Sampling Points')
-            axes[i, 0].set_xlabel('x')
-            axes[i, 0].set_ylabel('u₀(x)')
-            axes[i, 0].set_title(f'Sample {sample_idx}: Original Function')
-            if i == 0:
-                axes[i, 0].legend()
-            axes[i, 0].grid(True, alpha=0.3)
-            
-            # Column 2: True vs Predicted
-            axes[i, 1].plot(x_fine, true_u_interp, 'g-', linewidth=2, alpha=0.7, label='True Function (Interp)')
-            axes[i, 1].plot(x_fine, pred_u_interp, 'r-', linewidth=2, alpha=0.7, label='Predicted Function (Interp)')
-            axes[i, 1].scatter(sorted_x, sorted_true_u, c='green', s=30, alpha=0.8)
-            axes[i, 1].scatter(sorted_x, sorted_pred_u, c='red', s=30, alpha=0.8, marker='^')
-            axes[i, 1].set_xlabel('x')
-            axes[i, 1].set_ylabel('u(x)')
-            axes[i, 1].set_title('True vs Predicted')
-            if i == 0:
-                axes[i, 1].legend()
-            axes[i, 1].grid(True, alpha=0.3)
-            
-            # Column 3: Error
-            errors = np.abs(sorted_pred_u - sorted_true_u)
-            axes[i, 2].scatter(sorted_x, errors, c='purple', s=30, alpha=0.7)
-            axes[i, 2].plot(sorted_x, errors, 'purple', alpha=0.5, linewidth=1)
-            sample_mae = np.mean(errors)
-            axes[i, 2].set_xlabel('x')
-            axes[i, 2].set_ylabel('|Predicted - True|')
-            axes[i, 2].set_title(f'Error (MAE: {sample_mae:.4f})')
-            axes[i, 2].grid(True, alpha=0.3)
-    
-        if save_path:
-            os.makedirs(save_path, exist_ok=True)
-            plt.savefig(f"{save_path}/sample_{i}_comparison.png", dpi=300, bbox_inches='tight')
-    print(f"📊 多样本网格对比图已保存: {save_path}")
-    plt.tight_layout()
-    
-    plt.show()
-
 def predict_special_functions(model, config, num_points=100, num_samples=100):
     """构造并预测特定函数：u0=x 和 u0=sin(πx)，通过求解微分方程获得真解"""
     
@@ -568,8 +377,8 @@ def predict_special_functions(model, config, num_points=100, num_samples=100):
 
     # 准备网络预测数据，使用与训练数据相同的编码方式
     special_functions = [
-        {'operator_type': 'Linear Function (u₀=x)', 'u0': u0_linear, 'u_true': u_linear_true},
-        {'operator_type': 'Sine Function (u₀=sin(πx))', 'u0': u0_sin, 'u_true': u_sin_true}
+        {'operator_type': 'Linear Function (u0=x)', 'u0': u0_linear, 'u_true': u_linear_true},
+        {'operator_type': 'Sine Function (u0=sin(πx))', 'u0': u0_sin, 'u_true': u_sin_true}
     ]
     
     predictions_results = []
