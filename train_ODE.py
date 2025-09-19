@@ -108,7 +108,7 @@ def parse_custom_ode_function(ode_string):
 class ODEOperatorSolver:
     """ODE operator problem solver """
 
-    def __init__(self, operator_type='Inverse', config_file=None, custom_ode_func=None, custom_name=None):
+    def __init__(self, operator_type='Inverse', config_file=None, custom_ode_func=None, custom_name=None, prefix=None):
         """
         Initialize the solver
 
@@ -148,12 +148,24 @@ class ODEOperatorSolver:
         self.best_loss = float('inf')
         self.checkpoint_interval = 50  # Save checkpoint every 50 epochs
         self.saved_checkpoints = []
-        
+        self.prefix = prefix
+
         # Create necessary directories
-        os.makedirs("melt_2/data", exist_ok=True)
-        os.makedirs("melt_2/checkpoints", exist_ok=True)
-        os.makedirs("melt_2/logs", exist_ok=True)
-        
+        self.logs_dir = os.path.join(self.prefix, "logs") if self.prefix else "logs"
+        self.checkpoints_dir = os.path.join(self.prefix, "checkpoints") if self.prefix else "checkpoints"
+        self.data_dir = os.path.join(self.prefix, "data") if self.prefix else "data"
+        self.dairy_dir = os.path.join(self.prefix, "dairy") if self.prefix else "dairy"
+        print(f"Logs directory: {self.logs_dir}")
+        print(f"Checkpoints directory: {self.checkpoints_dir}")
+        print(f"Data directory: {self.data_dir}")
+
+
+        os.makedirs(self.logs_dir, exist_ok=True)
+        os.makedirs(self.checkpoints_dir, exist_ok=True)
+        os.makedirs(self.data_dir, exist_ok=True)
+        os.makedirs(self.dairy_dir, exist_ok=True)
+
+
     def load_config(self, config_file=None):
         """ Load configuration from file or use default settings."""
         if config_file and os.path.exists(config_file):
@@ -201,7 +213,7 @@ class ODEOperatorSolver:
             operator_name = self.operator_type
 
         # Data file path - includes all parameters affecting data size
-        data_file = f"melt_2/data/{operator_name}/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
+        data_file = f"{self.data_dir}/{operator_name}/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
         
         if os.path.exists(data_file):
             print(f"Loading existing data from {data_file}  ...")
@@ -343,7 +355,7 @@ class ODEOperatorSolver:
         else:
             operator_name = self.operator_type
             
-        data_file = f"melt_2/data/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
+        data_file = f"{self.data_dir}/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
 
         print(f"Saving data to {data_file}...")
         np.savez_compressed(
@@ -359,7 +371,7 @@ class ODEOperatorSolver:
         )
         
         # Save configuration
-        config_file = f"melt_2/data/{operator_name}_Operator_config_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.json"
+        config_file = f"{self.data_dir}/{operator_name}_Operator_config_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.json"
         os.makedirs(os.path.dirname(config_file), exist_ok=True)
         with open(config_file, 'w') as f:
             json.dump(self.config, f, indent=2)
@@ -719,7 +731,7 @@ class ODEOperatorSolver:
             else:
                 operator_name = self.operator_type
             filename = f"{operator_name}/best_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
-            filepath = os.path.join("melt_2/checkpoints", filename)
+            filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
                 os.makedirs(dir_name, exist_ok=True)
@@ -746,7 +758,7 @@ class ODEOperatorSolver:
                 filename = f"{operator_name}/{operator_name}_TF-{self.config['model_type']}_{suffix}_{timestamp}.ckpt"
             else:
                 filename = f"{operator_name}/{operator_name}_{self.config['model_type']}_{suffix}_{timestamp}.ckpt"
-            filepath = os.path.join("melt_2/checkpoints", filename)
+            filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
                 os.makedirs(dir_name, exist_ok=True)
@@ -771,12 +783,11 @@ class ODEOperatorSolver:
         """Print saved models summary"""
         print(f"\n=== Saved Models Summary ===")
         
-        checkpoint_dir = "melt_2/checkpoints"
-        if not os.path.exists(checkpoint_dir):
+        if not os.path.exists(self.checkpoints_dir):
             print("No saved models")
             return
         
-        saved_files = [f for f in os.listdir(checkpoint_dir) if f.endswith('.ckpt')]
+        saved_files = [f for f in os.listdir(self.checkpoints_dir) if f.endswith('.ckpt')]
         
         best_files = [f for f in saved_files if 'best' in f]
         final_files = [f for f in saved_files if 'final' in f]
@@ -877,9 +888,9 @@ class ODEOperatorSolver:
         
         # Save evaluation results
         if self.config['if_trainable_freq']:
-            results_file = f"melt_2/logs/{self.operator_type}/training_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}_.json"
+            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/training_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}_.json")
         else:
-            results_file = f"melt_2/logs/{self.operator_type}/training_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}_.json"
+            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/training_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}_.json")
         results['config'] = self.config
         results['training_history'] = self.training_history
         dir_name = os.path.dirname(results_file)
@@ -942,6 +953,7 @@ def main():
     parser.add_argument('--random_seed', type=int, help='Random seed for reproducible results')
     parser.add_argument('--scale_coeff', type=float, help='Scale coefficient for loss function')
     parser.add_argument('--if_trainable_freq', type=str, help='Whether to use trainable frequency (true/false)')
+    parser.add_argument('--prefix', type=str, help='Prefix of outputs')
 
     # Custom operator parameters
     parser.add_argument('--custom_ode', type=str, default=None, 
@@ -975,7 +987,8 @@ def main():
         operator_type=args.operator, 
         config_file=args.config,
         custom_ode_func=custom_ode_func,
-        custom_name=args.custom_name
+        custom_name=args.custom_name,
+        prefix=args.prefix
     )
     
     # Override configuration with command line arguments (only when command line arguments exist)
@@ -1000,6 +1013,7 @@ def main():
         solver.config['scale_coeff'] = args.scale_coeff
     if args.if_trainable_freq is not None:
         solver.config['if_trainable_freq'] = args.if_trainable_freq.lower() == 'true'
+    
         
     # Uniformly set random seed (considering command line override and config file)
     final_seed = solver.config.get('random_seed', None)
