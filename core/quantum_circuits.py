@@ -39,6 +39,25 @@ def generate_simple_hamiltonian(num_qubits, lower_bound=None, upper_bound=None, 
     return ham
 
 
+def ham_diag_to_operator(diag_elements, num_qubits, lower_bound=None, upper_bound=None, ):
+    """Convert diagonal elements to a Hamiltonian operator."""
+    if diag_elements is None:
+        raise ValueError("diag_elements cannot be None")
+    if len(diag_elements) != 2**num_qubits:
+        raise ValueError(f"Length of diag_elements must be {2**num_qubits} for {num_qubits} qubits.")
+    
+    ham = QubitOperator()
+    for idx, coeff in enumerate(diag_elements):
+        binary_str = format(idx, f'0{num_qubits}b')
+        term = ' '.join(f'Z{i}' for i, bit in enumerate(binary_str) if bit == '1')
+        if term == '':
+            ham += QubitOperator('', coeff)
+        else:
+            ham += QubitOperator(term, coeff)
+    
+    return Hamiltonian(ham)
+
+
 def Encode_layer(num_qubits, input_size, e_name_list, PauliRotGate=RX):
     """Create encoding layer for quantum circuit."""
     circ = Circuit()

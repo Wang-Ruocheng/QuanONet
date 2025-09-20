@@ -42,7 +42,7 @@ from data_utils.data_generation import (
 )
 from data_utils.data_processing import ODE_encode
 from core.models import QuanONet, HEAQNN, FNN, DeepONet
-from core.quantum_circuits import generate_simple_hamiltonian
+from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator
 from utils.utils import count_parameters
 
 # Set MindSpore context
@@ -409,7 +409,10 @@ class ODEOperatorSolver:
         print("\n=== Model Creation ===")
 
         # Create Hamiltonian
-        ham = generate_simple_hamiltonian(self.config['num_qubits'], lower_bound=-5, upper_bound=5)
+        if self.config.get('ham_diag', None) is None:
+            ham = generate_simple_hamiltonian(self.config['num_qubits'], lower_bound=-5, upper_bound=5)
+        else:
+            ham = ham_diag_to_operator(self.config.get('ham_diag', None), self.config['num_qubits'])
         print(f"Using Hamiltonian: {ham}")
         # Get input dimensions
         if 'train_branch_input' in self.data:
@@ -954,6 +957,7 @@ def main():
     parser.add_argument('--scale_coeff', type=float, help='Scale coefficient for loss function')
     parser.add_argument('--if_trainable_freq', type=str, help='Whether to use trainable frequency (true/false)')
     parser.add_argument('--prefix', type=str, help='Prefix of outputs')
+    parser.add_argument('--ham_diag', type=int, nargs='+', help='Ham diagonal elements')
 
     # Custom operator parameters
     parser.add_argument('--custom_ode', type=str, default=None, 
@@ -1013,6 +1017,8 @@ def main():
         solver.config['scale_coeff'] = args.scale_coeff
     if args.if_trainable_freq is not None:
         solver.config['if_trainable_freq'] = args.if_trainable_freq.lower() == 'true'
+    if args.ham_diag:
+        solver.config['ham_diag'] = args.ham_diag
     
         
     # Uniformly set random seed (considering command line override and config file)
