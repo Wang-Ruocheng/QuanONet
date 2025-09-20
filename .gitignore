@@ -55,6 +55,7 @@ Thumbs.db
 
 # Logs
 *.log
+*.out
 
 # Data files (large datasets)
 *.hdf5
