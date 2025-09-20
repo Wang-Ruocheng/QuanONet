@@ -7,8 +7,8 @@
     "Custom"
   ],
   "// Data generation parameters": "",
-  "num_train": 1000,
-  "num_test": 1000,
+  "num_train": 100,
+  "num_test": 100,
   "num_points": 100,
   "train_sample_num": 10,
   "test_sample_num": 100,
@@ -20,9 +20,9 @@
   "output_size": 1,
   "num_qubits": 2,
   "net_size": [
-    150,
     2,
-    40,
+    2,
+    3,
     2
   ],
   "scale_coeff": 0.001,
@@ -39,5 +39,5 @@
   "custom_name": null,
   "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode",
   "operator_type": "Inverse",
-  "random_seed": 4
+  "random_seed": 0
 }
