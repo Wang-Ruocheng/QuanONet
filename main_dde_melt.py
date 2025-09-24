@@ -31,7 +31,7 @@ original_stderr = sys.stderr
 verbose = 1
 depths = [2, 3, 4, 5, 6]
 # depths = [6]
-widths = [32, 64, 128, 256, 512, 1024]
+widths = [4, 8, 16, 32, 64, 128, 256, 512, 1024]
 if torch.cuda.is_available():
     device = torch.device("cuda:0")  # 只暴露一个GPU，始终用cuda:0
     print(f"Using GPU: {device_id}")
@@ -43,7 +43,7 @@ for depth in depths:
             for model_type in model_types:
                 for operator in operators:
                     net_size = (depth, width, depth, width)
-                    output_path = f"melt_DeepONet_4/melt_{model_type}_{net_size}_{seed_num}.log"
+                    output_path = f"melt_deeponet_dim4/melt_{model_type}_{net_size}_{seed_num}.log"
                     if not os.path.exists(output_path) and if_save:
                         print(f"Running {operator} with depth {depth}, width {width}, seed {seed_num}, model {model_type}")
                         num_epoch = num_epoch_dict[DE_dict[operator]]
@@ -123,7 +123,7 @@ for depth in depths:
                                 for i in range(num_epoch):
                                     unit = num_train*train_sample_num//(batch_size * display_every)
                                     print(f"Epoch {i}: {np.mean(train_loss[i*unit:(i+1)*unit])}, {test_loss[i*unit+unit-1]}")
-                                checkpoint_file_name = f"{checkpoint_file}/{operator}/{operator}_{model_type}_final_seed{seed_num}.ckpt"
+                                checkpoint_file_name = f"{checkpoint_file}/{operator}/{operator}_{model_type}_{net_size}_seed{seed_num}.ckpt"
                                 dir_name = os.path.dirname(checkpoint_file_name)
                                 if dir_name:
                                     os.makedirs(dir_name, exist_ok=True)
