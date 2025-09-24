@@ -483,9 +483,16 @@ class ODEOperatorSolver:
 
         if self.model is None:
             raise ValueError("Please create a model first")
+        
+        decay_rate = 0.9
+        decay_steps = 10
+        if self.config['if_adjust_lr']:
+            lr_schedule = nn.ExponentialDecayLR(learning_rate=self.config['learning_rate'], decay_rate=decay_rate, decay_steps=decay_steps)
+        else:
+            lr_schedule = self.config['learning_rate']
 
         # Set up training components
-        optimizer = nn.Adam(self.model.trainable_params(), learning_rate=self.config['learning_rate'])
+        optimizer = nn.Adam(self.model.trainable_params(), learning_rate=lr_schedule)
         loss_fn = nn.MSELoss()
 
         # Create training network
@@ -968,6 +975,7 @@ def main():
     parser.add_argument('--if_keep', type=str, help='Whether to keep (true/false)')
     parser.add_argument('--if_train', type=str, help='Whether to train (true/false)')
     parser.add_argument('--init_checkpoint', type=str, help='Initial checkpoint file path')
+    parser.add_argument('--if_adjust_lr', type=str, help='Whether to use adjustable learning rate (true/false)')
     # Custom operator parameters
     parser.add_argument('--custom_ode', type=str, default=None, 
                        help='Custom ODE function string (only used when operator=Custom)')
@@ -1036,6 +1044,8 @@ def main():
         solver.config['if_train'] = args.if_train.lower() == 'true'
     if args.init_checkpoint is not None:
         solver.config['init_checkpoint'] = args.init_checkpoint
+    if args.if_adjust_lr is not None:
+        solver.config['if_adjust_lr'] = args.if_adjust_lr.lower() == 'true'
     
     
         
