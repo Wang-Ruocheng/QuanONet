@@ -464,11 +464,6 @@ class ODEOperatorSolver:
             )
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
-        
-        # Load initial checkpoint
-        if self.config["if_keep"]:
-            initial_checkpoint_file = self.config.get("init_checkpoint")
-            load_checkpoint(initial_checkpoint_file, self.model)
 
         # Print model summary
         total_params = count_parameters(self.model)
@@ -788,14 +783,6 @@ class ODEOperatorSolver:
             if suffix.startswith("checkpoint"):
                 self.saved_checkpoints.append(filepath)
                 # Keep only the latest 3 checkpoints
-                if len(self.saved_checkpoints) > 3:
-                    old_checkpoint = self.saved_checkpoints.pop(0)
-                    try:
-                        os.remove(old_checkpoint)
-                        # print(f"    Deleted old checkpoint: {os.path.basename(old_checkpoint)}")
-                    except Exception as e:
-                        print(f"    Failed to delete checkpoint: {e}")
-        
         return filepath
     
     def print_saved_models_summary(self):
@@ -918,8 +905,8 @@ class ODEOperatorSolver:
         if self.config['if_save']:
             with open(results_file, 'w') as f:
                 json.dump(results, f, indent=2)
-        
-        print(f"Evaluation results saved to: {results_file}")
+            
+            print(f"Evaluation results saved to: {results_file}")
         
         return results
     
@@ -936,15 +923,16 @@ class ODEOperatorSolver:
             # 2. Model creation
             self.create_model()
             
+            # Load initial checkpoint
+            if self.config["if_keep"]:
+                initial_checkpoint_file = self.config.get("init_checkpoint")
+                load_checkpoint(initial_checkpoint_file, self.model)
+
             if self.config['if_train']:
                 # 3. Model training
                 final_loss = self.train_model()
             
             # 4. Model evaluation
-            best_checkpoint = self.best_model_path
-            if best_checkpoint and os.path.exists(best_checkpoint):
-                print(f"\nLoading best model from {best_checkpoint} for final evaluation...")
-                load_checkpoint(best_checkpoint, self.model)
             results = self.evaluate_model()
             
             print(f"\n=== Complete Pipeline Execution Successful ===")
