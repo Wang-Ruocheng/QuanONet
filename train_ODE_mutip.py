@@ -923,7 +923,9 @@ class ODEOperatorSolver:
         print(f"=== {self.config['model_type']} {self.operator_type} Operator Solving Pipeline ===")
         print(f"Operator Description: {self.get_operator_description()}")
         print(f"Start Time: {datetime.now()}")
-        
+
+        results = None  # 初始化，避免未赋值报错
+
         try:
             # 1. Data preparation
             self.load_or_generate_data()
@@ -941,10 +943,20 @@ class ODEOperatorSolver:
                 load_checkpoint(init_checkpoint, self.model)
                 results = self.evaluate_model()
             
+            # 如果没有init_checkpoints，也要评估一次
+            if not self.config.get("init_checkpoints", []):
+                results = self.evaluate_model()
+            
             print(f"\n=== Complete Pipeline Execution Successful ===")
             print(f"End Time: {datetime.now()}")
-            
+
             return results
+
+        except Exception as e:
+            print(f"Pipeline execution failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
             
         except Exception as e:
             print(f"Pipeline execution failed: {e}")
