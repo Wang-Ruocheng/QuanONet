@@ -932,6 +932,7 @@ class ODEOperatorSolver:
             
             # Load initial checkpoint
             if self.config["if_keep"]:
+                print("Loading initial checkpoint...")
                 initial_checkpoint_file = self.config.get("init_checkpoint")
                 load_checkpoint(initial_checkpoint_file, self.model)
 
@@ -966,7 +967,7 @@ def main():
     parser.add_argument('--num_epochs', type=int, help='Number of training epochs')
     parser.add_argument('--batch_size', type=int, help='Batch size')
     parser.add_argument('--validation_split', type=float, help='Validation set ratio')
-    parser.add_argument('--random_seed', type=int, help='Random seed for reproducible results')
+    parser.add_argument('--random_seed', type=int, default=0, help='Random seed for reproducible results')
     parser.add_argument('--scale_coeff', type=float, help='Scale coefficient for loss function')
     parser.add_argument('--if_trainable_freq', type=str, help='Whether to use trainable frequency (true/false)')
     parser.add_argument('--prefix', type=str, help='Prefix of outputs')
@@ -1012,6 +1013,7 @@ def main():
         prefix=args.prefix
     )
     
+
     # Override configuration with command line arguments (only when command line arguments exist)
     if args.model_type:
         solver.config['model_type'] = args.model_type
@@ -1033,19 +1035,25 @@ def main():
     if args.scale_coeff is not None:
         solver.config['scale_coeff'] = args.scale_coeff
     if args.if_trainable_freq is not None:
-        solver.config['if_trainable_freq'] = args.if_trainable_freq.lower() == 'true'
+        solver.config['if_trainable_freq'] = args.if_trainable_freq
     if args.if_save is not None:
-        solver.config['if_save'] = args.if_save.lower() == 'true'
+        solver.config['if_save'] = args.if_save
     if args.if_keep is not None:
-        solver.config['if_keep'] = args.if_keep.lower() == 'true'
+        solver.config['if_keep'] = args.if_keep
     if args.ham_diag:
         solver.config['ham_diag'] = args.ham_diag
     if args.if_train is not None:
-        solver.config['if_train'] = args.if_train.lower() == 'true'
+        solver.config['if_train'] = args.if_train
     if args.init_checkpoint is not None:
         solver.config['init_checkpoint'] = args.init_checkpoint
     if args.if_adjust_lr is not None:
-        solver.config['if_adjust_lr'] = args.if_adjust_lr.lower() == 'true'
+        solver.config['if_adjust_lr'] = args.if_adjust_lr
+
+    solver.config['if_trainable_freq'] = solver.config['if_trainable_freq'].lower() == 'true'
+    solver.config['if_save'] = solver.config['if_save'].lower() == 'true'
+    solver.config['if_keep'] = solver.config['if_keep'].lower() == 'true'
+    solver.config['if_train'] = solver.config['if_train'].lower() == 'true'
+    solver.config['if_adjust_lr'] = solver.config['if_adjust_lr'].lower() == 'true'
     
     
         

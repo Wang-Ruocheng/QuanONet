@@ -20,9 +20,9 @@
   "output_size": 1,
   "num_qubits": 2,
   "net_size": [
-    150,
     2,
-    40,
+    2,
+    3,
     2
   ],
   "scale_coeff": 0.001,
@@ -33,10 +33,14 @@
   "if_keep": true,
   "if_train": true,
 <<<<<<< HEAD
+<<<<<<< HEAD
   "init_checkpoint": "/mnt/nas-new/home/yange/wangruocheng/QON_wrc/melt_quanonet_dim4/checkpoints/Inverse/final_Inverse_TF-QuanONet_[150, 2, 20, 2]_3.ckpt",
 =======
   "init_checkpoint": "melt_quanonet_dim4/checkpoints/Inverse/final_Inverse_TF-QuanONet_[150, 2, 40, 2]_1.ckpt",
 >>>>>>> 690183698be0512c88a131f2e19372d9dfb89e8a
+=======
+  "init_checkpoint": "melt_quanonet_dim4/checkpoints/Inverse/final_Inverse_TF-QuanONet_[2, 2, 3, 2]_4.ckpt",
+>>>>>>> 81585d821c7e00f3cb5d96752a2e37e119043707
   "operator_type": "Inverse",
   "if_adjust_lr": true,
   "learning_rate": 0.0001,
@@ -48,5 +52,9 @@
   "// Operator-specific parameters": "",
   "custom_name": null,
   "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode",
+<<<<<<< HEAD
   "random_seed": 3
+=======
+  "random_seed": 4
+>>>>>>> 81585d821c7e00f3cb5d96752a2e37e119043707
 }
