@@ -20,9 +20,9 @@
   "output_size": 1,
   "num_qubits": 2,
   "net_size": [
+    50,
     2,
-    2,
-    3,
+    25,
     2
   ],
   "scale_coeff": 0.001,
@@ -32,7 +32,7 @@
   "if_save": true,
   "if_keep": true,
   "if_train": true,
-  "init_checkpoint": "melt_quanonet_dim4/checkpoints/Inverse/final_Inverse_TF-QuanONet_[2, 2, 3, 2]_4.ckpt",
+  "init_checkpoint": "melt_quanonet_dim4/checkpoints/Inverse/final_Inverse_TF-QuanONet_[50, 2, 25, 2]_2.ckpt",
   "operator_type": "Inverse",
   "if_adjust_lr": true,
   "learning_rate": 0.0001,
@@ -44,5 +44,5 @@
   "// Operator-specific parameters": "",
   "custom_name": null,
   "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode",
-  "random_seed": 4
+  "random_seed": 2
 }
