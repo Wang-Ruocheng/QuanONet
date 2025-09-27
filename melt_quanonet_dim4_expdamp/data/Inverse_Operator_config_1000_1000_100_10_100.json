@@ -22,7 +22,7 @@
   "net_size": [
     150,
     2,
-    20,
+    40,
     2
   ],
   "scale_coeff": 0.001,
@@ -32,7 +32,11 @@
   "if_save": true,
   "if_keep": true,
   "if_train": true,
+<<<<<<< HEAD
   "init_checkpoint": "/mnt/nas-new/home/yange/wangruocheng/QON_wrc/melt_quanonet_dim4/checkpoints/Inverse/final_Inverse_TF-QuanONet_[150, 2, 20, 2]_3.ckpt",
+=======
+  "init_checkpoint": "melt_quanonet_dim4/checkpoints/Inverse/final_Inverse_TF-QuanONet_[150, 2, 40, 2]_1.ckpt",
+>>>>>>> 690183698be0512c88a131f2e19372d9dfb89e8a
   "operator_type": "Inverse",
   "if_adjust_lr": true,
   "learning_rate": 0.0001,

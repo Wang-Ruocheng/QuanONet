@@ -3,9 +3,9 @@ import glob
 import subprocess
 import re
 
-ckpt_dir = "/mnt/nas-new/home/yange/wangruocheng/QON_wrc/melt_quanonet_dim4/checkpoints/Inverse"
+ckpt_dir = "melt_quanonet_dim4/checkpoints/Inverse"
 output_prefix = "melt_quanonet_dim4_expdamp"
-log_dir = f"/mnt/nas-new/home/yange/wangruocheng/QON_wrc/{output_prefix}/dairy"
+log_dir = f"{output_prefix}/dairy"
 os.makedirs(log_dir, exist_ok=True)
 
 ckpt_files = glob.glob(os.path.join(ckpt_dir, "final_Inverse_TF-QuanONet_[*.ckpt"))
@@ -20,8 +20,9 @@ for ckpt in ckpt_files:
     trunk_depth = m.group(2)
     seed = m.group(3)
     log_file = os.path.join(log_dir, f"train_QuanONet_netsize_{branch_depth}_2_{trunk_depth}_2_seed_{seed}.log")
-    if os.path.exists(log_file):
-        print(f"已存在日志文件，跳过: {log_file}")
+    json_file = f"melt_quanonet_dim4_expdamp/logs/Inverse/training_Inverse_TF-QuanONet_2_[{branch_depth}, 2, {trunk_depth}, 2]_seed{seed}_.json"
+    if os.path.exists(json_file):
+        print(f"已存在日志文件，跳过: {json_file}")
         continue
     cmd = [
         "nohup", "python", "-u", "train_ODE.py",
