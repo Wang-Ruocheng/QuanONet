@@ -1,22 +1,22 @@
 import os
 import glob
-import mindspore as ms
-import hashlib
 import re
 from collections import defaultdict
 
-ckpt_dir = "/mnt/nas-new/home/yange/wangruocheng/QON_wrc/melt_quanonet_dim4/checkpoints/Inverse"
-patterns = [
-    os.path.join(ckpt_dir, "final_Inverse_QuanONet_[*.ckpt"),
-    os.path.join(ckpt_dir, "best_Inverse_QuanONet_[*.ckpt"),
-]
+ckpt_dir = "melt_quanonet_dim4/checkpoints/Inverse"
+pattern = os.path.join(ckpt_dir, "final_Inverse_TF-QuanONet_[*.ckpt")
 
-for pattern in patterns:
-    for filepath in glob.glob(pattern):
-        dirname, basename = os.path.split(filepath)
-        # 替换QuanONet为TF-QuanONet
-        new_basename = re.sub(r'QuanONet', 'TF-QuanONet', basename)
-        new_filepath = os.path.join(dirname, new_basename)
-        if filepath != new_filepath:
-            os.rename(filepath, new_filepath)
-            print(f"✅ {basename} -> {new_basename}")
+seeds_dict = defaultdict(list)
+
+for f in glob.glob(pattern):
+    basename = os.path.basename(f)
+    m = re.search(r"\[(\d+), 2, (\d+), 2\]_(\d+)\.ckpt", basename)
+    if m:
+        branch_depth = int(m.group(1))
+        trunk_depth = int(m.group(2))
+        seed = int(m.group(3))
+        seeds_dict[(branch_depth, trunk_depth)].append(seed)
+
+for (branch_depth, trunk_depth), seeds in sorted(seeds_dict.items()):
+    seeds.sort()
+    print(f"branch_depth={branch_depth}, trunk_depth={trunk_depth} 已有 seeds: {seeds}")
