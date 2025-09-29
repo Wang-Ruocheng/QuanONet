@@ -866,3 +866,9 @@ class DeepONet_nobias(nn.Module):
         if self._output_transform is not None:
             x = self._output_transform(inputs, x)
         return x
+    # def parameters(self, recurse: bool = True):
+    #     """
+    #     返回模型的可训练参数。
+    #     该方法直接继承自 nn.Module，可不重写，除非你有特殊需求。
+    #     """
+    #     return super().parameters(recurse)
