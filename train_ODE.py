@@ -485,7 +485,7 @@ class ODEOperatorSolver:
             raise ValueError("Please create a model first")
         
         decay_rate = 0.9
-        decay_steps = 10
+        decay_steps = 100
         if self.config['if_adjust_lr']:
             lr_schedule = nn.ExponentialDecayLR(learning_rate=self.config['learning_rate'], decay_rate=decay_rate, decay_steps=decay_steps)
         else:
@@ -740,6 +740,12 @@ class ODEOperatorSolver:
             suffix: Filename suffix
             overwrite: Whether to overwrite save (for best model)
         """
+        self.checkpoints_dir = os.path.join(self.prefix, "checkpoints") if self.prefix else "checkpoints"
+        if self.config['if_trainable_freq']:
+            self.checkpoints_dir = os.path.join(self.checkpoints_dir, self.operator_type, f"TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}")
+        else:
+            self.checkpoints_dir = os.path.join(self.checkpoints_dir, self.operator_type, f"{self.config['model_type']}_{self.config['num_qubits']}__{self.config['net_size']}_{self.config['random_seed']}")
+        os.makedirs(self.checkpoints_dir, exist_ok=True)
         if suffix == "best" and overwrite:
             # Best model: fixed filename, overwrite save
             if self.operator_type == 'Custom':
@@ -747,9 +753,9 @@ class ODEOperatorSolver:
             else:
                 operator_name = self.operator_type
             if self.config['if_trainable_freq']:
-                filename = f"{operator_name}/best_{operator_name}_TF-{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+                filename = f"best_{operator_name}_TF-{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             else:
-                filename = f"{operator_name}/best_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+                filename = f"best_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
@@ -775,9 +781,9 @@ class ODEOperatorSolver:
             else:
                 operator_name = self.operator_type
             if self.config['if_trainable_freq']:
-                filename = f"{operator_name}/{suffix}_{operator_name}_TF-{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+                filename = f"{suffix}_{operator_name}_TF-{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             else:
-                filename = f"{operator_name}/{suffix}_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+                filename = f"{suffix}_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
@@ -901,9 +907,9 @@ class ODEOperatorSolver:
         
         # Save evaluation results
         if self.config['if_trainable_freq']:
-            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/training_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}_.json")
+            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}.json")
         else:
-            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/training_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}_.json")
+            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}.json")
         results['config'] = self.config
         results['training_history'] = self.training_history
         dir_name = os.path.dirname(results_file)
