@@ -147,7 +147,7 @@ ODE_SYSTEMS = {
     },
     'Nonlinear': {
         'description': 'Nonlinear operator problem: du/dx = u0(x) - u²',
-        'ode_func': lambda u0_fn: lambda x, u: u - u0_fn(x)**2
+        'ode_func': lambda u0_fn: lambda x, u: -u**2 + u0_fn(x)
     }
 }
 

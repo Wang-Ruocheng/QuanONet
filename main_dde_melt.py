@@ -3,6 +3,9 @@ os.environ["DDE_BACKEND"] = "pytorch"
 device_id = 1  # 指定GPU编号
 os.environ["CUDA_VISIBLE_DEVICES"] = str(device_id)
 from __init__dde import *
+import torch
+from torch.optim import Adam
+from torch.optim.lr_scheduler import LambdaLR
 output_file = f"dairy"
 checkpoint_file = "checkpoints_dde"
 operators = ["Inverse"]
@@ -15,7 +18,6 @@ operators = ["Inverse"]
 model_types = ["DeepONet"]
 # model_types = ["FNN"]
 batch_size = 100
-learning_rate = 0.0001
 if_adalr = False
 if_batch = True
 if_shuffle = True
@@ -31,19 +33,19 @@ original_stderr = sys.stderr
 verbose = 1
 depths = [2, 3, 4, 5, 6]
 # depths = [6]
-widths = [32, 64, 128, 256, 512, 1024]
+widths = [4, 8, 12, 16, 20, 24, 28, 32]
 if torch.cuda.is_available():
     device = torch.device("cuda:0")  # 只暴露一个GPU，始终用cuda:0
     print(f"Using GPU: {device_id}")
 DE_dict = {"Inverse": "ODE", "Nonlinear": "ODE", "Homogeneous":"ODE","RDiffusion": "PDE", "Advection": "PDE", "Darcy": "PDE"}
-num_epoch_dict = {"ODE": 1000, "PDE": 100}
+num_epoch_dict = {"ODE": 2000, "PDE": 100}
 for depth in depths:
     for width in widths:
         for seed_num in seeds:
             for model_type in model_types:
                 for operator in operators:
                     net_size = (depth, width, depth, width)
-                    output_path = f"melt_DeepONet_4/melt_{model_type}_{net_size}_{seed_num}.log"
+                    output_path = f"melt_deeponet_dim4_expdamp/melt_{model_type}_{net_size}_{seed_num}.log"
                     if not os.path.exists(output_path) and if_save:
                         print(f"Running {operator} with depth {depth}, width {width}, seed {seed_num}, model {model_type}")
                         num_epoch = num_epoch_dict[DE_dict[operator]]
@@ -97,7 +99,19 @@ for depth in depths:
                                 net = FNN_re(layers_size, nn.Tanh(), torch.nn.init.xavier_normal_)
                             print(f"Data generated, train_num: {len(train_output)}, test_num: {len(test_output)}, params num: {sum(p.numel() for p in net.parameters())}")
                             model = dde.Model(data, net)
-                            model.compile("adam", lr=learning_rate)
+                            def lr_lambda(epoch):
+                                if epoch < 1000*100:
+                                    return 1.0
+                                else:
+                                    decay_times = (epoch - 1000*100) // 10
+                                    return 0.9 ** decay_times
+
+                            # 在外部准备好 optimizer 和 scheduler
+                            optimizer = Adam(model.net.parameters(), lr=0.0001)
+                            scheduler = LambdaLR(optimizer, lr_lambda=lr_lambda)
+
+                            model.compile("adam", lr=0.0001)
+                            model.scheduler = scheduler
                             if if_batch:
                                 losshistory, train_state = model.train(batch_size=batch_size, display_every = display_every, iterations=num_iter, verbose = verbose)
                             else:
@@ -117,13 +131,13 @@ for depth in depths:
                                     sys.stderr = StreamToLogger(logger, logging.ERROR)
                                 except Exception as e:
                                     print(f"Failed to set up logging: {e}")
-                                print(f"Training {model_type} with size {net_size}, params num: {sum(p.numel() for p in net.parameters())},  train_num: {len(train_output)}, test_num: {len(test_output)}, if_adalr: {if_adalr}, if_batch: {if_batch}, if_shuffle: {if_shuffle}, batch_size: {batch_size}, learning_rate: {learning_rate}")
+                                print(f"Training {model_type} with size {net_size}, params num: {sum(p.numel() for p in net.parameters())},  train_num: {len(train_output)}, test_num: {len(test_output)}, if_adalr: {if_adalr}, if_batch: {if_batch}, if_shuffle: {if_shuffle}, batch_size: {batch_size}")
                                 train_loss = [losshistory.loss_train[j][0] for j in range(num_iter//display_every)]
                                 test_loss = [losshistory.loss_test[j][0] for j in range(num_iter//display_every)]
                                 for i in range(num_epoch):
                                     unit = num_train*train_sample_num//(batch_size * display_every)
                                     print(f"Epoch {i}: {np.mean(train_loss[i*unit:(i+1)*unit])}, {test_loss[i*unit+unit-1]}")
-                                checkpoint_file_name = f"{checkpoint_file}/{operator}/{operator}_{model_type}_final_seed{seed_num}.ckpt"
+                                checkpoint_file_name = f"{checkpoint_file}/{operator}/{operator}_{model_type}_{net_size}_seed{seed_num}.ckpt"
                                 dir_name = os.path.dirname(checkpoint_file_name)
                                 if dir_name:
                                     os.makedirs(dir_name, exist_ok=True)
