@@ -2,11 +2,7 @@
 
 bd_list=(50 100 150 200)
 td_list=(10 20 30 40 50 60 70 80)
-<<<<<<< HEAD
-seed_list=(4)
-=======
-seed_list=(0)
->>>>>>> dab3429604f36f767fb26f1a7cdfcb16d4ea5304
+seed_list=(0 1 2 3 4)
 max_jobs=4
 job_count=0
 
@@ -44,8 +40,4 @@ for bd in "${bd_list[@]}"; do
     done
   done
 done
-<<<<<<< HEAD
 wait
-=======
-wait
->>>>>>> dab3429604f36f767fb26f1a7cdfcb16d4ea5304

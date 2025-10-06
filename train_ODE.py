@@ -42,7 +42,7 @@ from data_utils.data_generation import (
 )
 from data_utils.data_processing import ODE_encode
 from core.models import QuanONet, HEAQNN, FNN, DeepONet
-from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator
+from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator,generate_ham_diag_diffspectrum
 from utils.utils import count_parameters
 
 # Set MindSpore context
@@ -406,16 +406,31 @@ class ODEOperatorSolver:
         if 'train_branch_input' in self.data:
             print(f"Branch Input Dimension: {self.data['train_branch_input'].shape[1]}")
             print(f"Trunk Input Dimension: {self.data['train_trunk_input'].shape[1]}")
+    def get_ham_rank_str(self):
+        """返回哈密顿秩字符串，格式如 _rank2,没有则空字符串"""
+        rank = self.config.get('ham_rank', None)
+        return f"_rank{rank}" if rank is not None else ""
+    
+    def get_rank_folder(self):
+        """返回如 rank2,没有则空字符串"""
+        rank = self.config.get('ham_rank', None)
+        return f"rank{rank}" if rank is not None else ""
+    
+    def get_qubits_folder(self):
+        """返回如 qubits3"""
+        return f"qubits{self.config['num_qubits']}"
     
     def create_model(self):
         print("\n=== Model Creation ===")
 
         # Create Hamiltonian
-        if self.config.get('ham_diag', None) is None:
+        if self.config.get('ham_rank', None) is None:
             ham = generate_simple_hamiltonian(self.config['num_qubits'], lower_bound=-5, upper_bound=5)
         else:
-            ham = ham_diag_to_operator(self.config.get('ham_diag', None), self.config['num_qubits'])
-        print(f"Using Hamiltonian: {ham}")
+            
+            diag = generate_ham_diag_diffspectrum(self.config['num_qubits'], self.config['ham_rank'], self.config['random_seed'])
+            ham = ham_diag_to_operator(diag, self.config['num_qubits'])
+        print(f"Using Hamiltonian: {ham.hamiltonian.matrix()}")
         # Get input dimensions
         if 'train_branch_input' in self.data:
             branch_input_size = self.data['train_branch_input'].shape[1]
@@ -977,7 +992,7 @@ def main():
     parser.add_argument('--scale_coeff', type=float, help='Scale coefficient for loss function')
     parser.add_argument('--if_trainable_freq', type=str, help='Whether to use trainable frequency (true/false)')
     parser.add_argument('--prefix', type=str, help='Prefix of outputs')
-    parser.add_argument('--ham_diag', type=int, nargs='+', help='Ham diagonal elements')
+    parser.add_argument('--ham_rank', type=int, help='Hamiltonian rank (only used when operator=Inverse(ODE))')
     parser.add_argument('--if_save', type=str, help='Whether to save (true/false)')
     parser.add_argument('--if_keep', type=str, help='Whether to keep (true/false)')
     parser.add_argument('--if_train', type=str, help='Whether to train (true/false)')
@@ -1046,8 +1061,8 @@ def main():
         solver.config['if_save'] = args.if_save
     if args.if_keep is not None:
         solver.config['if_keep'] = args.if_keep
-    if args.ham_diag:
-        solver.config['ham_diag'] = args.ham_diag
+    if args.ham_rank is not None:
+        solver.config['ham_rank'] = args.ham_rank
     if args.if_train is not None:
         solver.config['if_train'] = args.if_train
     if args.init_checkpoint is not None:
