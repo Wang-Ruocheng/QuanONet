@@ -1,7 +1,11 @@
 {
   "// Universal ODE operator configuration file": "config_ODE.json",
-  "// Supported operator types": ["Inverse", "Homogeneous", "Nonlinear", "Custom"],
-  
+  "// Supported operator types": [
+    "Inverse",
+    "Homogeneous",
+    "Nonlinear",
+    "Custom"
+  ],
   "// Data generation parameters": "",
   "num_train": 1000,
   "num_test": 1000,
@@ -10,17 +14,20 @@
   "test_sample_num": 100,
   "length_scale": 0.2,
   "num_cal": 1000,
-  
   "// Model parameters": "",
   "branch_input_size": 100,
   "trunk_input_size": 1,
   "output_size": 1,
   "num_qubits": 5,
-  "net_size": [20, 2, 10, 2],
+  "net_size": [
+    20,
+    2,
+    10,
+    2
+  ],
   "scale_coeff": 0.01,
   "model_type": "QuanONet",
   "if_trainable_freq": true,
-  
   "// Training parameters": "",
   "if_save": "true",
   "if_keep": "false",
@@ -29,13 +36,14 @@
   "operator_type": "Inverse",
   "if_adjust_lr": "false",
   "learning_rate": 0.0001,
-  "num_epochs": 1000,
+  "num_epochs": 20,
   "target_error": 1e-10,
   "batch_size": 100,
   "validation_split": 0,
   "patience": 20,
-  
   "// Operator-specific parameters": "",
   "custom_name": null,
-  "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode"
+  "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode",
+  "random_seed": 1,
+  "ham_rank": 16
 }

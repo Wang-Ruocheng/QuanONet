@@ -22,6 +22,7 @@ Custom operator examples:
 """
 
 import sys
+import stat
 import os
 import json
 import numpy as np
@@ -32,8 +33,6 @@ from mindspore.train.serialization import save_checkpoint, load_checkpoint
 from tqdm import tqdm
 import argparse
 from datetime import datetime
-import glob
-import stat
 
 # Import necessary modules
 from data_utils.data_generation import (
@@ -44,7 +43,7 @@ from data_utils.data_generation import (
 )
 from data_utils.data_processing import ODE_encode
 from core.models import QuanONet, HEAQNN, FNN, DeepONet
-from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator, generate_diag_from_rank
+from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator, generate_diag_from_rank, generate_ham_diag, generate_ham_diag_diffspectrum
 from utils.utils import count_parameters
 
 # Set MindSpore context
@@ -114,6 +113,8 @@ class ODEOperatorSolver:
         """
         Initialize the solver
 
+        Args:
+            operator_type: Operator type ('Inverse', 'Homogeneous', 'Nonlinear', 'Custom')
         Args:
             operator_type: Operator type ('Inverse', 'Homogeneous', 'Nonlinear', 'Custom')
             config_file: Configuration file path. If None, default configuration is used.
@@ -214,7 +215,10 @@ class ODEOperatorSolver:
 
         # Data file path - includes all parameters affecting data size
         rank_folder = self.get_rank_folder()
-        data_file = f"{self.data_dir}/{operator_name}/{rank_folder}/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
+        qubits_folder = self.get_qubits_folder()
+        data_file = f"{self.data_dir}/{operator_name}/{rank_folder}/{qubits_folder}/{operator_name}_Operator_dataset_{self.config['num_qubits']}_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
+        config_file = f"{self.data_dir}/{operator_name}/{rank_folder}/{qubits_folder}/{operator_name}_Operator_config_{self.config['num_qubits']}_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.json"
+        os.makedirs(os.path.dirname(config_file), exist_ok=True)
         
         if os.path.exists(data_file):
             print(f"Loading existing data from {data_file}  ...")
@@ -351,36 +355,36 @@ class ODEOperatorSolver:
         }
 
         # Save data
+        rank_folder = self.get_rank_folder()
         if self.operator_type == 'Custom':
             operator_name = self.custom_name
         else:
             operator_name = self.operator_type
-            
-        rank_folder = self.get_rank_folder()
-        data_file = f"{self.data_dir}/{operator_name}/{rank_folder}/{operator_name}_Operator_dataset_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
-        config_file = f"{self.data_dir}/{operator_name}/{rank_folder}/{operator_name}_Operator_config_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.json"
-        os.makedirs(os.path.dirname(config_file), exist_ok=True)
-        with open(config_file, 'w') as f:
-            json.dump(self.config, f, indent=2)
 
+        qubits_folder = self.get_qubits_folder()
+        data_file = f"{self.data_dir}/{operator_name}/{rank_folder}/{qubits_folder}/{operator_name}_Operator_dataset_{self.config['num_qubits']}_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.npz"
+        config_file = f"{self.data_dir}/{operator_name}/{rank_folder}/{qubits_folder}/{operator_name}_Operator_config_{self.config['num_qubits']}_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.json"
+        os.makedirs(os.path.dirname(config_file), exist_ok=True)
+        
         print(f"Saving data to {data_file}...")
-        np.savez_compressed(
-            data_file,
-            train_input=train_input.asnumpy(),
-            train_output=train_output.asnumpy(),
-            test_input=test_input.asnumpy(),
-            test_output=test_output.asnumpy(),
-            train_branch_input=train_branch_input.asnumpy(),
-            train_trunk_input=train_trunk_input.asnumpy(),
-            test_branch_input=test_branch_input.asnumpy(),
-            test_trunk_input=test_trunk_input.asnumpy()
-        )
+        if self.config['if_save']:
+            np.savez_compressed(
+                data_file,
+                train_input=train_input.asnumpy(),
+                train_output=train_output.asnumpy(),
+                test_input=test_input.asnumpy(),
+                test_output=test_output.asnumpy(),
+                train_branch_input=train_branch_input.asnumpy(),
+                train_trunk_input=train_trunk_input.asnumpy(),
+                test_branch_input=test_branch_input.asnumpy(),
+                test_trunk_input=test_trunk_input.asnumpy()
+            )
         
         # Save configuration
-        config_file = f"{self.data_dir}/{operator_name}/{rank_folder}/{operator_name}_Operator_config_{self.config['num_train']}_{self.config['num_test']}_{self.config['num_points']}_{self.config['train_sample_num']}_{self.config['test_sample_num']}.json"
         os.makedirs(os.path.dirname(config_file), exist_ok=True)
-        with open(config_file, 'w') as f:
-            json.dump(self.config, f, indent=2)
+        if self.config['if_save']:
+            with open(config_file, 'w') as f:
+                json.dump(self.config, f, indent=2)
 
         print("Data generation and saving completed!")
 
@@ -410,7 +414,6 @@ class ODEOperatorSolver:
         if 'train_branch_input' in self.data:
             print(f"Branch Input Dimension: {self.data['train_branch_input'].shape[1]}")
             print(f"Trunk Input Dimension: {self.data['train_trunk_input'].shape[1]}")
-    
     def get_ham_rank_str(self):
         """返回哈密顿秩字符串，格式如 _rank2,没有则空字符串"""
         rank = self.config.get('ham_rank', None)
@@ -421,6 +424,10 @@ class ODEOperatorSolver:
         rank = self.config.get('ham_rank', None)
         return f"rank{rank}" if rank is not None else ""
     
+    def get_qubits_folder(self):
+        """返回如 qubits3"""
+        return f"qubits{self.config['num_qubits']}"
+    
     def create_model(self):
         print("\n=== Model Creation ===")
 
@@ -428,7 +435,8 @@ class ODEOperatorSolver:
         if self.config.get('ham_rank', None) is None:
             ham = generate_simple_hamiltonian(self.config['num_qubits'], lower_bound=-5, upper_bound=5)
         else:
-            diag = generate_diag_from_rank(self.config['ham_rank'], self.config['num_qubits'])
+            
+            diag = generate_ham_diag_diffspectrum(self.config['num_qubits'], self.config['ham_rank'], self.config['random_seed'])
             ham = ham_diag_to_operator(diag, self.config['num_qubits'])
         print(f"Using Hamiltonian: {ham.hamiltonian.matrix()}")
         # Get input dimensions
@@ -479,7 +487,7 @@ class ODEOperatorSolver:
             )
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
-        
+
         # Print model summary
         total_params = count_parameters(self.model)
         print(f"Model Type: {model_type}")
@@ -642,7 +650,8 @@ class ODEOperatorSolver:
                         best_test_loss = val_loss
                         best_epoch = epoch
                         no_improve = 0
-                        self.save_model("best", overwrite=True)
+                        if self.config['if_save']:
+                            self.save_model("best", overwrite=True)
                     else:
                         no_improve += 1
                 else:
@@ -658,13 +667,15 @@ class ODEOperatorSolver:
                         best_test_loss = avg_train_loss
                         best_epoch = epoch
                         no_improve = 0
-                        self.save_model("best", overwrite=True)
+                        if self.config['if_save']:
+                            self.save_model("best", overwrite=True)
                     else:
                         no_improve += 1
                 
                 # Periodically save checkpoints
                 if epoch > 0 and epoch % self.checkpoint_interval == 0:
-                    self.save_model(f"checkpoint_epoch_{epoch}", overwrite=False)
+                    if self.config['if_save']:
+                        self.save_model(f"checkpoint_epoch_{epoch}", overwrite=False)
                 
                 # Print progress every 100 epochs
                 if epoch % 100 == 0:
@@ -729,10 +740,11 @@ class ODEOperatorSolver:
         print(f"Final test loss: {final_test_loss:.6f}")
         
         # Save final model
-        self.save_model("final", overwrite=False)
+        if self.config['if_save']:
+            self.save_model("final", overwrite=False)
         
         # Display saved models summary
-        self.print_saved_models_summary()
+            self.print_saved_models_summary()
         
         return final_test_loss
     
@@ -744,14 +756,18 @@ class ODEOperatorSolver:
             suffix: Filename suffix
             overwrite: Whether to overwrite save (for best model)
         """
+        rank_folder = self.get_rank_folder()
         if suffix == "best" and overwrite:
             # Best model: fixed filename, overwrite save
             if self.operator_type == 'Custom':
                 operator_name = self.custom_name
             else:
                 operator_name = self.operator_type
-            rank_folder = self.get_rank_folder()
-            filename = f"{operator_name}/{rank_folder}/best_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+            qubits_folder = self.get_qubits_folder()
+            if self.config['if_trainable_freq']:
+                filename = f"{operator_name}/{rank_folder}/{qubits_folder}/best_{operator_name}_TF-{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+            else:
+                filename = f"{operator_name}/{rank_folder}/{qubits_folder}/best_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
@@ -759,14 +775,15 @@ class ODEOperatorSolver:
             # Delete old best model file
             if self.best_model_path and os.path.exists(self.best_model_path):
                 try:
-                    # 取消只读属性
                     os.chmod(self.best_model_path, stat.S_IWRITE)
                     os.remove(self.best_model_path)
+                    # print(f"    Deleted old best model: {os.path.basename(self.best_model_path)}")
                 except Exception as e:
                     print(f"    Failed to delete old model: {e}")
             
             self.best_model_path = filepath
-            save_checkpoint(self.model, filepath)
+            if self.config['if_save']:
+                save_checkpoint(self.model, filepath)
             # print(f"    Saved best model: {os.path.basename(filepath)}")
             
         else:
@@ -776,16 +793,17 @@ class ODEOperatorSolver:
                 operator_name = self.custom_name
             else:
                 operator_name = self.operator_type
-            rank_folder = self.get_rank_folder()
+            qubits_folder = self.get_qubits_folder()
             if self.config['if_trainable_freq']:
-                filename = f"{operator_name}/{rank_folder}/{operator_name}_TF-{self.config['model_type']}_{suffix}_{timestamp}.ckpt"
+                filename = f"{operator_name}/{rank_folder}/{qubits_folder}/{operator_name}_TF-{self.config['model_type']}_{suffix}_{timestamp}.ckpt"
             else:
-                filename = f"{operator_name}/{rank_folder}/{operator_name}_{self.config['model_type']}_{suffix}_{timestamp}.ckpt"
+                filename = f"{operator_name}/{rank_folder}/{qubits_folder}/{operator_name}_{self.config['model_type']}_{suffix}_{timestamp}.ckpt"
             filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
                 os.makedirs(dir_name, exist_ok=True)
-            save_checkpoint(self.model, filepath)
+            if self.config['if_save']:
+                save_checkpoint(self.model, filepath)
             # print(f"    Saved model: {os.path.basename(filepath)}")
             
             # Record checkpoint (for management)
@@ -805,16 +823,17 @@ class ODEOperatorSolver:
     def print_saved_models_summary(self):
         """Print saved models summary"""
         print(f"\n=== Saved Models Summary ===")
-        
+
         if not os.path.exists(self.checkpoints_dir):
             print("No saved models")
             return
-        
-        # 只查找当前算子类型文件夹下的ckpt文件
+
         rank_folder = self.get_rank_folder()
-        operator_folder = os.path.join(self.checkpoints_dir, self.operator_type, rank_folder)
-        saved_files = glob.glob(os.path.join(operator_folder, '*.ckpt'))
-        saved_files = [os.path.relpath(f, self.checkpoints_dir) for f in saved_files]
+        qubits_folder = self.get_qubits_folder()  
+        operator_folder = os.path.join(self.checkpoints_dir, self.operator_type, rank_folder, qubits_folder)
+        saved_files = []
+        if os.path.exists(operator_folder):
+            saved_files = [f for f in os.listdir(operator_folder) if f.endswith('.ckpt')]
         
         best_files = [f for f in saved_files if 'best' in f]
         final_files = [f for f in saved_files if 'final' in f]
@@ -842,7 +861,6 @@ class ODEOperatorSolver:
         if self.model is None:
             raise ValueError("Please train the model first")
         
-        # 新增：定义 rank_folder
         rank_folder = self.get_rank_folder()
         
         # Prepare test data
@@ -918,19 +936,29 @@ class ODEOperatorSolver:
         
         # Save evaluation results
         if self.config['if_trainable_freq']:
-            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/{rank_folder}/training_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}.json")
+            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/{rank_folder}/training_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}_.json")
         else:
-            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/{rank_folder}/training_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}.json")
-        results['config'] = self.config
-        results['training_history'] = self.training_history
+            qubits_folder = self.get_qubits_folder()
+            results_file = os.path.join(
+                self.logs_dir,
+                f"{self.operator_type}/{rank_folder}/{qubits_folder}/training_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_seed{self.config['random_seed']}_.json"
+            )
         dir_name = os.path.dirname(results_file)
         if dir_name and not os.path.exists(dir_name):
             os.makedirs(dir_name, exist_ok=True)
-        with open(results_file, 'w') as f:
-            json.dump(results, f, indent=2)
-        
-        print(f"Evaluation results saved to: {results_file}")
-        
+        if self.config['if_save']:
+            with open(results_file, 'w') as f:
+                json.dump(results, f, indent=2)
+            
+            log_dict = {
+            'config': self.config,  # 保存本次配置
+            'training_history': self.training_history,  # 保存训练过程损失（每10个epoch一次）
+            'results': results  # 保存最终评估结果
+            }
+            with open(results_file, 'w') as f:
+                json.dump(log_dict, f, indent=2)
+            print(f"Evaluation results saved to: {results_file}")
+            
         return results
     
     def run_complete_pipeline(self):
@@ -938,7 +966,9 @@ class ODEOperatorSolver:
         print(f"=== {self.config['model_type']} {self.operator_type} Operator Solving Pipeline ===")
         print(f"Operator Description: {self.get_operator_description()}")
         print(f"Start Time: {datetime.now()}")
-        
+
+        results = None  # 初始化，避免未赋值报错
+
         try:
             # 1. Data preparation
             self.load_or_generate_data()
@@ -946,21 +976,25 @@ class ODEOperatorSolver:
             # 2. Model creation
             self.create_model()
             
-            # 3. Model training
-            final_loss = self.train_model()
+            if self.config['if_train']:
+                # 3. Model training
+                final_loss = self.train_model()
             
             # 4. Model evaluation
-            best_checkpoint = self.best_model_path
-            if best_checkpoint and os.path.exists(best_checkpoint):
-                print(f"\nLoading best model from {best_checkpoint} for final evaluation...")
-                load_checkpoint(best_checkpoint, self.model)
-            results = self.evaluate_model()
+            for init_checkpoint in self.config.get("init_checkpoints", []):
+                print(f"\nLoading initial checkpoint from {init_checkpoint} for evaluation...")
+                load_checkpoint(init_checkpoint, self.model)
+                results = self.evaluate_model()
+            
+            # 如果没有init_checkpoints，也要评估一次
+            if not self.config.get("init_checkpoints", []):
+                results = self.evaluate_model()
             
             print(f"\n=== Complete Pipeline Execution Successful ===")
             print(f"End Time: {datetime.now()}")
-            
+
             return results
-            
+
         except Exception as e:
             print(f"Pipeline execution failed: {e}")
             import traceback
@@ -984,14 +1018,17 @@ def main():
     parser.add_argument('--scale_coeff', type=float, help='Scale coefficient for loss function')
     parser.add_argument('--if_trainable_freq', type=str, help='Whether to use trainable frequency (true/false)')
     parser.add_argument('--prefix', type=str, help='Prefix of outputs')
-    parser.add_argument('--ham_rank', type=int, help='Hamiltonian rank (only used when operator=Inverse(ODE))')
-
+    parser.add_argument('--ham_diag', type=int, nargs='+', help='Ham diagonal elements')
+    parser.add_argument('--if_save', type=str, help='Whether to save (true/false)')
+    parser.add_argument('--if_keep', type=str, help='Whether to keep (true/false)')
+    parser.add_argument('--if_train', type=str, help='Whether to train (true/false)')
+    parser.add_argument('--init_checkpoints', type=list, help='Initial checkpoint file path')
     # Custom operator parameters
     parser.add_argument('--custom_ode', type=str, default=None, 
                        help='Custom ODE function string (only used when operator=Custom)')
     parser.add_argument('--custom_name', type=str, default=None, 
                        help='Custom operator name (only used when operator=Custom)')
-    
+    parser.add_argument('--ham_rank', type=int, help='Hamiltonian rank (only used when operator=Inverse(ODE))')
     args = parser.parse_args()
     
     print(f"=== ODE Operator {args.model_type} Training System ===")
@@ -1044,9 +1081,17 @@ def main():
         solver.config['scale_coeff'] = args.scale_coeff
     if args.if_trainable_freq is not None:
         solver.config['if_trainable_freq'] = args.if_trainable_freq.lower() == 'true'
-
+    if args.if_save is not None:
+        solver.config['if_save'] = args.if_save.lower() == 'true'
+    if args.if_keep is not None:
+        solver.config['if_keep'] = args.if_keep.lower() == 'true'
     if args.ham_rank is not None:
         solver.config['ham_rank'] = args.ham_rank
+    if args.if_train is not None:
+        solver.config['if_train'] = args.if_train.lower() == 'true'
+    if args.init_checkpoints is not None:
+        solver.config['init_checkpoints'] = args.init_checkpoints
+    
     
         
     # Uniformly set random seed (considering command line override and config file)

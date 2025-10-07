@@ -39,23 +39,109 @@ def generate_simple_hamiltonian(num_qubits, lower_bound=None, upper_bound=None, 
     return ham
 
 
-def ham_diag_to_operator(diag_elements, num_qubits, lower_bound=None, upper_bound=None, ):
-    """Convert diagonal elements to a Hamiltonian operator."""
-    if diag_elements is None:
-        raise ValueError("diag_elements cannot be None")
-    if len(diag_elements) != 2**num_qubits:
-        raise ValueError(f"Length of diag_elements must be {2**num_qubits} for {num_qubits} qubits.")
-    
-    ham = QubitOperator()
-    for idx, coeff in enumerate(diag_elements):
-        binary_str = format(idx, f'0{num_qubits}b')
-        term = ' '.join(f'Z{i}' for i, bit in enumerate(binary_str) if bit == '1')
-        if term == '':
-            ham += QubitOperator('', coeff)
-        else:
-            ham += QubitOperator(term, coeff)
-    
-    return Hamiltonian(ham)
+def ham_diag_to_operator(diag_elements, num_qubits):
+    """
+    将32维对角矩阵(5比特系统)展开为Pauli-Z项的QubitOperator。
+    diag_vec: 长度为32的对角线值
+    返回: QubitOperator
+    """
+    n = num_qubits
+    diag_elements = np.asarray(diag_elements)
+    # Walsh-Hadamard变换
+    coeffs = np.dot(np.array([[(-1)**(bin(i & j).count('1')) for j in range(2**n)] for i in range(2**n)]), diag_elements) / 2**n
+    op = QubitOperator('', 0)
+    for idx, c in enumerate(coeffs):
+        if abs(c) < 1e-12:
+            continue
+        # idx转Pauli字符串
+        pauli_str = []
+        for q in range(n):
+            if (idx >> q) & 1:
+                pauli_str.append(f'Z{q}')
+        term = ' '.join(pauli_str)
+        op += QubitOperator(term, c)
+    op = Hamiltonian(op)
+    return op
+
+
+def generate_ham_diag(num_qubits, rank, seed=None):
+    """
+    Generate a 1D array of length 2**num_qubit with 'rank' nonzero entries.
+    The number of 1's and -1's are both rank//2 (rank must be even).
+    """
+    length = 2 ** num_qubits
+    assert rank <= length, "rank cannot be greater than array length"
+    assert rank % 2 == 0, "rank must be even for equal number of 1's and -1's"
+    if seed is not None:
+        np.random.seed(seed)
+    arr = np.zeros(length)
+    # Randomly select 'rank' unique positions
+    idx = np.random.choice(length, rank, replace=False)
+    num_ones = rank // 2
+    num_neg_ones = rank // 2
+    values = np.array([1] * num_ones + [-1] * num_neg_ones)
+    np.random.shuffle(values)
+    arr[idx] = values
+    return 5*arr
+
+
+def generate_ham_diag_rank1(num_qubits, seed=None):
+    """
+    随机在2**num_qubits个位置中产生一个1,其余全为0,返回该数组乘10减5
+    """
+    length = 2 ** num_qubits
+    if seed is not None:
+        np.random.seed(seed)
+    arr = np.zeros(length)
+    idx = np.random.choice(length, 1, replace=False)  # 随机选一个位置
+    arr[idx[0]] = 1
+    return arr * 10 - 5
+
+def generate_ham_diag_diffspectrum(num_qubits, rank, seed=None):
+    """
+    若rank为1,随机在一个位置生成1,其余全为0,返回数组*10-5;
+    若rank为2;随机选两个位置分别为5和-5,其余为0;
+    其他rank,随机选rank个位置,前两个分别为5和-5,剩下的为-5到5的随机值,其余为0。
+    """
+    length = 2 ** num_qubits
+    assert rank <= length, "rank cannot be greater than array length"
+    if seed is not None:
+        np.random.seed(seed)
+    arr = np.zeros(length)
+    idx = np.random.choice(length, rank, replace=False)
+    if rank == 1:
+        arr[idx[0]] = 1
+        return arr * 10 - 5
+    elif rank == 2:
+        arr[idx[0]] = 5
+        arr[idx[1]] = -5
+        return arr
+    else:
+        arr[idx[0]] = 5
+        arr[idx[1]] = -5
+        # 剩下的rank-2个位置赋值为-5到5的随机值（不含5和-5）
+        arr[idx[2:]] = np.random.uniform(-5, 5, rank - 2)
+        return arr
+
+
+def generate_diag_from_rank(rank, num_qubits):
+    """
+    根据秩生成对角哈密顿量:一半为1,一半为-1,其余为0
+    rank: 非零元素个数(必须为偶数且不超过2^num_qubits)
+    num_qubits: 比特数
+    返回:长度为2^num_qubits的对角线数组
+    """
+    dim = 2 ** num_qubits
+    if rank > dim:
+        raise ValueError("rank不能大于哈密顿量维度")
+    if rank % 2 != 0:
+        raise ValueError("rank必须为偶数")
+    diag = [0] * dim
+    half = rank // 2
+    diag[:half] = [5] * half
+    diag[half:rank] = [-5] * half
+    # 其余为0
+    return diag
 
 
 def Encode_layer(num_qubits, input_size, e_name_list, PauliRotGate=RX):
