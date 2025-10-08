@@ -1,43 +1,41 @@
 #!/bin/bash
+# filepath: run_train_ODE.sh
 
-bd_list=(50 100 150 200)
-td_list=(10 20 30 40 50 60 70 80)
-seed_list=(0 1 2 3 4)
-max_jobs=4
+operators=(Nonlinear)
+seeds=(0 1 2 3 4)
+max_jobs=3
 job_count=0
+scale_coeffs=(0.001 0.01 0.1)
 
-for bd in "${bd_list[@]}"; do
-  for td in "${td_list[@]}"; do
-    for seed in "${seed_list[@]}"; do
-      log_file="melt_quanonet_dim4/dairy/train_Inverse_TF-QuanONet_2_[${bd}, 2, ${td}, 2]_${seed}.log"
-      json_file="melt_quanonet_dim4/logs/Inverse/train_Inverse_TF-QuanONet_2_[${bd}, 2, ${td}, 2]_${seed}.json"
-      if [ ! -f "${json_file}" ]; then
-        echo "开始运行：bd=${bd}, td=${td}, seed=${seed}"
+for operator in "${operators[@]}"; do
+  for seed in "${seeds[@]}"; do
+    for scale_coeff in "${scale_coeffs[@]}"; do
+      log_file="dairy/train_${operator}_TF-QuanONet_5_[20, 2, 10, 2]_${scale_coeff}_${seed}.log"
+      json_file="logs/${operator}/train_${operator}_TF-QuanONet_5_[20, 2, 10, 2]_${scale_coeff}_${seed}.json"
+      if [ -f "${json_file}" ]; then
+        echo "跳过已存在的文件：${json_file}"
+        continue
+      fi
+        echo "开始运行：${json_file}"
         nohup python -u train_ODE.py \
-          --operator Inverse \
+          --operator "${operator}" \
           --model_type QuanONet \
-          --scale_coeff 0.001 \
+          --scale_coeff "${scale_coeff}" \
           --if_trainable_freq true \
-          --num_qubits 2 \
-          --net_size ${bd} 2 ${td} 2 \
-          --if_train true \
-          --if_keep false \
-          --if_save true \
-          --random_seed ${seed} \
-          --if_adjust_lr false \
-          --prefix melt_quanonet_dim4 \
+          --num_qubits 5 \
+          --net_size 20 2 10 2 \
+          --random_seed "${seed}" \
           --num_epochs 1000 \
+          --if_save true \
+          --if_keep false \
+          --if_train true \
           > "${log_file}" 2>&1 &
         ((job_count++))
         if ((job_count >= max_jobs)); then
           wait
           job_count=0
         fi
-        echo "完成：${json_file}"
-      else
-        echo "已存在：${json_file}，跳过"
-      fi
+      done
     done
   done
-done
 wait

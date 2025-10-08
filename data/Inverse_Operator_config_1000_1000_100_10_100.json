@@ -18,9 +18,9 @@
   "branch_input_size": 100,
   "trunk_input_size": 1,
   "output_size": 1,
-  "num_qubits": 2,
+  "num_qubits": 5,
   "net_size": [
-    200,
+    20,
     2,
     10,
     2
@@ -29,6 +29,12 @@
   "model_type": "QuanONet",
   "if_trainable_freq": true,
   "// Training parameters": "",
+  "if_save": true,
+  "if_keep": false,
+  "if_train": true,
+  "init_checkpoint": null,
+  "operator_type": "Inverse",
+  "if_adjust_lr": false,
   "learning_rate": 0.0001,
   "num_epochs": 1000,
   "target_error": 1e-10,
@@ -38,7 +44,5 @@
   "// Operator-specific parameters": "",
   "custom_name": null,
   "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode",
-  "operator_type": "Inverse",
-  "random_seed": 0,
-  "prefix": "melt_quanonet_dim4"
+  "random_seed": 0
 }

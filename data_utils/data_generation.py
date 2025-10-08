@@ -146,8 +146,8 @@ ODE_SYSTEMS = {
         'ode_func': lambda u0_fn: lambda x, u: u + u0_fn(x)
     },
     'Nonlinear': {
-        'description': 'Nonlinear operator problem: du/dx = u0(x) - u²',
-        'ode_func': lambda u0_fn: lambda x, u: -u**2 + u0_fn(x)
+        'description': 'Nonlinear operator problem: du/dx = u0(x) - u^3',
+        'ode_func': lambda u0_fn: lambda x, u: -u**3 + u0_fn(x)
     }
 }
 

@@ -922,9 +922,9 @@ class ODEOperatorSolver:
         
         # Save evaluation results
         if self.config['if_trainable_freq']:
-            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}.json")
+            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['scale_coeff']}_{self.config['random_seed']}.json")
         else:
-            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}.json")
+            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['scale_coeff']}_{self.config['random_seed']}.json")
         results['config'] = self.config
         results['training_history'] = self.training_history
         dir_name = os.path.dirname(results_file)
@@ -991,7 +991,7 @@ def main():
     parser.add_argument('--random_seed', type=int, default=0, help='Random seed for reproducible results')
     parser.add_argument('--scale_coeff', type=float, help='Scale coefficient for loss function')
     parser.add_argument('--if_trainable_freq', type=str, help='Whether to use trainable frequency (true/false)')
-    parser.add_argument('--prefix', type=str, help='Prefix of outputs')
+    parser.add_argument('--prefix', type=str, default=None, help='Prefix of outputs')
     parser.add_argument('--ham_rank', type=int, help='Hamiltonian rank (only used when operator=Inverse(ODE))')
     parser.add_argument('--if_save', type=str, help='Whether to save (true/false)')
     parser.add_argument('--if_keep', type=str, help='Whether to keep (true/false)')
