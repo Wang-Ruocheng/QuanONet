@@ -3,7 +3,7 @@
 
 operators=(Nonlinear)
 seeds=(0 1 2 3 4)
-max_jobs=3
+max_jobs=2
 job_count=0
 scale_coeffs=(0.001 0.01 0.1)
 

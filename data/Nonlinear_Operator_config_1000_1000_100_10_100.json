@@ -44,5 +44,5 @@
   "// Operator-specific parameters": "",
   "custom_name": null,
   "custom_ode_description": "Only used when operator_type=Custom, specify via command line --custom_ode",
-  "random_seed": 3
+  "random_seed": 0
 }
