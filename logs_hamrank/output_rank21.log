@@ -1,0 +1,162 @@
+[WARNING] ME(2269526,7f2b35578740,python):2025-10-06-02:31:15.060.579 [mindspore/ccsrc/runtime/hardware/device_context_manager.cc:601] SelectGpuPlugin] Env CUDA_HOME is /usr/local/cuda, but can not find suitable gpu plugin.
+=== ODE Operator QuanONet Training System ===
+Operator type: Homogeneous
+Loaded configuration from configs/config_ODE.json
+Logs directory: hamrank_quanonet/logs
+Checkpoints directory: hamrank_quanonet/checkpoints
+Data directory: hamrank_quanonet/data
+Command line argument overrides random seed setting
+Setting random seed: 1
+Using configuration: {'// Universal ODE operator configuration file': 'config_ODE.json', '// Supported operator types': ['Inverse', 'Homogeneous', 'Nonlinear', 'Custom'], '// Data generation parameters': '', 'num_train': 1000, 'num_test': 1000, 'num_points': 100, 'train_sample_num': 10, 'test_sample_num': 100, 'length_scale': 0.2, 'num_cal': 1000, '// Model parameters': '', 'branch_input_size': 100, 'trunk_input_size': 1, 'output_size': 1, 'num_qubits': 5, 'net_size': [20, 2, 10, 2], 'scale_coeff': 0.01, 'model_type': 'QuanONet', 'if_trainable_freq': True, '// Training parameters': '', 'learning_rate': 0.0001, 'num_epochs': 1000, 'target_error': 0.0001, 'batch_size': 100, 'validation_split': 0, 'patience': 20, '// Operator-specific parameters': '', 'custom_name': None, 'custom_ode_description': 'Only used when operator_type=Custom, specify via command line --custom_ode', 'operator_type': 'Homogeneous', 'random_seed': 1, 'if_save': True, 'ham_rank': 21, 'if_train': True}
+=== QuanONet Homogeneous Operator Solving Pipeline ===
+Operator Description: Homogeneous operator (du/dx = u + u0(x))
+Start Time: 2025-10-06 02:31:29.688174
+
+=== Homogeneous Operator Data Preparation ===
+Generating new data...
+Generating Homogeneous operator data...
+Loaded 2000 existing samples from main file
+Saving data to hamrank_quanonet/data/Homogeneous/rank21/qubits5/Homogeneous_Operator_dataset_5_1000_1000_100_10_100.npz...
+Data generation and saving completed!
+
+=== Data Information ===
+Operator Type: Homogeneous
+Operator Description: Homogeneous operator (du/dx = u + u0(x))
+Number of Training Samples: 10000
+Number of Test Samples: 100000
+Input Dimension: 101
+Output Dimension: 1
+Branch Input Dimension: 100
+Trunk Input Dimension: 1
+Warning: validation_split=0 is invalid, not using validation set
+
+=== Model Creation ===
+Using Hamiltonian:   (2, 2)	(1.918771139504733+0j)
+  (3, 3)	(-5.000000000000001+0j)
+  (4, 4)	(0.33165284973017073+0j)
+  (6, 6)	(1.8650092768158362+0j)
+  (7, 7)	(-4.817117226558083+0j)
+  (10, 10)	(-4.016531661669499+0j)
+  (13, 13)	(3.34625671897373+0j)
+  (14, 14)	(-3.301695804354312+0j)
+  (17, 17)	(3.763891522960383+0j)
+  (18, 18)	(-1.8657582184075707+0j)
+  (19, 19)	(-4.609452167671177+0j)
+  (20, 20)	(-0.7889237499494787+0j)
+  (21, 21)	(3.9460666350384703+0j)
+  (22, 22)	(4.682615757193976+0j)
+  (23, 23)	(1.9232261566931412+0j)
+  (24, 24)	(3.7814250342941325+0j)
+  (25, 25)	(-1.8448436899393714+0j)
+  (26, 26)	(4.57889530150502+0j)
+  (27, 27)	(5.000000000000001+0j)
+  (28, 28)	(-4.149557886302222+0j)
+  (29, 29)	(2.501443149449675+0j)
+Model Type: QuanONet
+Circuit Parameters: 
+                                Circuit Summary                                 
+╭────────────────────────┬─────────────────────────────────────────────────────╮
+│ Info                   │ value                                               │
+├────────────────────────┼─────────────────────────────────────────────────────┤
+│ Number of qubit        │ 5                                                   │
+├────────────────────────┼─────────────────────────────────────────────────────┤
+│ Total number of gate   │ 1350                                                │
+│ Barrier                │ 0                                                   │
+│ Noise Channel          │ 0                                                   │
+│ Measurement            │ 0                                                   │
+├────────────────────────┼─────────────────────────────────────────────────────┤
+│ Parameter gate         │ 1050                                                │
+│ 150 encoder parameters │ xi_l0_q0, xi_l0_q1, xi_l0_q2, xi_l0_q3, xi_l0_q4,   │
+│                        │ xi_l1_q0, xi_l1_q1, xi_l1_q2, xi_l1_q3, xi_l1_q4... │
+│ 900 ansatz parameters  │ para0, para1, para2, para3, para4, para5, para6,    │
+│                        │ para7, para8, para9...                              │
+╰────────────────────────┴─────────────────────────────────────────────────────╯
+Trainable Frequency: Enabled
+Network Structure: [20, 2, 10, 2]
+Total Parameters: 1,200
+
+=== Model Training ===
+Training Parameters:
+  Learning Rate: 0.0001
+  Max Epochs: 1000
+  Target Error: 0.0001
+  Batch Size: 100
+  Training Batches: 100
+  Use Validation Set: No
+  Checkpoint Interval: 50 epochs
+
+Starting training...
+Training Progress:   0%|          | 0/1000 [00:00<?, ?it/s]  Found better model: Training loss improved from inf to 0.410558
+Epoch 0: Train=0.410558, Best Train=0.410558
+Training Progress:   0%|          | 1/1000 [02:01<33:41:05, 121.39s/it]Training Progress:   0%|          | 2/1000 [03:58<32:54:14, 118.69s/it]Training Progress:   0%|          | 3/1000 [05:44<31:19:05, 113.09s/it]Training Progress:   0%|          | 4/1000 [07:30<30:28:47, 110.17s/it]Training Progress:   0%|          | 5/1000 [09:28<31:17:18, 113.20s/it]Training Progress:   1%|          | 6/1000 [11:23<31:25:33, 113.82s/it]Training Progress:   1%|          | 7/1000 [13:16<31:17:38, 113.45s/it]Training Progress:   1%|          | 8/1000 [15:09<31:10:44, 113.15s/it]Training Progress:   1%|          | 9/1000 [17:06<31:32:19, 114.57s/it]Training Progress:   1%|          | 10/1000 [18:55<30:59:33, 112.70s/it]  Found better model: Training loss improved from 0.410558 to 0.078384
+Training Progress:   1%|          | 11/1000 [20:44<30:41:28, 111.72s/it]Training Progress:   1%|          | 12/1000 [22:42<31:08:33, 113.47s/it]Training Progress:   1%|▏         | 13/1000 [24:35<31:06:20, 113.46s/it]Training Progress:   1%|▏         | 14/1000 [26:32<31:20:01, 114.40s/it]Training Progress:   2%|▏         | 15/1000 [28:24<31:06:17, 113.68s/it]Training Progress:   2%|▏         | 16/1000 [30:18<31:05:53, 113.77s/it]Training Progress:   2%|▏         | 17/1000 [32:14<31:13:58, 114.38s/it]Training Progress:   2%|▏         | 18/1000 [34:08<31:13:37, 114.48s/it]Training Progress:   2%|▏         | 19/1000 [36:05<31:21:10, 115.06s/it]Training Progress:   2%|▏         | 20/1000 [37:54<30:51:58, 113.39s/it]  Found better model: Training loss improved from 0.078384 to 0.013435
+Training Progress:   2%|▏         | 21/1000 [39:46<30:40:25, 112.79s/it]Training Progress:   2%|▏         | 22/1000 [41:37<30:31:12, 112.34s/it]Training Progress:   2%|▏         | 23/1000 [43:24<30:05:40, 110.89s/it]Training Progress:   2%|▏         | 24/1000 [45:18<30:16:05, 111.64s/it]Training Progress:   2%|▎         | 25/1000 [47:10<30:14:59, 111.69s/it]Training Progress:   3%|▎         | 26/1000 [49:04<30:26:44, 112.53s/it]Training Progress:   3%|▎         | 27/1000 [50:57<30:27:11, 112.67s/it]Training Progress:   3%|▎         | 28/1000 [52:51<30:32:14, 113.10s/it]Training Progress:   3%|▎         | 29/1000 [54:54<31:15:30, 115.89s/it]Training Progress:   3%|▎         | 30/1000 [56:51<31:22:51, 116.47s/it]  Found better model: Training loss improved from 0.013435 to 0.011109
+Training Progress:   3%|▎         | 31/1000 [58:42<30:51:02, 114.62s/it]Training Progress:   3%|▎         | 32/1000 [1:00:34<30:39:52, 114.04s/it]Training Progress:   3%|▎         | 33/1000 [1:02:29<30:40:07, 114.18s/it]Training Progress:   3%|▎         | 34/1000 [1:04:21<30:30:37, 113.70s/it]Training Progress:   4%|▎         | 35/1000 [1:06:26<31:23:13, 117.09s/it]Training Progress:   4%|▎         | 36/1000 [1:08:19<31:00:37, 115.81s/it]Training Progress:   4%|▎         | 37/1000 [1:10:11<30:40:21, 114.66s/it]Training Progress:   4%|▍         | 38/1000 [1:12:07<30:44:21, 115.03s/it]Training Progress:   4%|▍         | 39/1000 [1:13:59<30:27:51, 114.12s/it]Training Progress:   4%|▍         | 40/1000 [1:16:00<30:59:27, 116.22s/it]  Found better model: Training loss improved from 0.011109 to 0.009514
+Training Progress:   4%|▍         | 41/1000 [1:17:55<30:52:41, 115.91s/it]Training Progress:   4%|▍         | 42/1000 [1:19:49<30:40:07, 115.25s/it]Training Progress:   4%|▍         | 43/1000 [1:21:45<30:41:23, 115.45s/it]Training Progress:   4%|▍         | 44/1000 [1:23:37<30:23:51, 114.47s/it]Training Progress:   4%|▍         | 45/1000 [1:25:37<30:47:58, 116.10s/it]Training Progress:   5%|▍         | 46/1000 [1:27:34<30:51:41, 116.46s/it]Training Progress:   5%|▍         | 47/1000 [1:29:25<30:19:54, 114.58s/it]Training Progress:   5%|▍         | 48/1000 [1:31:20<30:20:57, 114.77s/it]Training Progress:   5%|▍         | 49/1000 [1:33:16<30:23:57, 115.08s/it]Training Progress:   5%|▌         | 50/1000 [1:35:10<30:17:22, 114.78s/it]  Found better model: Training loss improved from 0.009514 to 0.007983
+Training Progress:   5%|▌         | 51/1000 [1:37:05<30:16:32, 114.85s/it]Training Progress:   5%|▌         | 52/1000 [1:39:00<30:14:52, 114.87s/it]Training Progress:   5%|▌         | 53/1000 [1:40:50<29:50:23, 113.44s/it]Training Progress:   5%|▌         | 54/1000 [1:42:41<29:36:56, 112.70s/it]Training Progress:   6%|▌         | 55/1000 [1:44:33<29:30:24, 112.41s/it]Training Progress:   6%|▌         | 56/1000 [1:46:25<29:29:53, 112.49s/it]Training Progress:   6%|▌         | 57/1000 [1:48:18<29:31:47, 112.73s/it]Training Progress:   6%|▌         | 58/1000 [1:50:11<29:28:51, 112.67s/it]Training Progress:   6%|▌         | 59/1000 [1:51:59<29:06:50, 111.38s/it]Training Progress:   6%|▌         | 60/1000 [1:53:46<28:41:37, 109.89s/it]  Found better model: Training loss improved from 0.007983 to 0.005952
+Training Progress:   6%|▌         | 61/1000 [1:55:35<28:36:57, 109.71s/it]Training Progress:   6%|▌         | 62/1000 [1:57:25<28:37:02, 109.83s/it]Training Progress:   6%|▋         | 63/1000 [1:59:21<29:02:10, 111.56s/it]Training Progress:   6%|▋         | 64/1000 [2:01:09<28:42:16, 110.40s/it]Training Progress:   6%|▋         | 65/1000 [2:03:06<29:12:15, 112.44s/it]Training Progress:   7%|▋         | 66/1000 [2:05:00<29:19:29, 113.03s/it]Training Progress:   7%|▋         | 67/1000 [2:06:56<29:30:59, 113.89s/it]Training Progress:   7%|▋         | 68/1000 [2:08:52<29:39:23, 114.55s/it]Training Progress:   7%|▋         | 69/1000 [2:10:41<29:11:38, 112.89s/it]Training Progress:   7%|▋         | 70/1000 [2:12:28<28:42:52, 111.15s/it]  Found better model: Training loss improved from 0.005952 to 0.004242
+Training Progress:   7%|▋         | 71/1000 [2:14:23<28:57:25, 112.21s/it]Training Progress:   7%|▋         | 72/1000 [2:16:14<28:52:14, 112.00s/it]Training Progress:   7%|▋         | 73/1000 [2:18:06<28:50:53, 112.03s/it]Training Progress:   7%|▋         | 74/1000 [2:20:01<28:58:32, 112.65s/it]Training Progress:   8%|▊         | 75/1000 [2:21:54<28:58:20, 112.76s/it]Training Progress:   8%|▊         | 76/1000 [2:23:49<29:08:10, 113.52s/it]Training Progress:   8%|▊         | 77/1000 [2:25:38<28:45:54, 112.19s/it]Training Progress:   8%|▊         | 78/1000 [2:27:28<28:36:14, 111.69s/it]Training Progress:   8%|▊         | 79/1000 [2:29:23<28:49:10, 112.65s/it]Training Progress:   8%|▊         | 80/1000 [2:31:11<28:24:58, 111.19s/it]  Found better model: Training loss improved from 0.004242 to 0.003520
+Training Progress:   8%|▊         | 81/1000 [2:33:05<28:36:57, 112.10s/it]Training Progress:   8%|▊         | 82/1000 [2:34:56<28:27:19, 111.59s/it]Training Progress:   8%|▊         | 83/1000 [2:36:46<28:17:42, 111.08s/it]Training Progress:   8%|▊         | 84/1000 [2:38:43<28:45:42, 113.04s/it]Training Progress:   8%|▊         | 85/1000 [2:40:38<28:49:35, 113.42s/it]Training Progress:   9%|▊         | 86/1000 [2:42:29<28:37:04, 112.72s/it]Training Progress:   9%|▊         | 87/1000 [2:44:24<28:45:39, 113.41s/it]Training Progress:   9%|▉         | 88/1000 [2:46:22<29:07:55, 114.99s/it]Training Progress:   9%|▉         | 89/1000 [2:48:10<28:33:37, 112.86s/it]Training Progress:   9%|▉         | 90/1000 [2:50:00<28:17:22, 111.91s/it]  Found better model: Training loss improved from 0.003520 to 0.003223
+Training Progress:   9%|▉         | 91/1000 [2:51:56<28:34:34, 113.17s/it]Training Progress:   9%|▉         | 92/1000 [2:53:49<28:31:24, 113.09s/it]Training Progress:   9%|▉         | 93/1000 [2:55:32<27:44:39, 110.12s/it]Training Progress:   9%|▉         | 94/1000 [2:57:21<27:36:26, 109.70s/it]Training Progress:  10%|▉         | 95/1000 [2:59:12<27:41:21, 110.15s/it]Training Progress:  10%|▉         | 96/1000 [3:01:02<27:38:24, 110.07s/it]Training Progress:  10%|▉         | 97/1000 [3:02:48<27:16:23, 108.73s/it]Training Progress:  10%|▉         | 98/1000 [3:04:34<27:04:59, 108.09s/it]Training Progress:  10%|▉         | 99/1000 [3:06:17<26:40:46, 106.60s/it]Training Progress:  10%|█         | 100/1000 [3:08:00<26:22:16, 105.49s/it]  Found better model: Training loss improved from 0.003223 to 0.003088
+Epoch 100: Train=0.003088, Best Train=0.003088
+Training Progress:  10%|█         | 101/1000 [3:09:59<27:22:36, 109.63s/it]Training Progress:  10%|█         | 102/1000 [3:11:48<27:17:04, 109.38s/it]Training Progress:  10%|█         | 103/1000 [3:13:34<26:57:50, 108.22s/it]Training Progress:  10%|█         | 104/1000 [3:15:26<27:12:32, 109.32s/it]Training Progress:  10%|█         | 105/1000 [3:17:16<27:16:51, 109.73s/it]Training Progress:  11%|█         | 106/1000 [3:19:05<27:11:47, 109.52s/it]Training Progress:  11%|█         | 107/1000 [3:20:56<27:13:51, 109.78s/it]Training Progress:  11%|█         | 108/1000 [3:22:53<27:44:19, 111.95s/it]Training Progress:  11%|█         | 109/1000 [3:24:39<27:15:55, 110.16s/it]Training Progress:  11%|█         | 110/1000 [3:26:29<27:12:56, 110.09s/it]  Found better model: Training loss improved from 0.003088 to 0.002933
+Training Progress:  11%|█         | 111/1000 [3:28:20<27:16:27, 110.45s/it]Training Progress:  11%|█         | 112/1000 [3:30:11<27:16:40, 110.59s/it]Training Progress:  11%|█▏        | 113/1000 [3:32:04<27:25:55, 111.34s/it]Training Progress:  11%|█▏        | 114/1000 [3:33:42<26:26:17, 107.42s/it]Training Progress:  12%|█▏        | 115/1000 [3:35:28<26:18:16, 107.00s/it]Training Progress:  12%|█▏        | 116/1000 [3:37:17<26:26:07, 107.66s/it]Training Progress:  12%|█▏        | 117/1000 [3:39:13<26:58:10, 109.96s/it]Training Progress:  12%|█▏        | 118/1000 [3:41:03<26:59:34, 110.18s/it]Training Progress:  12%|█▏        | 119/1000 [3:42:56<27:08:24, 110.90s/it]Training Progress:  12%|█▏        | 120/1000 [3:44:51<27:24:37, 112.13s/it]  Found better model: Training loss improved from 0.002933 to 0.002848
+Training Progress:  12%|█▏        | 121/1000 [3:46:38<27:01:56, 110.71s/it]Training Progress:  12%|█▏        | 122/1000 [3:48:25<26:42:00, 109.48s/it]Training Progress:  12%|█▏        | 123/1000 [3:50:11<26:25:50, 108.49s/it]Training Progress:  12%|█▏        | 124/1000 [3:52:01<26:30:37, 108.95s/it]Training Progress:  12%|█▎        | 125/1000 [3:53:56<26:54:49, 110.73s/it]Training Progress:  13%|█▎        | 126/1000 [3:55:48<26:57:15, 111.03s/it]Training Progress:  13%|█▎        | 127/1000 [3:57:31<26:21:15, 108.68s/it]Training Progress:  13%|█▎        | 128/1000 [3:59:23<26:32:35, 109.58s/it]Training Progress:  13%|█▎        | 129/1000 [4:01:19<26:57:53, 111.45s/it]Training Progress:  13%|█▎        | 130/1000 [4:03:06<26:37:02, 110.14s/it]  Found better model: Training loss improved from 0.002848 to 0.002770
+Training Progress:  13%|█▎        | 131/1000 [4:04:55<26:29:28, 109.75s/it]Training Progress:  13%|█▎        | 132/1000 [4:06:38<25:58:44, 107.75s/it]Training Progress:  13%|█▎        | 133/1000 [4:08:23<25:45:55, 106.98s/it]Training Progress:  13%|█▎        | 134/1000 [4:10:08<25:36:25, 106.45s/it]Training Progress:  14%|█▎        | 135/1000 [4:11:56<25:43:03, 107.03s/it]Training Progress:  14%|█▎        | 136/1000 [4:13:48<26:01:29, 108.44s/it]Training Progress:  14%|█▎        | 137/1000 [4:15:36<25:58:10, 108.33s/it]Training Progress:  14%|█▍        | 138/1000 [4:17:32<26:26:50, 110.45s/it]Training Progress:  14%|█▍        | 139/1000 [4:19:19<26:11:23, 109.50s/it]Training Progress:  14%|█▍        | 140/1000 [4:21:04<25:49:21, 108.09s/it]  Found better model: Training loss improved from 0.002770 to 0.002657
+Training Progress:  14%|█▍        | 141/1000 [4:22:54<25:59:08, 108.90s/it]Training Progress:  14%|█▍        | 142/1000 [4:24:43<25:56:01, 108.81s/it]Training Progress:  14%|█▍        | 143/1000 [4:26:30<25:46:55, 108.30s/it]Training Progress:  14%|█▍        | 144/1000 [4:28:19<25:45:29, 108.33s/it]Training Progress:  14%|█▍        | 145/1000 [4:30:13<26:09:41, 110.15s/it]Training Progress:  15%|█▍        | 146/1000 [4:32:02<26:02:55, 109.81s/it]Training Progress:  15%|█▍        | 147/1000 [4:33:52<26:01:27, 109.83s/it]Training Progress:  15%|█▍        | 148/1000 [4:35:41<25:55:13, 109.52s/it]Training Progress:  15%|█▍        | 149/1000 [4:37:34<26:09:56, 110.69s/it]Training Progress:  15%|█▌        | 150/1000 [4:39:25<26:11:03, 110.90s/it]  Found better model: Training loss improved from 0.002657 to 0.002574
+Training Progress:  15%|█▌        | 151/1000 [4:41:19<26:19:25, 111.62s/it]Training Progress:  15%|█▌        | 152/1000 [4:43:11<26:17:56, 111.65s/it]Training Progress:  15%|█▌        | 153/1000 [4:44:54<25:43:37, 109.35s/it]Training Progress:  15%|█▌        | 154/1000 [4:46:44<25:43:22, 109.46s/it]Training Progress:  16%|█▌        | 155/1000 [4:48:34<25:43:46, 109.62s/it]Training Progress:  16%|█▌        | 156/1000 [4:50:26<25:51:36, 110.30s/it]Training Progress:  16%|█▌        | 157/1000 [4:52:14<25:37:57, 109.46s/it]Training Progress:  16%|█▌        | 158/1000 [4:54:01<25:27:51, 108.87s/it]Training Progress:  16%|█▌        | 159/1000 [4:55:49<25:20:43, 108.49s/it]Training Progress:  16%|█▌        | 160/1000 [4:57:40<25:29:22, 109.24s/it]  Found better model: Training loss improved from 0.002574 to 0.002537
+Training Progress:  16%|█▌        | 161/1000 [4:59:27<25:19:25, 108.66s/it]Training Progress:  16%|█▌        | 162/1000 [5:01:17<25:21:11, 108.92s/it]Training Progress:  16%|█▋        | 163/1000 [5:03:03<25:10:53, 108.31s/it]Training Progress:  16%|█▋        | 164/1000 [5:04:53<25:14:01, 108.66s/it]Training Progress:  16%|█▋        | 165/1000 [5:06:48<25:39:11, 110.60s/it]Training Progress:  17%|█▋        | 166/1000 [5:08:40<25:41:29, 110.90s/it]Training Progress:  17%|█▋        | 167/1000 [5:10:29<25:33:24, 110.45s/it]Training Progress:  17%|█▋        | 168/1000 [5:12:26<25:57:59, 112.35s/it]Training Progress:  17%|█▋        | 169/1000 [5:14:14<25:36:45, 110.96s/it]Training Progress:  17%|█▋        | 170/1000 [5:15:59<25:12:12, 109.32s/it]  Found better model: Training loss improved from 0.002537 to 0.002471
+Training Progress:  17%|█▋        | 171/1000 [5:17:47<25:03:18, 108.80s/it]Training Progress:  17%|█▋        | 172/1000 [5:19:39<25:18:25, 110.03s/it]Training Progress:  17%|█▋        | 173/1000 [5:21:26<25:02:50, 109.03s/it]Training Progress:  17%|█▋        | 174/1000 [5:23:19<25:17:22, 110.22s/it]Training Progress:  18%|█▊        | 175/1000 [5:25:07<25:06:22, 109.56s/it]Training Progress:  18%|█▊        | 176/1000 [5:27:03<25:30:42, 111.46s/it]Training Progress:  18%|█▊        | 177/1000 [5:28:55<25:31:53, 111.68s/it]Training Progress:  18%|█▊        | 178/1000 [5:30:47<25:29:45, 111.66s/it]Training Progress:  18%|█▊        | 179/1000 [5:32:35<25:12:26, 110.53s/it]Training Progress:  18%|█▊        | 180/1000 [5:34:29<25:27:38, 111.78s/it]  Found better model: Training loss improved from 0.002471 to 0.002406
+Training Progress:  18%|█▊        | 181/1000 [5:36:24<25:34:54, 112.45s/it]Training Progress:  18%|█▊        | 182/1000 [5:38:14<25:23:27, 111.74s/it]Training Progress:  18%|█▊        | 183/1000 [5:40:02<25:07:51, 110.74s/it]Training Progress:  18%|█▊        | 184/1000 [5:41:50<24:56:31, 110.04s/it]Training Progress:  18%|█▊        | 185/1000 [5:43:38<24:46:25, 109.43s/it]Training Progress:  19%|█▊        | 186/1000 [5:45:20<24:12:42, 107.08s/it]Training Progress:  19%|█▊        | 187/1000 [5:47:17<24:51:38, 110.08s/it]Training Progress:  19%|█▉        | 188/1000 [5:49:07<24:49:26, 110.06s/it]Training Progress:  19%|█▉        | 189/1000 [5:50:53<24:30:21, 108.78s/it]Training Progress:  19%|█▉        | 190/1000 [5:52:40<24:20:57, 108.22s/it]  Found better model: Training loss improved from 0.002406 to 0.002384
+Training Progress:  19%|█▉        | 191/1000 [5:54:30<24:25:08, 108.66s/it]Training Progress:  19%|█▉        | 192/1000 [5:56:23<24:42:49, 110.11s/it]Training Progress:  19%|█▉        | 193/1000 [5:58:14<24:43:45, 110.32s/it]Training Progress:  19%|█▉        | 194/1000 [6:00:06<24:51:31, 111.03s/it]Training Progress:  20%|█▉        | 195/1000 [6:01:56<24:41:33, 110.43s/it]Training Progress:  20%|█▉        | 196/1000 [6:03:45<24:36:49, 110.21s/it]Training Progress:  20%|█▉        | 197/1000 [6:05:35<24:32:53, 110.05s/it]Training Progress:  20%|█▉        | 198/1000 [6:07:27<24:40:02, 110.73s/it]Training Progress:  20%|█▉        | 199/1000 [6:09:19<24:42:34, 111.05s/it]Training Progress:  20%|██        | 200/1000 [6:11:06<24:24:05, 109.81s/it]  Found better model: Training loss improved from 0.002384 to 0.002248
+Epoch 200: Train=0.002248, Best Train=0.002248
+Training Progress:  20%|██        | 201/1000 [6:12:55<24:19:48, 109.62s/it]Training Progress:  20%|██        | 202/1000 [6:14:53<24:51:45, 112.16s/it]Training Progress:  20%|██        | 203/1000 [6:16:46<24:52:06, 112.33s/it]Training Progress:  20%|██        | 204/1000 [6:18:37<24:44:07, 111.87s/it]Training Progress:  20%|██        | 205/1000 [6:20:25<24:29:14, 110.89s/it]Training Progress:  21%|██        | 206/1000 [6:22:12<24:12:45, 109.78s/it]Training Progress:  21%|██        | 207/1000 [6:24:08<24:35:35, 111.65s/it]Training Progress:  21%|██        | 208/1000 [6:25:57<24:20:05, 110.61s/it]Training Progress:  21%|██        | 209/1000 [6:27:39<23:46:54, 108.24s/it]Training Progress:  21%|██        | 210/1000 [6:29:25<23:35:06, 107.48s/it]  Found better model: Training loss improved from 0.002248 to 0.002173
+Training Progress:  21%|██        | 211/1000 [6:31:09<23:17:36, 106.28s/it]Training Progress:  21%|██        | 212/1000 [6:32:45<22:36:54, 103.32s/it]Training Progress:  21%|██        | 212/1000 [6:34:20<24:25:44, 111.60s/it]
+Pipeline execution failed: The pointer[value] is null.
+
+----------------------------------------------------
+- Framework Unexpected Exception Raised:
+----------------------------------------------------
+This exception is caused by framework's unexpected error. Please create an issue at https://gitee.com/mindspore/mindspore/issues to get help.
+
+----------------------------------------------------
+- C++ Call Stack: (For framework developers)
+----------------------------------------------------
+mindspore/ccsrc/pipeline/pynative/grad/auto_grad.cc:149 BuildSpecialNode
+
+Traceback (most recent call last):
+  File "train.py", line 981, in run_complete_pipeline
+    final_loss = self.train_model()
+  File "train.py", line 607, in train_model
+    train_loss = train_net(batch_input, batch_output)
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/nn/cell.py", line 705, in __call__
+    raise err
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/nn/cell.py", line 701, in __call__
+    output = self._run_construct(args, kwargs)
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/nn/cell.py", line 482, in _run_construct
+    output = self.construct(*cast_inputs, **kwargs)
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/nn/wrap/cell_wrapper.py", line 418, in construct
+    return self._no_sens_impl(*inputs)
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/nn/wrap/cell_wrapper.py", line 434, in _no_sens_impl
+    grads = self.grad_no_sens(self.network, self.weights)(*inputs)
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/ops/composite/base.py", line 388, in after_grad
+    return grad_(fn, weights)(*args, **kwargs)
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/common/api.py", line 121, in wrapper
+    results = fn(*arg, **kwargs)
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/ops/composite/base.py", line 377, in after_grad
+    _pynative_executor.grad(fn, grad_, weights, self.grad_position, *args, **kwargs)
+  File "/inspire/ssd/project/wuliqifa/wangruocheng-253108120166/miniconda3/envs/mindquan/lib/python3.7/site-packages/mindspore/common/api.py", line 1249, in grad
+    self._executor.grad_net(grad, obj, weights, grad_position, *args, *(kwargs.values()))
+RuntimeError: The pointer[value] is null.
+
+----------------------------------------------------
+- Framework Unexpected Exception Raised:
+----------------------------------------------------
+This exception is caused by framework's unexpected error. Please create an issue at https://gitee.com/mindspore/mindspore/issues to get help.
+
+----------------------------------------------------
+- C++ Call Stack: (For framework developers)
+----------------------------------------------------
+mindspore/ccsrc/pipeline/pynative/grad/auto_grad.cc:149 BuildSpecialNode
+
+Training failed
