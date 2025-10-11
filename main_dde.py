@@ -6,12 +6,12 @@ from __init__dde import *
 output_file = f"dairy"
 checkpoint_file = "checkpoints_dde"
 # operators = ["Inverse"]
-operators = ["Inverse", "Homogeneous", "Nonlinear"]
+# operators = ["Inverse", "Homogeneous", "Nonlinear"]
 # operators = ["Advection"]
 # operators = ["RDiffusion"]
 # operators = ["RDiffusion", "Advection", "Darcy"]
 # operators = ["Inverse", "Homogeneous", "Nonlinear", "RDiffusion", "Advection", "Darcy"]
-# operators = ['Nonlinear']
+operators = ['Nonlinear']
 # operators = ["Darcy"]
 # model_types = ["DeepONet"]
 model_types = ["DeepONet", "DeepONet_nobias", "FNN"]
@@ -58,7 +58,7 @@ for seed_num in seeds:
             net_size = net_size_dict[model_type]
             np.random.seed(seed_num)
             torch.manual_seed(seed_num)
-            output_path = f"dairy/training_{operator}_{model_type}_1_{seed_num}.log"
+            output_path = f"dairy/train_{operator}_{model_type}_1_{seed_num}.log"
             # output_path = f"melt_{model_type}_{net_size}_{seed_num}.log"
             # if not os.path.exists(output_path) and if_save:
             if if_save:
