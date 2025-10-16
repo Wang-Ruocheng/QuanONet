@@ -1,32 +1,32 @@
 #!/bin/bash
 # filepath: run_train_ODE.sh
 
-operators=(Nonlinear)
-seeds=(0 1 2 3 4)
-max_jobs=3
+operators=(Advection)
+seeds=(0)
+max_jobs=2
 job_count=0
-scale_coeffs=(0.001 0.01 0.1)
+scale_coeffs=(1 0.1)
 model_type="QuanONet"
 
 for operator in "${operators[@]}"; do
   for seed in "${seeds[@]}"; do
     for scale_coeff in "${scale_coeffs[@]}"; do
-      log_file="dairy/train_${operator}_${model_type}_5_[20, 2, 20, 2]_${scale_coeff}_${seed}.log"
-      json_file="logs/${operator}/train_${operator}_${model_type}_5_[20, 2, 20, 2]_${scale_coeff}_${seed}.json"
+      log_file="dairy/train_${operator}_TF-${model_type}_5_[40, 2, 20, 2]_${scale_coeff}_${seed}.log"
+      json_file="logs/${operator}/train_${operator}_TF-${model_type}_5_[40, 2, 20, 2]_${scale_coeff}_${seed}.json"
       if [ -f "${json_file}" ]; then
         echo "跳过已存在的文件：${json_file}"
         continue
       fi
         echo "开始运行：${json_file}"
-        nohup python -u train_ODE.py \
+        nohup python -u train.py \
           --operator "${operator}" \
           --model_type "${model_type}" \
           --scale_coeff "${scale_coeff}" \
-          --if_trainable_freq false \
+          --if_trainable_freq true \
           --num_qubits 5 \
-          --net_size 20 2 20 2 \
+          --net_size 40 2 20 2 \
           --random_seed "${seed}" \
-          --num_epochs 1000 \
+          --num_epochs 100 \
           --if_save true \
           --if_keep false \
           --if_train true \

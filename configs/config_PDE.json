@@ -22,6 +22,11 @@
   "if_trainable_freq": true,
   
   "// Training parameters": "",
+  "if_save": "true",
+  "if_keep": "false",
+  "if_train": "true",
+  "init_checkpoint": null,
+  "if_adjust_lr": "false",
   "learning_rate": 0.0001,
   "num_epochs": 100,
   "target_error": 1e-10,

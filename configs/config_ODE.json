@@ -25,6 +25,7 @@
   "if_save": "true",
   "if_keep": "false",
   "if_train": "true",
+  "if_pi": "false",
   "init_checkpoint": null,
   "operator_type": "Inverse",
   "if_adjust_lr": "false",

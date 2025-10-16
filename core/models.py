@@ -8,6 +8,7 @@ import mindspore as ms
 import mindspore.nn as nn
 import mindspore.numpy as mnp
 from mindspore import Parameter
+from scipy.interpolate import interp1d
 
 # Import local modules (must be in the same directory)
 try:
@@ -56,6 +57,8 @@ class QuanONet(nn.Cell):
                 CoeffLayer(trunk_input_size, scale_coeff), 
                 RepeatLayer(self.trunk_depth * num_qubits)
             )
+
+        self.PostprocessLayer = LinearLayer(1, 1, initial_bias_range=0)
         
     def construct(self, input):
         branch_input = input[0]
@@ -70,7 +73,9 @@ class QuanONet(nn.Cell):
             trunk_input = self.trunk_ScaleLayer(trunk_input)
         
         input = mnp.concatenate((branch_input, trunk_input), axis=1)
-        return self.QuanONet(input) 
+        output = self.QuanONet(input) 
+        output = self.PostprocessLayer(output)
+        return output
 
 
 class HEAQNN(nn.Cell):
@@ -163,3 +168,115 @@ class DeepONet(nn.Cell):
         output = branch_output * trunk_output
         output = self.sum_layer(output).unsqueeze(1) + self.bias
         return output
+
+
+class PINN(nn.Cell):
+    """Physics-Informed wrapper around HEAQNN that computes second derivative
+    with respect to the last input dimension and returns PI losses.
+
+    This version creates a zero `branch` input internally so we can wrap
+    HEAQNN as a function of only the trunk input and compute derivatives
+    w.r.t. the last trunk dimension.
+
+    For robustness across MindSpore versions we approximate the second
+    derivative numerically using a central finite difference. This avoids
+    nested GradOperation issues ("bprop_cut's bprop not defined").
+    """
+
+    def __init__(self, model: nn.Cell, trunk_input_size: int, operator: str):
+        super(PINN, self).__init__()
+        self.model = model
+        self.trunk_input_size = trunk_input_size
+        self.operator = operator
+
+
+        # MSE
+        self.loss = nn.MSELoss()
+    def piloss(self, model_output, first_grad, second_grad, branch_value_at_trunks):
+        if self.operator.lower() == 'inverse':
+            return self.loss(first_grad[0], branch_value_at_trunks)
+        elif self.operator.lower() == 'homogeneous':
+            return self.loss(first_grad[0], branch_value_at_trunks + model_output)
+        elif self.operator.lower() == 'nonlinear':
+            return self.loss(first_grad[0], branch_value_at_trunks**3 + model_output)
+        elif self.operator.lower() == 'rdiffusion':
+            alpha = 0.01
+            k = 0.01
+            return self.loss(first_grad[1], alpha * second_grad[0] + k * model_output**2 + branch_value_at_trunks)
+        elif self.operator.lower() == 'advection':
+            c = 1.0
+            return self.loss(first_grad[1], -c * first_grad[0])
+        elif self.operator.lower() == 'darcy':
+            K = 0.1
+            f = -1.0
+            return self.loss(-K * (second_grad[0] + second_grad[1]), f)
+        else:
+            raise ValueError(f"Unknown operator {self.operator}")
+            
+
+    def _first_derivative_dim(self, x, dim=-1, h=1e-3):
+        branch_input, trunk_input = x
+        n, d = trunk_input.shape[0], trunk_input.shape[1]
+        if dim < 0:
+            dim = d + dim
+        delta = mnp.zeros((n, d), dtype=trunk_input.dtype)
+        delta[:, dim] = h
+        delta = ms.Tensor(delta.asnumpy())
+        trunk_plus = trunk_input + delta
+        trunk_minus = trunk_input - delta
+        x_plus = (branch_input, trunk_plus)
+        x_minus = (branch_input, trunk_minus)
+        u_plus = self.model(x_plus)
+        u_minus = self.model(x_minus)
+        h2 = ms.Tensor(np.array(2.0 * h, dtype=np.float32))
+        u_x = (u_plus - u_minus) / h2
+        return u_x
+
+    def _second_derivative_dim(self, x, dim=-1, h=1e-3):
+        branch_input, trunk_input = x
+        n, d = trunk_input.shape[0], trunk_input.shape[1]
+        if dim < 0:
+            dim = d + dim
+        delta = mnp.zeros((n, d), dtype=trunk_input.dtype)
+        delta[:, dim] = h
+        delta = ms.Tensor(delta.asnumpy())
+        trunk_plus = trunk_input + delta
+        trunk_minus = trunk_input - delta
+        x_plus = (branch_input, trunk_plus)
+        x_minus = (branch_input, trunk_minus)
+        u = self.model(x)
+        u_plus = self.model(x_plus)
+        u_minus = self.model(x_minus)
+        h2 = ms.Tensor(np.array(h * h, dtype=np.float32))
+        u_xx = (u_plus - 2.0 * u + u_minus) / h2
+        return u_xx
+    
+    def net_first_grad_last_trunk_size(self, x, h=1e-3):
+        return mnp.stack([self._first_derivative_dim(x, dim=i - self.trunk_input_size, h=h) for i in range(self.trunk_input_size)])
+
+    def net_second_grad_last_trunk_size(self, x, h=1e-3):
+        return mnp.stack([self._second_derivative_dim(x, dim=i-self.trunk_input_size, h=h) for i in range(self.trunk_input_size)])
+
+    def construct(self, x, target):
+        branch_input, trunk_input = x
+
+        model_output = self.model(x)
+
+        mse = self.loss(model_output, target)
+        first_grad = self.net_first_grad_last_trunk_size(x).squeeze(-1)
+        second_grad = self.net_second_grad_last_trunk_size(x).squeeze(-1) if self.operator.lower() in ['rdiffusion', 'darcy'] else None
+        trunk_values = trunk_input.asnumpy().flatten() 
+        branch_values = branch_input.asnumpy()
+        locations = np.linspace(0, 1, num=branch_values.shape[1])
+
+        branch_value_at_trunks = []
+        for i in range(branch_values.shape[0]):
+            interp_func = interp1d(locations, branch_values[i], fill_value="extrapolate")
+            branch_value_at_trunk = interp_func(trunk_values[i])
+            branch_value_at_trunks.append(branch_value_at_trunk)
+        
+        branch_value_at_trunks = ms.Tensor(np.array(branch_value_at_trunks, dtype=np.float32))
+        grad_diff = self.piloss(model_output, first_grad, second_grad, branch_value_at_trunks)
+
+        total_loss = mse + grad_diff*0.01
+        return total_loss

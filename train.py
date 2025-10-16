@@ -38,10 +38,14 @@ from data_utils.data_generation import (
     generate_Inverse_Operator_data,
     generate_Homogeneous_Operator_data,
     generate_Nonlinear_Operator_data,
-    generate_ODE_Operator_data
+    generate_ODE_Operator_data,
+    generate_RDiffusion_Operator_data,
+    generate_Advection_Operator_data,
+    generate_Darcy_Operator_data,
+    generate_PDE_Operator_data
 )
-from data_utils.data_processing import ODE_encode
-from core.models import QuanONet, HEAQNN, FNN, DeepONet
+from data_utils.data_processing import ODE_encode, PDE_encode
+from core.models import QuanONet, HEAQNN, FNN, DeepONet, PINN
 from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator,generate_ham_diag_diffspectrum
 from utils.utils import count_parameters
 
@@ -70,6 +74,9 @@ OPERATOR_TYPES = {
     'Inverse': generate_Inverse_Operator_data,
     'Homogeneous': generate_Homogeneous_Operator_data,
     'Nonlinear': generate_Nonlinear_Operator_data,
+    'RDiffusion': generate_RDiffusion_Operator_data,
+    'Advection': generate_Advection_Operator_data,
+    'Darcy': generate_Darcy_Operator_data,
     'Custom': 'custom'  # Custom operator will be handled separately
 }
 
@@ -105,8 +112,8 @@ def parse_custom_ode_function(ode_string):
     except Exception as e:
         raise ValueError(f"Unable to parse ODE function '{ode_string}': {e}")
 
-class ODEOperatorSolver:
-    """ODE operator problem solver """
+class OperatorSolver:
+    """Operator problem solver """
 
     def __init__(self, operator_type='Inverse', config_file=None, custom_ode_func=None, custom_name=None, prefix=None):
         """
@@ -149,6 +156,7 @@ class ODEOperatorSolver:
         self.checkpoint_interval = 50  # Save checkpoint every 50 epochs
         self.saved_checkpoints = []
         self.prefix = prefix
+        self.model_name = self.config['model_type']
 
         # Create necessary directories
         self.logs_dir = os.path.join(self.prefix, "logs") if self.prefix else "logs"
@@ -173,29 +181,15 @@ class ODEOperatorSolver:
                 config = json.load(f)
             print(f"Loaded configuration from {config_file}")
         else:
-            # Default configuration
-            config = {
-                "num_train": 100,
-                "num_test": 100,
-                "num_points": 100,
-                "train_sample_num": 10,
-                "test_sample_num": 10,
-                "branch_input_size": 100,
-                "trunk_input_size": 1,
-                "output_size": 1,
-                "num_qubits": 3,
-                "net_size": [2, 1, 2, 1],
-                "scale_coeff": 1.0,
-                "learning_rate": 0.01,
-                "num_epochs": 50,
-                "target_error": 1e-4,
-                "model_type": "QuanONet",
-                "if_trainable_freq": False,
-                "batch_size": 32,
-                "validation_split": 0.2,
-                "random_seed": None  # Random seed, None means not set
-            }
-            print("Using default configuration")
+            if self.operator_type in ['Inverse', 'Homogeneous', 'Nonlinear', 'Custom']:
+                default_config_file = 'configs/config_ODE.json'
+            elif self.operator_type in ['RDiffusion', 'Advection']:
+                default_config_file = 'configs/config_PDE.json'
+            elif self.operator_type in ['Darcy']:
+                default_config_file = 'configs/config_Darcy.json'
+            
+            with open(default_config_file, 'r') as f:
+                config = json.load(f)
 
         # Note: Random seed will be set uniformly after command line argument processing
         # Do not set random seed here to avoid repeated setting
@@ -322,9 +316,10 @@ class ODEOperatorSolver:
             print(f"Generating {self.operator_type} operator data...")
 
         # Generate raw data
-        # Use ODE encoding
+        # Use encoding
+        encode = PDE_encode if self.operator_type in ['RDiffusion', 'Advection', 'Darcy'] else ODE_encode
         train_branch_input, train_trunk_input, train_output, \
-        test_branch_input, test_trunk_input, test_output = ODE_encode(
+        test_branch_input, test_trunk_input, test_output = encode(
             self.data_generator,
             self.config['num_train'],
             self.config['num_test'], 
@@ -427,7 +422,6 @@ class ODEOperatorSolver:
         if self.config.get('ham_rank', None) is None:
             ham = generate_simple_hamiltonian(self.config['num_qubits'], lower_bound=-5, upper_bound=5)
         else:
-            
             diag = generate_ham_diag_diffspectrum(self.config['num_qubits'], self.config['ham_rank'], self.config['random_seed'])
             ham = ham_diag_to_operator(diag, self.config['num_qubits'])
         print(f"Using Hamiltonian: {ham.hamiltonian.matrix()}")
@@ -482,7 +476,7 @@ class ODEOperatorSolver:
 
         # Print model summary
         total_params = count_parameters(self.model)
-        print(f"Model Type: {model_type}")
+        print(f"Model Name: {self.model_name}")
         if hasattr(self.model, 'circuit'):
             print(f"Circuit Parameters: ")
             self.model.circuit.summary()
@@ -510,8 +504,19 @@ class ODEOperatorSolver:
         optimizer = nn.Adam(self.model.trainable_params(), learning_rate=lr_schedule)
         loss_fn = nn.MSELoss()
 
+        if 'train_branch_input' in self.data:
+            trunk_input_size = self.data['train_trunk_input'].shape[1]
+        else:
+            # Infer from config
+            trunk_input_size = self.config['trunk_input_size']
+
         # Create training network
-        net_with_loss = nn.WithLossCell(self.model, loss_fn)
+        if self.config['if_pi']:
+            print("Using physics-informed training (PI)")
+            net_with_loss = PINN(model=self.model, trunk_input_size=trunk_input_size, operator=self.operator_type)
+        else:
+            print("Using standard training (non-PI)")
+            net_with_loss = nn.WithLossCell(self.model, loss_fn)
         train_net = nn.TrainOneStepCell(net_with_loss, optimizer)
         
         # Set random seed for reproducibility
@@ -756,10 +761,7 @@ class ODEOperatorSolver:
             overwrite: Whether to overwrite save (for best model)
         """
         self.checkpoints_dir = os.path.join(self.prefix, "checkpoints") if self.prefix else "checkpoints"
-        if self.config['if_trainable_freq']:
-            self.checkpoints_dir = os.path.join(self.checkpoints_dir, self.operator_type, f"TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}")
-        else:
-            self.checkpoints_dir = os.path.join(self.checkpoints_dir, self.operator_type, f"{self.config['model_type']}_{self.config['num_qubits']}__{self.config['net_size']}_{self.config['random_seed']}")
+        self.checkpoints_dir = os.path.join(self.checkpoints_dir, self.operator_type, f"{self.model_name}_{self.config['num_qubits']}__{self.config['net_size']}_{self.config['random_seed']}")
         os.makedirs(self.checkpoints_dir, exist_ok=True)
         if suffix == "best" and overwrite:
             # Best model: fixed filename, overwrite save
@@ -767,10 +769,7 @@ class ODEOperatorSolver:
                 operator_name = self.custom_name
             else:
                 operator_name = self.operator_type
-            if self.config['if_trainable_freq']:
-                filename = f"best_{operator_name}_TF-{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
-            else:
-                filename = f"best_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+            filename = f"best_{operator_name}_{self.model_name}_{self.config['num_train']}*{self.config['train_sample_num']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
@@ -795,10 +794,7 @@ class ODEOperatorSolver:
                 operator_name = self.custom_name
             else:
                 operator_name = self.operator_type
-            if self.config['if_trainable_freq']:
-                filename = f"{suffix}_{operator_name}_TF-{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
-            else:
-                filename = f"{suffix}_{operator_name}_{self.config['model_type']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+            filename = f"{suffix}_{operator_name}_{self.model_name}{self.config['num_train']}*{self.config['train_sample_num']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
@@ -921,10 +917,7 @@ class ODEOperatorSolver:
             print(f"  {metric}: {value:.6f}")
         
         # Save evaluation results
-        if self.config['if_trainable_freq']:
-            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_TF-{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['scale_coeff']}_{self.config['random_seed']}.json")
-        else:
-            results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_{self.config['model_type']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['scale_coeff']}_{self.config['random_seed']}.json")
+        results_file = os.path.join(self.logs_dir, f"{self.operator_type}/train_{self.operator_type}_{self.model_name}_{self.config['num_train']}*{self.config['train_sample_num']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['scale_coeff']}_{self.config['random_seed']}.json")
         results['config'] = self.config
         results['training_history'] = self.training_history
         dir_name = os.path.dirname(results_file)
@@ -943,7 +936,10 @@ class ODEOperatorSolver:
         print(f"=== {self.config['model_type']} {self.operator_type} Operator Solving Pipeline ===")
         print(f"Operator Description: {self.get_operator_description()}")
         print(f"Start Time: {datetime.now()}")
-        
+        if self.config['if_trainable_freq']:
+            self.model_name = f"TF-{self.model_name}"
+        if self.config['if_pi']:
+            self.model_name = f"PI-{self.model_name}"
         try:
             # 1. Data preparation
             self.load_or_generate_data()
@@ -978,9 +974,9 @@ class ODEOperatorSolver:
 
 def main():
     """Main function"""
-    parser = argparse.ArgumentParser(description='ODE Operator Solving')
+    parser = argparse.ArgumentParser(description='Operator Solving')
     parser.add_argument('--operator', type=str, choices=list(OPERATOR_TYPES.keys()), help='Operator type')
-    parser.add_argument('--config', type=str, default='configs/config_ODE.json', help='Configuration file path')
+    parser.add_argument('--config', type=str, help='Configuration file path')
     parser.add_argument('--model_type', type=str, choices=['QuanONet', 'HEAQNN', 'FNN', 'DeepONet'], help='Model type')
     parser.add_argument('--net_size', type=int, nargs='+', help='Network size')
     parser.add_argument('--num_qubits', type=int, help='Number of qubits')
@@ -998,6 +994,11 @@ def main():
     parser.add_argument('--if_train', type=str, help='Whether to train (true/false)')
     parser.add_argument('--init_checkpoint', type=str, help='Initial checkpoint file path')
     parser.add_argument('--if_adjust_lr', type=str, help='Whether to use adjustable learning rate (true/false)')
+    parser.add_argument('--if_pi', type=str, help='Whether to use physics-informed training (true/false)')
+    parser.add_argument('--num_train', type=int, help='Number of training samples')
+    parser.add_argument('--num_test', type=int, help='Number of test samples')
+    parser.add_argument('--train_sample_num', type=int, help='Number of training sample points')
+    parser.add_argument('--test_sample_num', type=int, help='Number of test sample points')
     # Custom operator parameters
     parser.add_argument('--custom_ode', type=str, default=None, 
                        help='Custom ODE function string (only used when operator=Custom)')
@@ -1026,7 +1027,7 @@ def main():
             return
     
     # Create solver
-    solver = ODEOperatorSolver(
+    solver = OperatorSolver(
         operator_type=args.operator, 
         config_file=args.config,
         custom_ode_func=custom_ode_func,
@@ -1069,12 +1070,23 @@ def main():
         solver.config['init_checkpoint'] = args.init_checkpoint
     if args.if_adjust_lr is not None:
         solver.config['if_adjust_lr'] = args.if_adjust_lr
+    if args.if_pi is not None:
+        solver.config['if_pi'] = args.if_pi
+    if args.num_train is not None:
+        solver.config['num_train'] = args.num_train
+    if args.num_test is not None:
+        solver.config['num_test'] = args.num_test
+    if args.train_sample_num is not None:
+        solver.config['train_sample_num'] = args.train_sample_num
+    if args.test_sample_num is not None:
+        solver.config['test_sample_num'] = args.test_sample_num
 
     solver.config['if_trainable_freq'] = solver.config['if_trainable_freq'].lower() == 'true'
     solver.config['if_save'] = solver.config['if_save'].lower() == 'true'
     solver.config['if_keep'] = solver.config['if_keep'].lower() == 'true'
     solver.config['if_train'] = solver.config['if_train'].lower() == 'true'
     solver.config['if_adjust_lr'] = solver.config['if_adjust_lr'].lower() == 'true'
+    solver.config['if_pi'] = solver.config['if_pi'].lower() == 'true'
     
     
         

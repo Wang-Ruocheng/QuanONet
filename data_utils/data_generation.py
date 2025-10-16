@@ -330,3 +330,15 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test, num_points, n
             ms.Tensor(np.array(us)[test_index], ms.float32), 
             ms.Tensor(x, ms.float32), 
             ms.Tensor(t, ms.float32))
+
+def generate_RDiffusion_Operator_data(num_train, num_test, num_points, num_points_0=None, length_scale=0.2):
+    """Generate data for reaction-diffusion PDE operator problem."""
+    return generate_PDE_Operator_data('RDiffusion', num_train, num_test, num_points, num_points_0, length_scale)
+
+def generate_Advection_Operator_data(num_train, num_test, num_points, num_points_0=None, length_scale=0.2):
+    """Generate data for advection PDE operator problem."""
+    return generate_PDE_Operator_data('Advection', num_train, num_test, num_points, num_points_0, length_scale)
+
+def generate_Darcy_Operator_data(num_train, num_test, num_points, num_points_0=None, length_scale=0.2):
+    """Generate data for Darcy flow PDE operator problem."""
+    return generate_PDE_Operator_data('Darcy', num_train, num_test, num_points, num_points_0, length_scale)

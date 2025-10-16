@@ -111,7 +111,7 @@ class FNO1d(nn.Cell):
 class LinearLayer(nn.Cell):
     """Linear transformation layer with bias."""
     
-    def __init__(self, input_size, initial_weight):
+    def __init__(self, input_size, initial_weight, initial_bias_range=np.pi):
         super(LinearLayer, self).__init__()
         self.input_size = input_size
         self.weights = Parameter(
@@ -119,7 +119,7 @@ class LinearLayer(nn.Cell):
             name="weights"
         )
         self.bias = Parameter(
-            ms.Tensor(np.random.uniform(-np.pi, np.pi, input_size), dtype=ms.float32), 
+            ms.Tensor(np.random.uniform(-initial_bias_range, initial_bias_range, input_size), dtype=ms.float32), 
             name="bias"
         )
 
