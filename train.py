@@ -152,7 +152,6 @@ class OperatorSolver:
         
         # Weight management
         self.best_model_path = None
-        self.best_loss = float('inf')
         self.checkpoint_interval = 50  # Save checkpoint every 50 epochs
         self.saved_checkpoints = []
         self.prefix = prefix
@@ -573,9 +572,9 @@ class OperatorSolver:
         print(f"  Checkpoint Interval: {self.checkpoint_interval} epochs")
         
         # Training loop
-        best_test_loss = float('inf')
+        best_loss = float('inf')
         best_epoch = 0
-        patience = 50  # Early stopping patience
+        patience = 500  # Early stopping patience
         no_improve = 0
         
         print("\nStarting training...")
@@ -649,15 +648,15 @@ class OperatorSolver:
                     })
                     
                     # Save best model (based on validation loss)
-                    if val_loss < best_test_loss - 1e-6:
-                        print(f"  Found better model: Training loss: {float(avg_train_loss):.6f}, Validation loss improved from {float(best_test_loss):.6f} to {float(val_loss):.6f}")
-                        best_test_loss = val_loss
+                    if val_loss < best_loss - 1e-6:
+                        print(f"  Found better model: Training loss: {float(avg_train_loss):.6f}, Validation loss improved from {float(best_loss):.6f} to {float(val_loss):.6f}")
+                        best_loss = val_loss
                         best_epoch = epoch
                         no_improve = 0
                         if self.config['if_save']:
                             self.save_model("best", overwrite=True)
                     else:
-                        no_improve += 1
+                        no_improve += 10
                 else:
                     # No validation set, save model based on training loss
                     self.training_history.append({
@@ -666,15 +665,15 @@ class OperatorSolver:
                     })
                     
                     # Save best model (based on training loss)
-                    if avg_train_loss < best_test_loss - 1e-6:
-                        print(f"  Found better model: Training loss improved from {float(best_test_loss):.6f} to {float(avg_train_loss):.6f}")
-                        best_test_loss = avg_train_loss
+                    if avg_train_loss < best_loss - 1e-6:
+                        print(f"  Found better model: Training loss improved from {float(best_loss):.6f} to {float(avg_train_loss):.6f}")
+                        best_loss = avg_train_loss
                         best_epoch = epoch
                         no_improve = 0
                         if self.config['if_save']:
                             self.save_model("best", overwrite=True)
                     else:
-                        no_improve += 1
+                        no_improve += 10
                 
                 # Periodically save checkpoints
                 if epoch > 0 and epoch % self.checkpoint_interval == 0:
@@ -684,9 +683,9 @@ class OperatorSolver:
                 # Print progress every 100 epochs
                 if epoch % 100 == 0:
                     if val_input is not None:
-                        print(f"Epoch {epoch}: Train={avg_train_loss:.6f}, Val={float(val_loss):.6f}, Best={'Val' if val_input is not None else 'Train'}={float(best_test_loss):.6f}")
+                        print(f"Epoch {epoch}: Train={avg_train_loss:.6f}, Val={float(val_loss):.6f}, Best={'Val' if val_input is not None else 'Train'}={float(best_loss):.6f}")
                     else:
-                        print(f"Epoch {epoch}: Train={avg_train_loss:.6f}, Best Train={float(best_test_loss):.6f}")
+                        print(f"Epoch {epoch}: Train={avg_train_loss:.6f}, Best Train={float(best_loss):.6f}")
                 
                 # Check convergence
                 if avg_train_loss < self.config['target_error']:
@@ -738,9 +737,9 @@ class OperatorSolver:
         print(f"\nTraining completed!")
         print(f"Final training loss: {avg_train_loss:.6f}")
         if val_input is not None:
-            print(f"Best validation loss: {float(best_test_loss):.6f} (epoch {best_epoch})")
+            print(f"Best validation loss: {float(best_loss):.6f} (epoch {best_epoch})")
         else:
-            print(f"Best training loss: {float(best_test_loss):.6f} (epoch {best_epoch})")
+            print(f"Best training loss: {float(best_loss):.6f} (epoch {best_epoch})")
         print(f"Final test loss: {final_test_loss:.6f}")
         
         # Save final model
@@ -761,7 +760,7 @@ class OperatorSolver:
             overwrite: Whether to overwrite save (for best model)
         """
         self.checkpoints_dir = os.path.join(self.prefix, "checkpoints") if self.prefix else "checkpoints"
-        self.checkpoints_dir = os.path.join(self.checkpoints_dir, self.operator_type, f"{self.model_name}_{self.config['num_qubits']}__{self.config['net_size']}_{self.config['random_seed']}")
+        self.checkpoints_dir = os.path.join(self.checkpoints_dir, self.operator_type, f"{self.model_name}_{self.config['num_train']}*{self.config['train_sample_num']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}")
         os.makedirs(self.checkpoints_dir, exist_ok=True)
         if suffix == "best" and overwrite:
             # Best model: fixed filename, overwrite save
@@ -769,7 +768,7 @@ class OperatorSolver:
                 operator_name = self.custom_name
             else:
                 operator_name = self.operator_type
-            filename = f"best_{operator_name}_{self.model_name}_{self.config['num_train']}*{self.config['train_sample_num']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+            filename = f"best_{operator_name}_{self.model_name}_{self.config['num_train']}*{self.config['train_sample_num']}_{self.config['num_qubits']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
@@ -794,7 +793,7 @@ class OperatorSolver:
                 operator_name = self.custom_name
             else:
                 operator_name = self.operator_type
-            filename = f"{suffix}_{operator_name}_{self.model_name}{self.config['num_train']}*{self.config['train_sample_num']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
+            filename = f"{suffix}_{operator_name}_{self.model_name}_{self.config['num_train']}*{self.config['train_sample_num']}_{self.config['net_size']}_{self.config['random_seed']}.ckpt"
             filepath = os.path.join(self.checkpoints_dir, filename)
             dir_name = os.path.dirname(filepath)
             if dir_name and not os.path.exists(dir_name):
@@ -910,6 +909,7 @@ class OperatorSolver:
             'MSE': mse,
             'MAE': mae,
             'Max_Error': max_error,
+            'Train_Error': min(self.training_history, key=lambda x: x['train_loss'])['train_loss'] if self.training_history else None,
         }
         
         print("Evaluation results:")

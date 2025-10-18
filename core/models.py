@@ -57,8 +57,6 @@ class QuanONet(nn.Cell):
                 CoeffLayer(trunk_input_size, scale_coeff), 
                 RepeatLayer(self.trunk_depth * num_qubits)
             )
-
-        self.PostprocessLayer = LinearLayer(1, 1, initial_bias_range=0)
         
     def construct(self, input):
         branch_input = input[0]
@@ -74,7 +72,6 @@ class QuanONet(nn.Cell):
         
         input = mnp.concatenate((branch_input, trunk_input), axis=1)
         output = self.QuanONet(input) 
-        output = self.PostprocessLayer(output)
         return output
 
 
@@ -200,9 +197,9 @@ class PINN(nn.Cell):
         elif self.operator.lower() == 'nonlinear':
             return self.loss(first_grad[0], branch_value_at_trunks**3 + model_output)
         elif self.operator.lower() == 'rdiffusion':
-            alpha = 0.01
+            D = 0.01
             k = 0.01
-            return self.loss(first_grad[1], alpha * second_grad[0] + k * model_output**2 + branch_value_at_trunks)
+            return self.loss(first_grad[1], D * second_grad[0] + k * model_output**2 + branch_value_at_trunks)
         elif self.operator.lower() == 'advection':
             c = 1.0
             return self.loss(first_grad[1], -c * first_grad[0])

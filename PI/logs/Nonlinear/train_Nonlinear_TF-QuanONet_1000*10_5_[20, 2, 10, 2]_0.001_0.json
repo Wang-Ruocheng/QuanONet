@@ -2,6 +2,7 @@
   "MSE": 0.00015073632628354971,
   "MAE": 0.0079575080932118,
   "Max_Error": 0.3790881037712097,
+  "Train_Error": 9.576345542882337e-05,
   "config": {
     "// Universal ODE operator configuration file": "config_ODE.json",
     "// Supported operator types": [
@@ -36,6 +37,7 @@
     "if_save": true,
     "if_keep": false,
     "if_train": true,
+    "if_pi": false,
     "init_checkpoint": null,
     "operator_type": "Nonlinear",
     "if_adjust_lr": false,

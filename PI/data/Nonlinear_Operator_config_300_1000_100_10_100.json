@@ -37,7 +37,7 @@
   "operator_type": "Nonlinear",
   "if_adjust_lr": false,
   "learning_rate": 0.0001,
-  "num_epochs": 1000,
+  "num_epochs": 3333,
   "target_error": 1e-10,
   "batch_size": 100,
   "validation_split": 0,

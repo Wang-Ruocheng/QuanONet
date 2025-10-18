@@ -41,20 +41,20 @@ def solve_darcy_pde(num_cal, length_scale, K=0.1, f=-1.0, u0_cal=None):
 
     return u_cal, u0_cal
 
-def solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01, u0_cal=None):
+def solve_rdiffusion_pde(num_cal, length_scale, D=0.01, k=0.01, u0_cal=None):
     """Solve rdiffusion PDE ∂u/∂t = α∇²u + k*u² + u0(x)"""
     x_cal = np.linspace(0, 1, num_cal)
     t_cal = np.linspace(0, 1, num_cal)
     
     # Calculate time step parameters
     dx = x_cal[1] - x_cal[0]
-    dt = min(dx**2 / (2 * alpha), t_cal[1] - t_cal[0])  # Ensure stability
+    dt = min(dx**2 / (2 * D), t_cal[1] - t_cal[0])  # Ensure stability
     num_cal_t = int(1//dt)
     
-    def rdiffusion_step(u, dx, dt, alpha, k, u0):
+    def rdiffusion_step(u, dx, dt, D, k, u0):
         u_new = np.zeros_like(u)
         for i in range(1, len(u) - 1):
-            u_new[i] = u[i] + dt * (alpha * (u[i+1] - 2*u[i] + u[i-1]) / (dx**2) + k * (u[i]**2) + u0[i])
+            u_new[i] = u[i] + dt * (D * (u[i+1] - 2*u[i] + u[i-1]) / (dx**2) + k * (u[i]**2) + u0[i])
         u_new[0] = u_new[-1] = 0  # Boundary conditions
         return u_new
     
@@ -65,7 +65,7 @@ def solve_rdiffusion_pde(num_cal, length_scale, alpha=0.01, k=0.01, u0_cal=None)
     # Time evolution
     u_cal = np.zeros((num_cal, num_cal_t))
     for i in range(1, num_cal_t):
-        u_cal[:, i] = rdiffusion_step(u_cal[:, i-1], dx, dt, alpha, k, u0_cal)
+        u_cal[:, i] = rdiffusion_step(u_cal[:, i-1], dx, dt, D, k, u0_cal)
     
     # Sample the data to match num_cal
     u_cal_sampled = u_cal[:, ::max(1, num_cal_t//num_cal)][:, :num_cal]
