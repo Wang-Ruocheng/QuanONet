@@ -1,0 +1,18 @@
+Training model...
+Step      Train loss    Test loss     Test metric
+0         [3.38e-02]    [1.85e-02]    []
+100       [2.50e-02]    [9.81e-03]    []
+Best model at step 100:
+  train loss: 2.50e-02
+  test loss: 9.81e-03
+  test metric: []
+'train' took 0.552525 s
+Training model...
+Step      Train loss    Test loss     Test metric
+0         [3.50e-02]    [3.06e-02]    []
+100       [1.48e-02]    [2.91e-02]    []
+Best model at step 100:
+  train loss: 1.48e-02
+  test loss: 2.91e-02
+  test metric: []
+'train' took 0.575732 s
