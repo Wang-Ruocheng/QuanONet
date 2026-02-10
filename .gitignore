@@ -1,31 +1,23 @@
-# 1. 忽略数据目录
+# === 1. 忽略数据文件 ===
 data/
-JMLR/
+*.npz
+*.npy
+*.csv
 
-# 2. 忽略模型权重和检查点
-checkpoints/
-checkpoint/
-*.ckpt
-*.pth
-
-# 3. 忽略日志和记录
+# === 2. 忽略训练产物 (日志、权重、结果) ===
 logs/
+checkpoints/
 dairy/
 *.log
 *.json
+*.ckpt
+*.pth
+*.pt
 
-# 4. 忽略所有以 temp 开头的临时脚本和图片
-temp*
-debug_fno_data.py
-check_data_dims.py
-
-# 5. 忽略生成的图片结果
-*.png
-*.jpg
-
-# 6. Python 系统缓存 (必须忽略)
+# === 3. 忽略 Python 缓存和系统文件 ===
 __pycache__/
 *.pyc
-
-# 7. Mac 系统文件 (因为你是 Mac 用户)
+.ipynb_checkpoints/
 .DS_Store
+.idea/
+.vscode/

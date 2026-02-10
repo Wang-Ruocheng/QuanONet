@@ -172,6 +172,7 @@ class MSSolver:
 
         for epoch in tqdm(range(epochs)):
             epoch_loss = 0
+            epoch_rel_err = 0
             # Permutation for shuffling
             indices = np.random.permutation(num_samples)
             
@@ -186,9 +187,22 @@ class MSSolver:
                 batch_out = self.train_output[idx_ms]
                 
                 loss = train_net(batch_in, batch_out)
-                epoch_loss += float(loss.asnumpy())
+                loss_val = float(loss.asnumpy())
+                epoch_loss += loss_val
+                
+                # 计算当前 Batch 的相对误差
+                # 利用公式: L2_Diff = sqrt(MSE * N_elements)
+                # 前提: self.loss_fn 是 nn.MSELoss() 且 reduction='mean' (默认即是)
+                n_elements = batch_out.size
+                l2_diff = np.sqrt(loss_val * n_elements)
+                l2_true = np.linalg.norm(batch_out.asnumpy())
+                
+                # 避免除以零
+                batch_rel = l2_diff / (l2_true + 1e-8)
+                epoch_rel_err += batch_rel
             
             avg_loss = epoch_loss / num_batches
+            avg_rel_err = epoch_rel_err / num_batches  # <--- 计算平均相对误差
             history['loss_train'].append(avg_loss)
             
             # Save Best
@@ -201,25 +215,57 @@ class MSSolver:
                     save_checkpoint(self.model, self.best_model_path)
             
             if epoch % 10 == 0:
-                # 简单打印到控制台 (logger 已经重定向了 stdout)
-                print(f"Epoch {epoch} Loss: {avg_loss:.6f}")
+                print(f"Epoch {epoch} | MSE: {avg_loss:.6e} | Rel_L2: {avg_rel_err:.4%}")
                 
         return history
 
     def evaluate(self, history=None):
         self.logger.info("Evaluating...")
-        # Load best if available
         if self.best_model_path and os.path.exists(self.best_model_path):
             param_dict = load_checkpoint(self.best_model_path)
             load_param_into_net(self.model, param_dict)
             self.logger.info(f"Loaded best model from {self.best_model_path}")
             
         self.model.set_train(False)
-        y_pred = self.model(self.test_input)
-        y_true = self.test_output
         
-        # Use Unified Metrics
-        metrics = compute_metrics(y_true, y_pred)
+        batch_size = self.config.get('batch_size', 100)
+        preds = []
+        
+        if isinstance(self.test_input, tuple):
+            num_samples = self.test_input[0].shape[0]
+        else:
+            num_samples = self.test_input.shape[0]
+            
+        num_batches = int(np.ceil(num_samples / batch_size))
+        for i in range(num_batches):
+            start = i * batch_size
+            end = min((i + 1) * batch_size, num_samples)
+            
+            # 切片
+            if isinstance(self.test_input, tuple):
+                batch_in = (self.test_input[0][start:end], self.test_input[1][start:end])
+            else:
+                batch_in = self.test_input[start:end]
+            
+            # 推理
+            batch_pred = self.model(batch_in)
+            preds.append(batch_pred.asnumpy()) # 转为 numpy 防止显存堆积
+            
+        # 拼接结果
+        y_pred_np = np.concatenate(preds, axis=0)
+        y_true_np = self.test_output.asnumpy()
+        # --- 🔴 修改结束 ---
+
+        # 使用 Numpy 计算指标 (比 MindSpore Tensor 更稳定)
+        l2_diff = np.linalg.norm(y_pred_np - y_true_np)
+        l2_true = np.linalg.norm(y_true_np)
+        rel_error = l2_diff / (l2_true + 1e-8)
+        
+        self.logger.info(f"⚡ Test Relative L2 Error: {rel_error:.6f} ({rel_error:.2%})")
+        
+        # 传入 numpy 数组给 metrics
+        metrics = compute_metrics(y_true_np, y_pred_np)
+        metrics['rel_l2'] = rel_error 
         self.logger.info(f"Metrics: {metrics}")
         
         save_results(self.config, metrics, history, self.logs_dir)

@@ -112,14 +112,22 @@ class DDESolver:
             X_test  = self.data_dict['test_input'].astype(np.float32)
             y_test  = self.data_dict['test_output'].astype(np.float32)
 
-            # [Fix] Import from core.dde_models (Legacy/Local Implementation)
             from core.dde_models import FNO1d
             
-            cfg = self.config.get('net_size', [16, 32, 3, 32])
-            if len(cfg) < 4: cfg = [16, 32, 3, 32]
+            # 1. 获取用户输入，如果没有则使用空列表
+            user_cfg = self.config.get('net_size', [])
             
-            self.logger.info(f"FNO Config: modes={cfg[0]}, width={cfg[1]}, depth={cfg[2]}, fc_hidden={cfg[3]}")
-            net = FNO1d(modes=cfg[0], width=cfg[1], layers=cfg[2], fc_hidden=cfg[3])
+            # 2. 智能解析参数 (Modes, Width, Depth, FC_Hidden)
+            # 默认值: modes=16, width=32, depth=3, fc_hidden=32
+            modes = user_cfg[0] if len(user_cfg) > 0 else 16
+            width = user_cfg[1] if len(user_cfg) > 1 else 32
+            depth = user_cfg[2] if len(user_cfg) > 2 else 3
+            fc_hidden = user_cfg[3] if len(user_cfg) > 3 else 32  # 如果没传第4个，就用默认32
+
+            self.logger.info(f"FNO Config: modes={modes}, width={width}, depth={depth}, fc_hidden={fc_hidden}")
+            
+            # 3. 传入解析后的变量
+            net = FNO1d(modes=modes, width=width, layers=depth, fc_hidden=fc_hidden)
 
         elif self.model_type == 'FNN':
             X_train = self.data_dict['train_input']
@@ -157,8 +165,11 @@ class DDESolver:
         
         self.logger.info(f"Training Start. Epochs: {epochs}, BS: {batch_size}, Total Iter: {total_iterations}")
         
-        self.model.compile("adam", lr=lr, loss="mse")
-        
+        self.model.compile(
+                            "adam", 
+                            lr=lr, 
+                            metrics=["l2 relative error"]  # <--- 核心修改：添加这个列表
+                        )
         # Note: model.train uses 'iterations', not epochs
         losshistory, train_state = self.model.train(iterations=total_iterations, batch_size=batch_size)
         
