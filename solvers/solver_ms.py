@@ -129,10 +129,10 @@ class MSSolver:
 
         if self.model_type == 'QuanONet':
             model = QuanONet(self.config['num_qubits'], branch_in, trunk_in, net_size, ham, 
-                             self.config.get('scale_coeff', 5.0), if_trainable_freq)
+                             self.config.get('scale_coeff', 0.01), if_trainable_freq)
         elif self.model_type == 'HEAQNN':
             model = HEAQNN(self.config['num_qubits'], branch_in, trunk_in, net_size, ham,
-                           self.config.get('scale_coeff', 5.0), if_trainable_freq)
+                           self.config.get('scale_coeff', 0.01), if_trainable_freq)
         elif self.model_type == 'DeepONet': # MS version
             model = DeepONet(branch_in, trunk_in, net_size)
         elif self.model_type == 'FNN': # MS version

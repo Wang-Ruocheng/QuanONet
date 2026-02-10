@@ -77,7 +77,7 @@ python main.py \
 
 ```
 
-> **Note on FNO**: The Fourier Neural Operator (FNO) is supported, but we are currently refining the hyperparameter configurations for optimal convergence on these specific operator tasks.
+> **Note on FNO**: FNO is fully supported. Use `--net_size modes width layers` to configure the architecture (e.g., `--net_size 15 14 3 32`).
 
 ---
 
@@ -160,15 +160,17 @@ The `main.py` script supports the following arguments:
 
 | Category                         | Argument              | Description                                                  | Default/Example |
 | :------------------------------- | :-------------------- | :----------------------------------------------------------- | :-------------- |
-| **Task Setup**                   | `--operator`          | **Required**. Problem type: `Inverse`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | -               |
+| **Task Setup** | `--operator`          | git add .Problem type: `Inverse`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | -               |
 |                                  | `--num_points`        | **Output** resolution (Trunk/Target grid size).              | `100`           |
 |                                  | `--num_points_0`      | **Input** resolution (Branch/Source function size).          | `100`           |
-| **Model**                        | `--model_type`        | Architecture to train: `QuanONet`, `HEAQNN`, `DeepONet`, `FNN`, `FNO`. | `QuanONet`      |
-|                                  | `--net_size`          | Network structure configuration.<br>• **QuanONet**: `[branch_depth, branch_ansatz_depth, trunk_depth, trunk_ansatz_depth]`<br>• **DeepONet**: `[branch_depth, width, trunk_depth, width]`<br>• **FNO**: `[modes, width, layers, fc_hidden]` | `3 100 3 100`   |
+|                                  | `--train_sample_num`  | Number of sampling points per function for training (P_train). | `10`            |
+|                                  | `--test_sample_num`   | Number of sampling points per function for testing (P_test). | `100`           |
+| **Model** | `--model_type`        | Architecture to train: `QuanONet`, `HEAQNN`, `DeepONet`, `FNN`, `FNO`. | `QuanONet`      |
+|                                  | `--net_size`          | Network structure configuration.<br>• **QuanONet**: `[branch_depth, branch_ansatz_depth, trunk_depth, trunk_ansatz_depth]`<br>• **DeepONet**: `[branch_depth, branch_width, trunk_depth, trunk_width]`<br>• **FNO**: `[modes, width, layers, fc_hidden]` | `3 100 3 100`   |
 | **Quantum**<br>*(QuanONet only)* | `--num_qubits`        | Number of qubits. Defines latent dimension $p=2^n$.          | `5` ($p=32$)    |
 |                                  | `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`).   | `false`         |
 |                                  | `--ham_bound`         | Hamiltonian eigenvalue range (e.g., `[-5, 5]`).              | `[-5, 5]`       |
-| **Training**                     | `--num_epochs`        | Number of training epochs.                                   | `1000`          |
+| **Training** | `--num_epochs`        | Number of training epochs.                                   | `1000`          |
 |                                  | `--batch_size`        | Size of mini-batches.                                        | `100`           |
 |                                  | `--learning_rate`     | Initial learning rate.                                       | `0.001`         |
 |                                  | `--num_train`         | Number of function samples for training.                     | `1000`          |
