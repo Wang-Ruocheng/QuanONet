@@ -51,7 +51,7 @@ class DataManager:
         
         # Ensure critical parameters exist with defaults
         self.num_points = config.get('num_points', 100)
-        self.num_points_0 = config.get('num_points_0', 1000)
+        self.num_points_0 = config.get('num_points_0', 100)
         self.num_cal = config.get('num_cal', 1000)
         
     def get_data(self):
