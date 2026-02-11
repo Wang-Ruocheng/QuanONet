@@ -163,8 +163,9 @@ The `main.py` script supports the following arguments:
 | **Task Setup** | `--operator`          | git add .Problem type: `Inverse`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | -               |
 |                                  | `--num_points`        | **Output** resolution (Trunk/Target grid size).              | `100`           |
 |                                  | `--num_points_0`      | **Input** resolution (Branch/Source function size).          | `100`           |
-|                                  | `--train_sample_num`  | Number of sampling points per function for training (P_train). | `10`            |
+|                                  | `--train_sample_num`  | Number of sampling points per function for training (P_train). | `10`          |
 |                                  | `--test_sample_num`   | Number of sampling points per function for testing (P_test). | `100`           |
+|                                  | `--random_seed`       | Random seed for reproducibility (initialization & sampling). | `0`             |
 | **Model** | `--model_type`        | Architecture to train: `QuanONet`, `HEAQNN`, `DeepONet`, `FNN`, `FNO`. | `QuanONet`      |
 |                                  | `--net_size`          | Network structure configuration.<br>• **QuanONet**: `[branch_depth, branch_ansatz_depth, trunk_depth, trunk_ansatz_depth]`<br>• **DeepONet**: `[branch_depth, branch_width, trunk_depth, trunk_width]`<br>• **FNO**: `[modes, width, layers, fc_hidden]` | `3 100 3 100`   |
 | **Quantum**<br>*(QuanONet only)* | `--num_qubits`        | Number of qubits. Defines latent dimension $p=2^n$.          | `5` ($p=32$)    |
