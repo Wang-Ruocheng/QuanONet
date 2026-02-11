@@ -93,10 +93,8 @@ class MSSolver:
         else:
             self.train_input = self.data['train_input']
             self.test_input = self.data['test_input']
-        print(self.train_input[0].shape, self.train_input[1].shape)
         self.train_output = self.data['train_output']
         self.test_output = self.data['test_output']
-        print(self.train_output.shape, self.test_output.shape)
 
     def _create_model(self):
         self.logger.info("Creating Quantum Model...")
