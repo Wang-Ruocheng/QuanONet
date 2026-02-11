@@ -52,7 +52,17 @@ class DataManager:
         # Ensure critical parameters exist with defaults
         self.num_points = config.get('num_points', 100)
         self.num_points_0 = config.get('num_points_0', 100)
-        self.num_cal = config.get('num_cal', 1000)
+        if config.get('num_cal') is not None:
+            self.num_cal = config['num_cal']
+            
+        # 2. 如果没传，根据算子类型设置默认值
+        else:
+            if self.operator_type in ['RDiffusion', 'Advection', 'Darcy']:
+                self.num_cal = 100   # PDE 默认值
+                self.logger.info(f"Using default num_cal=100 for PDE operator: {self.operator_type}")
+            else:
+                self.num_cal = 1000  # ODE 默认值 (Inverse, Homogeneous, etc.)
+                self.logger.info(f"Using default num_cal=1000 for ODE operator: {self.operator_type}")
         
     def get_data(self):
         """

@@ -104,8 +104,8 @@ class DDESolver:
             
             # --- 🔴 修改开始：支持 4 参数非对称配置 ---
             # 默认值
-            b_depth, b_width = 20, 32
-            t_depth, t_width = 20, 32
+            b_depth, b_width = 2, 10
+            t_depth, t_width = 2, 10
             
             if not net_config:
                 pass # 使用默认值

@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--device_target', type=str, default='CPU', choices=['CPU', 'GPU', 'Ascend'], help='[MS] Device target')
     parser.add_argument('--train_sample_num', type=int, default=100, help='[Data] Number of sampling points per function for training')
     parser.add_argument('--test_sample_num', type=int, default=100, help='[Data] Number of sampling points per function for testing')
+    parser.add_argument('--num_cal', type=int, default=None, help='[Data] High-fidelity resolution for data generation')
     args = parser.parse_args()
     config = load_config(args)
 
