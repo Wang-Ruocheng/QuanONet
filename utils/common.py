@@ -19,7 +19,7 @@ def get_base_parser():
     parser.add_argument('--config', '-c', type=str, default=None, help='Path to JSON config file')
     
     # Environment
-    parser.add_argument('--seed', '-s', type=int, default=0, help='Random seed')
+    parser.add_argument('--random_seed', '-s', type=int, default=0, help='Random seed')
     parser.add_argument('--gpu', '-g', type=int, default=None, help='CUDA_VISIBLE_DEVICES ID')
     parser.add_argument('--prefix', '-p', type=str, default=None, help='Output root directory prefix')
     
