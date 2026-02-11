@@ -21,7 +21,7 @@ from utils.common import set_random_seed
 class Double(Data):
     """
     A simple DeepXDE dataset wrapper that passes pre-loaded numpy arrays.
-    Supports correct Batch Sampling.
+    Supports correct Batch Sampling for both single input (FNN) and tuple input (DeepONet).
     """
     def __init__(self, X_train, y_train, X_test, y_test):
         self.train_x = X_train
@@ -29,7 +29,7 @@ class Double(Data):
         self.test_x = X_test
         self.test_y = y_test
         
-        # [Fix] Initialize BatchSampler
+        # Initialize BatchSampler
         self.train_sampler = BatchSampler(len(self.train_y), shuffle=True)
 
     def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
@@ -41,11 +41,19 @@ class Double(Data):
             return self.train_x, self.train_y
         
         indices = self.train_sampler.get_next(batch_size)
-        return self.train_x[indices], self.train_y[indices]
+        
+        if isinstance(self.train_x, tuple):
+            # 如果是 (Branch, Trunk)，则分别对两个输入进行切片
+            X_batch = (self.train_x[0][indices], self.train_x[1][indices])
+        else:
+            # 如果是普通 Tensor (FNN/FNO)，直接切片
+            X_batch = self.train_x[indices]
+            
+        return X_batch, self.train_y[indices]
 
     def test(self):
         return self.test_x, self.test_y
-
+    
 # ==========================================
 # Main Solver Class
 # ==========================================
@@ -94,18 +102,32 @@ class DDESolver:
             m = X_train[0].shape[1]
             dim_x = X_train[1].shape[1]
             
-            # Default or Parse
-            if not net_config or len(net_config) < 2:
-                bd, bw = 20, 32
-            else:
-                bd, bw = net_config[0], net_config[1]
-                
-            layer_size_branch = [m] + [bw] * bd
-            layer_size_trunk = [dim_x] + [bw] * bd
+            # --- 🔴 修改开始：支持 4 参数非对称配置 ---
+            # 默认值
+            b_depth, b_width = 20, 32
+            t_depth, t_width = 20, 32
             
-            self.logger.info(f"DeepONet Structure: Branch {layer_size_branch}, Trunk {layer_size_trunk}")
-            net = dde.nn.DeepONet(layer_size_branch, layer_size_trunk, "relu", "Glorot normal")
+            if not net_config:
+                pass # 使用默认值
+            elif len(net_config) == 2:
+                # 模式 A: [depth, width] -> 对称结构
+                b_depth = t_depth = net_config[0]
+                b_width = t_width = net_config[1]
+            elif len(net_config) == 4:
+                # 模式 B: [b_depth, b_width, t_depth, t_width] -> 非对称结构
+                b_depth, b_width = net_config[0], net_config[1]
+                t_depth, t_width = net_config[2], net_config[3]
+            else:
+                self.logger.warning(f"Net size {net_config} not recognized. Using default [20, 32] symmetric.")
 
+            layer_size_branch = [m] + [b_width] * b_depth
+            layer_size_trunk = [dim_x] + [t_width] * t_depth
+            
+            self.logger.info(f"DeepONet Config: Branch({b_depth}x{b_width}), Trunk({t_depth}x{t_width})")
+            self.logger.info(f"  - Branch Layers: {layer_size_branch}")
+            self.logger.info(f"  - Trunk Layers:  {layer_size_trunk}")
+            
+            net = dde.nn.DeepONet(layer_size_branch, layer_size_trunk, "relu", "Glorot normal")
         elif self.model_type == 'FNO':
             X_train = self.data_dict['train_input'].astype(np.float32)
             y_train = self.data_dict['train_output'].astype(np.float32)
@@ -146,6 +168,10 @@ class DDESolver:
         else:
             raise ValueError(f"Unknown model type: {self.model_type}")
 
+        pytorch_total_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
+        self.logger.info(f"Model Parameters: {pytorch_total_params}")
+        # ------------------------------------
+
         # Wrap in DDE Model
         dataset = Double(X_train, y_train, X_test, y_test)
         model = dde.Model(dataset, net)
@@ -184,20 +210,39 @@ class DDESolver:
         """Evaluate and Save."""
         self.logger.info("Evaluating model...")
         
+        # 1. 获取测试数据和预测结果
         X_test, y_true = self.model.data.test()
         y_pred = self.model.predict(X_test)
         
+        # --- 🔴 新增：计算 Relative L2 Error ---
+        # 显式计算相对误差，确保与 MS 版本逻辑一致
+        l2_diff = np.linalg.norm(y_pred - y_true)
+        l2_true = np.linalg.norm(y_true)
+        rel_error = l2_diff / (l2_true + 1e-8)
+        
+        self.logger.info(f"⚡ Test Relative L2 Error: {rel_error:.6f} ({rel_error:.2%})")
+        # -------------------------------------
+        
+        # 2. 计算其他指标并将 rel_l2 加入字典
         metrics = compute_metrics(y_true, y_pred)
+        metrics['rel_l2'] = float(rel_error)  # <--- 将其存入 metrics 字典
+        
         self.logger.info(f"Final Metrics: {metrics}")
         
+        # 3. 保存结果
         save_results(self.config, metrics, history, self.logs_dir, filename_suffix="eval")
         
+        # 4. 保存 Checkpoint
         ckpt_name = f"best_{self.run_id}.ckpt"
         ckpt_path = os.path.join(self.ckpt_dir, ckpt_name)
         os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
-        # Handle case where net is wrapped or raw
-        if hasattr(self.model.net, 'state_dict'):
+        
+        # 处理可能的 DataParallel 包装
+        if hasattr(self.model.net, 'module'):
+            torch.save(self.model.net.module.state_dict(), ckpt_path)
+        elif hasattr(self.model.net, 'state_dict'):
             torch.save(self.model.net.state_dict(), ckpt_path)
+            
         self.logger.info(f"Model checkpoint saved to {ckpt_path}")
         
         return metrics
