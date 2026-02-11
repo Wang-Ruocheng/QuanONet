@@ -118,9 +118,9 @@ class DDESolver:
             user_cfg = self.config.get('net_size', [])
             
             # 2. 智能解析参数 (Modes, Width, Depth, FC_Hidden)
-            # 默认值: modes=16, width=32, depth=3, fc_hidden=32
-            modes = user_cfg[0] if len(user_cfg) > 0 else 16
-            width = user_cfg[1] if len(user_cfg) > 1 else 32
+            # 默认值: modes=15, width=14, depth=3, fc_hidden=32
+            modes = user_cfg[0] if len(user_cfg) > 0 else 15
+            width = user_cfg[1] if len(user_cfg) > 1 else 14
             depth = user_cfg[2] if len(user_cfg) > 2 else 3
             fc_hidden = user_cfg[3] if len(user_cfg) > 3 else 32  # 如果没传第4个，就用默认32
 
@@ -153,9 +153,9 @@ class DDESolver:
 
     def train(self):
         """Execute training loop."""
-        lr = self.config.get('learning_rate', 0.001)
+        lr = self.config.get('learning_rate', 0.0001)
         epochs = self.config.get('num_epochs', 1000)
-        batch_size = self.config.get('batch_size', 32)
+        batch_size = self.config.get('batch_size', 100)
         
         # Calculate iterations
         num_samples = self.data_dict['train_output'].shape[0]

@@ -58,13 +58,13 @@ def load_config(args):
     defaults = {
             'num_train': 1000,
             'num_test': 1000,
-            'batch_size': 32,
+            'batch_size': 100,
             'num_epochs': 1000,
-            'learning_rate': 0.001,
+            'learning_rate': 0.0001,
             'num_points': 100,     # Output resolution
-            'num_points_0': 1000,  # Input resolution
-            'train_sample_num': 10,
-            'test_sample_num': 10
+            'num_points_0': 100,  # Input resolution
+            'train_sample_num': 100,
+            'test_sample_num': 100
         }
     
     for key, default_val in defaults.items():
