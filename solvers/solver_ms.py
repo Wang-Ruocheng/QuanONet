@@ -122,9 +122,9 @@ class MSSolver:
             branch_in = self.config['branch_input_size']
             trunk_in = self.config['trunk_input_size']
 
-        net_size = tuple(self.config.get('net_size', [10]))
+        net_size = tuple(self.config.get('net_size', [20, 2, 10, 2]))
         # Fix: handle config parsing for boolean
-        if_trainable_freq = str(self.config.get('if_trainable_freq', 'false')).lower() == 'true'
+        if_trainable_freq = str(self.config.get('if_trainable_freq', 'true')).lower() == 'true'
 
         if self.model_type == 'QuanONet':
             model = QuanONet(self.config['num_qubits'], branch_in, trunk_in, net_size, ham, 

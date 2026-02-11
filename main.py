@@ -20,7 +20,7 @@ def main():
     parser.add_argument('--num_qubits', type=int, help='[Quantum] Number of qubits')
     parser.add_argument('--scale_coeff', type=float, help='[Quantum] Scaling coefficient')
     parser.add_argument('--ham_bound', type=int, nargs='+', help='[Quantum] Hamiltonian bounds')
-    parser.add_argument('--if_trainable_freq', type=str, default='false', help='[Quantum] Trainable frequency')
+    parser.add_argument('--if_trainable_freq', type=str, default='true', help='[Quantum] Trainable frequency')
     parser.add_argument('--device_target', type=str, default='CPU', choices=['CPU', 'GPU', 'Ascend'], help='[MS] Device target')
     parser.add_argument('--train_sample_num', type=int, default=100, help='[Data] Number of sampling points per function for training')
     parser.add_argument('--test_sample_num', type=int, default=100, help='[Data] Number of sampling points per function for testing')
