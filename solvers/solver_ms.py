@@ -45,7 +45,7 @@ class MSSolver:
         self.dairy_dir = os.path.join(prefix, "dairy", self.operator_type)
         
         # Run ID
-        self.describe = f"{self.operator_type}_{self.model_type}_{config.get('num_train')}x{config.get('num_points')}_{config.get('random_seed')}"
+        self.describe = f"{self.operator_type}_{self.model_type}_{config.get('num_train')}x{config.get('num_points')}_{config.get('seed')}"
         
         log_path = os.path.join(self.dairy_dir, f"train_{self.describe}.log")
         self.logger = setup_logger(log_path)

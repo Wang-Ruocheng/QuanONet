@@ -69,7 +69,7 @@ class DDESolver:
         self.ckpt_dir = os.path.join(prefix, "checkpoints", self.operator_type)
         self.dairy_dir = os.path.join(prefix, "dairy", self.operator_type)
         
-        self.run_id = f"{self.model_type}_{config.get('num_train')}x{config.get('num_points')}_{config.get('random_seed')}"
+        self.run_id = f"{self.model_type}_{config.get('num_train')}x{config.get('num_points')}_{config.get('seed')}"
         
         log_path = os.path.join(self.dairy_dir, f"train_{self.run_id}.log")
         self.logger = setup_logger(log_path)
@@ -97,33 +97,48 @@ class DDESolver:
             y_train = self.data_dict['train_output']
             y_test  = self.data_dict['test_output']
             
-            # Architecture
+            # Architecture Dimensions
             net_config = self.config.get('net_size')
-            m = X_train[0].shape[1]
-            dim_x = X_train[1].shape[1]
-            
-            # --- 🔴 修改开始：支持 4 参数非对称配置 ---
-            # 默认值
+            m = X_train[0].shape[1]      # Branch input dim
+            dim_x = X_train[1].shape[1]  # Trunk input dim
             b_depth, b_width = 2, 10
             t_depth, t_width = 2, 10
-            
+            last_layer_size = None  # p (latent dimension)
+
             if not net_config:
-                pass # 使用默认值
+                pass # Use defaults
+                
             elif len(net_config) == 2:
-                # 模式 A: [depth, width] -> 对称结构
                 b_depth = t_depth = net_config[0]
                 b_width = t_width = net_config[1]
+                last_layer_size = b_width 
+                
             elif len(net_config) == 4:
-                # 模式 B: [b_depth, b_width, t_depth, t_width] -> 非对称结构
                 b_depth, b_width = net_config[0], net_config[1]
                 t_depth, t_width = net_config[2], net_config[3]
-            else:
-                self.logger.warning(f"Net size {net_config} not recognized. Using default [20, 32] symmetric.")
+                if b_width == t_width:
+                    last_layer_size = b_width
+                else:
+                    last_layer_size = min(b_width, t_width)
+                    self.logger.warning(f"⚠️ Width mismatch ({b_width} vs {t_width}). Auto-setting output dim p={last_layer_size}.")
 
-            layer_size_branch = [m] + [b_width] * b_depth
-            layer_size_trunk = [dim_x] + [t_width] * t_depth
+            elif len(net_config) == 5:
+                b_depth, b_width = net_config[0], net_config[1]
+                t_depth, t_width = net_config[2], net_config[3]
+                last_layer_size = net_config[4]
+            else:
+                self.logger.warning(f"Net size {net_config} not recognized. Using default [2, 32].")
+
             
-            self.logger.info(f"DeepONet Config: Branch({b_depth}x{b_width}), Trunk({t_depth}x{t_width})")
+            # Branch Net Construction
+            if last_layer_size and len(net_config) == 5:
+                layer_size_branch = [m] + [b_width] * (b_depth - 1) + [last_layer_size]
+                layer_size_trunk  = [dim_x] + [t_width] * (t_depth - 1) + [last_layer_size]
+            else:
+                layer_size_branch = [m] + [b_width] * b_depth
+                layer_size_trunk  = [dim_x] + [t_width] * t_depth
+            
+            self.logger.info(f"DeepONet Config: Branch({b_depth}x{b_width}), Trunk({t_depth}x{t_width}), P={last_layer_size if last_layer_size else 'Auto'}")
             self.logger.info(f"  - Branch Layers: {layer_size_branch}")
             self.logger.info(f"  - Trunk Layers:  {layer_size_trunk}")
             

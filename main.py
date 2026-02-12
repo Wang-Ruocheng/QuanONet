@@ -15,16 +15,7 @@ from utils.backend import backend
 def main():
     # 1. Parse Arguments (Common + Quantum Specific)
     parser = get_base_parser()
-    
-    # Quantum specific args (added here so they show up in --help)
-    parser.add_argument('--num_qubits', type=int, default=5, help='[Quantum] Number of qubits')
-    parser.add_argument('--scale_coeff', type=float, help='[Quantum] Scaling coefficient')
-    parser.add_argument('--ham_bound', type=int, nargs='+', help='[Quantum] Hamiltonian bounds')
-    parser.add_argument('--if_trainable_freq', type=str, default='true', help='[Quantum] Trainable frequency')
-    parser.add_argument('--device_target', type=str, default='CPU', choices=['CPU', 'GPU', 'Ascend'], help='[MS] Device target')
-    parser.add_argument('--train_sample_num', type=int, default=10, help='[Data] Number of sampling points per function for training')
-    parser.add_argument('--test_sample_num', type=int, default=100, help='[Data] Number of sampling points per function for testing')
-    parser.add_argument('--num_cal', type=int, default=None, help='[Data] High-fidelity resolution for data generation')
+
     args = parser.parse_args()
     config = load_config(args)
 
@@ -67,9 +58,41 @@ def main():
         print(f"❌ Error: Unknown model type '{model_type}'.")
         sys.exit(1)
 
+    if args.gpu is not None:
+        # 【场景 1】用户手动指定了 GPU (例如 --gpu 4)
+        print(f"🔧 [Manual] User specified GPU: {args.gpu}")
+        
+        # 设置可见设备，仅暴露用户指定的 GPU
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+        
+        config['gpu'] = 0  
+        config['device_target'] = "GPU" # 确保 MS 知道要用 GPU
+
+    else:
+        # 【场景 2】用户未指定 GPU (自动模式)
+        if target_backend == 'pytorch':
+            # DDE/PyTorch: 优先使用 GPU
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    print("🚀 [Auto] PyTorch Backend -> Found CUDA, defaulting to GPU 0")
+                    # 默认使用第一块卡
+                    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+                    config['gpu'] = 0
+                else:
+                    print("🐢 [Auto] PyTorch Backend -> No CUDA, using CPU")
+                    config['gpu'] = None
+            except ImportError:
+                config['gpu'] = None
+
+        elif target_backend == 'mindspore':
+            # MindSpore: 默认使用 CPU (如您所愿)
+            print("🤖 [Auto] MindSpore Backend -> Defaulting to CPU")
+            config['device_target'] = "CPU"
+            config['gpu'] = None
     # 4. Run Pipeline
     try:
-        set_random_seed(config.get('random_seed', 0))
+        set_random_seed(config.get('seed', 0))
         
         history = solver.train()
         metrics = solver.evaluate(history)
