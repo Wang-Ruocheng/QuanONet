@@ -22,8 +22,7 @@ TEST_SAMPLE=100
 BATCH_SIZE=100
 LR=0.0001
 PREFIX="Table4_Reproduction"
-# SEEDS=(0 1 2 3 4)
-SEEDS=(0)
+SEEDS=(0 1 2 3 4)
 
 # Iteration Lists
 OPERATORS=("Inverse" "Homogeneous" "Nonlinear" "RDiffusion" "Advection" "Darcy")
