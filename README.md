@@ -1,3 +1,4 @@
+
 # QuanONet: Quantum Neural Operators with Adaptive Frequency Strategy
 
 **Official Implementation**
@@ -12,20 +13,17 @@
 - **Trainable Frequency (TF) Strategy**: By treating embedding frequencies as continuous learnable parameters, **TF-QuanONet** breaks spectral symmetries, preventing dimensional collapse and unlocking the full expressivity of the density matrix.
 
 <p align="center">
-
 <img src="image/qon_circ2.png" alt="QuanONet Architecture" width="800">
-
 </p>
 
 ## 📂 Project Structure
 
 The repository adopts a unified solver architecture handling both Quantum (MindSpore) and Classical (PyTorch/DeepXDE) backends:
 
-
-```
-
+```text
 .
-├── main.py                # Unified Entry Point for training and evaluation
+├── main.py                # Unified Entry Point (Auto-backend selection)
+├── scripts/               # Automated reproduction scripts (Table 4, 5, 7)
 ├── configs/               # Configuration files
 ├── core/                  # Model Definitions (QuanONet, DeepONet, FNO)
 ├── solvers/               # Solver implementations (Quantum & Classical)
@@ -39,7 +37,7 @@ The repository adopts a unified solver architecture handling both Quantum (MindS
 
 ## 🛠️ Installation
 
-Create a virtual environment and install the dependencies. The project requires **MindSpore** (for Quantum models) and **PyTorch** + **DeepXDE** (for Classical baselines).
+The project requires **MindSpore** (for Quantum models) and **PyTorch** + **DeepXDE** (for Classical baselines).
 
 ```bash
 pip install -r requirements.txt
@@ -49,6 +47,15 @@ pip install -r requirements.txt
 ## 🚀 Quick Start
 
 All models are trained using the unified `main.py` entry point.
+
+### Smart Device Selection 🤖
+
+You don't need to manually specify the device. The system automatically assigns:
+
+* **Quantum Models (QuanONet/HEAQNN)**: Run on **CPU** (default) to save GPU resources.
+* **Classical Models (DeepONet/FNN/FNO)**: Run on **GPU** (if available).
+
+To force a specific GPU, use `--gpu <ID>`.
 
 ### 1. Train TF-QuanONet (Ours)
 
@@ -60,15 +67,16 @@ python main.py \
   --model_type QuanONet \
   --if_trainable_freq true \
   --num_qubits 5 \
-  --num_epochs 100
+  --num_epochs 1000
 
 ```
 
 ### 2. Train Classical Baseline (DeepONet)
 
-Train the classical DeepONet benchmark:
+Train a DeepONet with asymmetric Branch/Trunk widths (automatically handled):
 
 ```bash
+# Branch: 100 width, Trunk: 100 width
 python main.py \
   --operator Inverse \
   --model_type DeepONet \
@@ -77,101 +85,70 @@ python main.py \
 
 ```
 
-> **Note on FNO**: FNO is fully supported. Use `--net_size modes width layers` to configure the architecture (e.g., `--net_size 15 14 3 32`).
-
 ---
 
 ## 📊 Reproducing Paper Results
 
-This section provides the commands to reproduce the experiments presented in the manuscript.
+We provide automated bash scripts in the `scripts/` directory to reproduce the experiments presented in the manuscript.
 
-### Experiment 1: General Benchmarks (Table 4)
-
-*Comparison of different models across various ODE and PDE operators.*
-
-**1. ODE Benchmarks (e.g., Homogeneous Operator)**
+### Usage
 
 ```bash
-# TF-QuanONet
-python main.py --operator Homogeneous --model_type QuanONet --if_trainable_freq true
-
+# Run on default devices (Quantum->CPU, Classical->GPU)
+./scripts/script_name.sh
 ```
 
-**2. PDE Benchmarks (e.g., Reaction-Diffusion)**
+### Available Experiments
 
-```bash
-# TF-QuanONet
-python main.py --operator RDiffusion --model_type QuanONet --if_trainable_freq true
-
-```
-
-### Experiment 2: Dimensionality Scaling Analysis (Fig. 9)
-
-*Investigating model performance scaling with respect to the latent dimension .*
-
-Control the latent dimension by changing the number of qubits ().
-
-* : `--num_qubits 2`
-* : `--num_qubits 5`
-* : `--num_qubits 8`
-
-```bash
-# TF-QuanONet (p=4 example)
-python main.py --operator Inverse --model_type QuanONet --if_trainable_freq true --num_qubits 2 --net_size 100 2 100 2
-
-```
+| Script | Description | Corresponding Table/Fig |
+| --- | --- | --- |
+| **`reproduce_table4.sh`** | **General Benchmarks**: Compares QuanONet, HEAQNN, DeepONet, and FNN across 6 operators (Inverse, Darcy, etc.). Iterates over scales and seeds. | **Table 4** |
+| **`reproduce_table5.sh`** | **Small Data Regime**: Evaluation on small training sets (). Uses fixed scales for TF-QuanONet. | **Table 5** |
+| **`reproduce_table7.sh`** | **Architecture Search**: Grid search for TF-QuanONet ( vs. Qubits) and DeepONet (Depth vs. Width). | **Table 7** |
 
 ---
-
-### Experiment 3: Hamiltonian Ablation Studies (Fig. 10 & 11)
-
-*Analyzing the impact of spectral properties on expressivity.*
-
-**1. Spectral Radius Control (`--ham_bound`)**
-
-Test how the magnitude of eigenvalues affects the unitary orbit volume.
-
-```bash
-python main.py --operator Inverse --model_type QuanONet --if_trainable_freq true --ham_bound 10
-
-```
-
-**2. Pauli Basis Selection (`--ham_pauli`)**
-
-Test invariance to the choice of Pauli operator basis.
-
-```bash
-python main.py --operator Inverse --model_type QuanONet --if_trainable_freq true --ham_pauli X
-
-```
-
-**3. Spectral Degeneracy (`--ham_diag`)**
-
-Manually specify eigenvalues to test the effect of manifold dimension .
-
-```bash
-python main.py --operator Inverse --model_type QuanONet --if_trainable_freq true --num_qubits 2 --net_size 50 2 50 2 --ham_diag -5 5 5 5
-
-```
 
 ## ⚙️ Configuration & Parameters
 
 The `main.py` script supports the following arguments:
 
-| Category                         | Argument              | Description                                                  | Default/Example |
-| :------------------------------- | :-------------------- | :----------------------------------------------------------- | :-------------- |
-| **Task Setup** | `--operator`          | git add .Problem type: `Inverse`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | -               |
-|                                  | `--num_points`        | **Output** resolution (Trunk/Target grid size).              | `100`           |
-|                                  | `--num_points_0`      | **Input** resolution (Branch/Source function size).          | `100`           |
-|                                  | `--train_sample_num`  | Number of sampling points per function for training (P_train). | `10`          |
-|                                  | `--test_sample_num`   | Number of sampling points per function for testing (P_test). | `100`           |
-|                                  | `--random_seed`       | Random seed for reproducibility (initialization & sampling). | `0`             |
-| **Model** | `--model_type`        | Architecture to train: `QuanONet`, `HEAQNN`, `DeepONet`, `FNN`, `FNO`. | `QuanONet`      |
-|                                  | `--net_size`          | Network structure configuration.<br>• **QuanONet**: `[branch_depth, branch_ansatz_depth, trunk_depth, trunk_ansatz_depth]`<br>• **DeepONet**: `[branch_depth, branch_width, trunk_depth, trunk_width]`<br>• **FNO**: `[modes, width, layers, fc_hidden]` | `3 100 3 100`   |
-| **Quantum**<br>*(QuanONet only)* | `--num_qubits`        | Number of qubits. Defines latent dimension $p=2^n$.          | `5` ($p=32$)    |
-|                                  | `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`).   | `false`         |
-|                                  | `--ham_bound`         | Hamiltonian eigenvalue range (e.g., `[-5, 5]`).              | `[-5, 5]`       |
-| **Training** | `--num_epochs`        | Number of training epochs.                                   | `1000`          |
-|                                  | `--batch_size`        | Size of mini-batches.                                        | `100`           |
-|                                  | `--learning_rate`     | Initial learning rate.                                       | `0.001`         |
-|                                  | `--num_train`         | Number of function samples for training.                     | `1000`          |
+### 1. Task & Data Setup
+
+| Argument | Description | Default |
+| --- | --- | --- |
+| `--operator` | Problem type: `Inverse`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | **Required** |
+| `--num_train` / `--num_test` | Number of function samples for training/testing. | `1000` / `1000` |
+| `--train_sample_num` | Points sampled per function for training (). | `10` |
+| `--test_sample_num` | Points sampled per function for testing (). | `100` |
+| `--num_points` | **Output** resolution (Trunk/Target grid size). | `100` |
+| `--num_points_0` | **Input** resolution (Branch/Source function size). | `100` (PDE) / `1000` (ODE) |
+| `--num_cal` | **High-Fidelity Resolution** for data generation (Ground Truth). | `1000` (ODE) / `100` (PDE) |
+| `--seed` | Random seed for reproducibility. | `0` |
+
+### 2. Model Architecture (`--net_size`)
+
+| Model | Format | Example |
+| :--- | :--- | :--- |
+| **QuanONet** | `[b_depth, b_ansatz, t_depth, t_ansatz]` | `20 2 10 2` |
+| **DeepONet** | `[b_depth, b_width, t_depth, t_width]` <br> *Optional 5th arg for output dim:* `[... p]` | `3 100 3 100`<br>`3 100 3 50 10` |
+| **FNO** | `[modes, width, layers, fc_hidden]` | `16 32 3 32` |
+
+### 3. Quantum Specifics
+
+| Argument | Description | Default |
+| --- | --- | --- |
+| `--num_qubits` | Number of qubits. Defines latent dimension . | `5` |
+| `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`). | `false` |
+| `--scale_coeff` | Scaling coefficient for encoding. | `0.01` |
+| `--ham_bound` | Hamiltonian eigenvalue range (e.g., `5 5` for ). | `[-5, 5]` |
+
+### 4. Training & System
+
+| Argument | Description | Default |
+| --- | --- | --- |
+| `--batch_size` | Size of mini-batches. | `100` |
+| `--learning_rate` | Initial learning rate. | `0.001` |
+| `--num_epochs` | Number of training epochs. | `1000` |
+| `--gpu` | GPU ID (e.g., `0`). If unspecified, uses **Smart Auto-Select**. | `None` (Auto) |
+| `--prefix` | Prefix for output directories (logs/checkpoints). | `None` |
+
