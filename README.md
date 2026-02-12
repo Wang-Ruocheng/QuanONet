@@ -100,11 +100,14 @@ We provide automated bash scripts in the `scripts/` directory to reproduce the e
 
 ### Available Experiments
 
-| Script | Description | Corresponding Table/Fig |
-| --- | --- | --- |
-| **`reproduce_table4.sh`** | **General Benchmarks**: Compares QuanONet, HEAQNN, DeepONet, and FNN across 6 operators (Inverse, Darcy, etc.). Iterates over scales and seeds. | **Table 4** |
-| **`reproduce_table5.sh`** | **Small Data Regime**: Evaluation on small training sets (). Uses fixed scales for TF-QuanONet. | **Table 5** |
-| **`reproduce_table7.sh`** | **Architecture Search**: Grid search for TF-QuanONet ( vs. Qubits) and DeepONet (Depth vs. Width). | **Table 7** |
+We provide automated bash scripts in the `scripts/` directory to reproduce the experimental results reported in the manuscript.
+
+| Script | Description | Relevant Table/Sec |
+| :--- | :--- | :--- |
+| **`reproduce_table4.sh`** | **General Benchmarks**: Comprehensive comparison of **TF-QuanONet** against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across 6 operator learning tasks (ODEs: Antiderivative, Homogeneous, Nonlinear; PDEs: Diffusion-Reaction, Advection, Darcy). | **Table 4**<br>(Sec 5.2.2) |
+| **`reproduce_table5.sh`** | **Asymmetric Parameterization & FNO**: Evaluates model performance under a constrained parameter budget (~1.2k params). Compares compact TF-QuanONet against over-parameterized **FNO** and **DeepONet** (~10k params) to highlight quantum parameter efficiency. | **Table 5 & 6**<br>(Sec 5.2.3) |
+| **`reproduce_table7.sh`** | **Implicit Frame Capacity (Architecture Search)**: Grid search for TF-QuanONet (varying $h_b, h_t$) and DeepONet (varying Depth/Width). Demonstrates that QuanONet avoids the error saturation observed in classical models, verifying the $\mathcal{O}(p^2)$ implicit frame. | **Table 7**<br>(Sec 5.3.1) |
+| **`reproduce_table8.sh`** | **Circuit Architecture Ablation**: Investigates the trade-off between **Circuit Width** (Qubits $p \in \{2, 5, 10\}$) and **Depth**. Analyzes how increasing qubit count impacts expressivity vs. trainability (barren plateaus). | **Table 8**<br>(Sec 5.3.2) |
 
 ---
 
