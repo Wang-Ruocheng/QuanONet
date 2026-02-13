@@ -1,4 +1,3 @@
-
 # QuanONet: Quantum Neural Operators with Adaptive Frequency Strategy
 
 **Official Implementation**
@@ -102,12 +101,12 @@ We provide automated bash scripts in the `scripts/` directory to reproduce the e
 
 We provide automated bash scripts in the `scripts/` directory to reproduce the experimental results reported in the manuscript.
 
-| Script | Description | Relevant Table/Sec |
-| :--- | :--- | :--- |
-| **`reproduce_table4.sh`** | **General Benchmarks**: Comprehensive comparison of **TF-QuanONet** against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across 6 operator learning tasks (ODEs: Antiderivative, Homogeneous, Nonlinear; PDEs: Diffusion-Reaction, Advection, Darcy). | **Table 4**<br>(Sec 5.2.2) |
-| **`reproduce_table5.sh`** | **Asymmetric Parameterization & FNO**: Evaluates model performance under a constrained parameter budget (~1.2k params). Compares compact TF-QuanONet against over-parameterized **FNO** and **DeepONet** (~10k params) to highlight quantum parameter efficiency. | **Table 5 & 6**<br>(Sec 5.2.3) |
-| **`reproduce_table7.sh`** | **Implicit Frame Capacity (Architecture Search)**: Grid search for TF-QuanONet (varying $h_b, h_t$) and DeepONet (varying Depth/Width). Demonstrates that QuanONet avoids the error saturation observed in classical models, verifying the $\mathcal{O}(p^2)$ implicit frame. | **Table 7**<br>(Sec 5.3.1) |
-| **`reproduce_table8.sh`** | **Circuit Architecture Ablation**: Investigates the trade-off between **Circuit Width** (Qubits $p \in \{2, 5, 10\}$) and **Depth**. Analyzes how increasing qubit count impacts expressivity vs. trainability (barren plateaus). | **Table 8**<br>(Sec 5.3.2) |
+| Script                            | Description                                                                                                                                                                                                                                                                             | Relevant Table/Sec                       |
+| :-------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------- |
+| **`reproduce_table4.sh`** | **General Benchmarks**: Comprehensive comparison of **TF-QuanONet** against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across 6 operator learning tasks (ODEs: Antiderivative, Homogeneous, Nonlinear; PDEs: Diffusion-Reaction, Advection, Darcy).      | **Table 4**`<br>`(Sec 5.2.2)     |
+| **`reproduce_table5.sh`** | **Asymmetric Parameterization & FNO**: Evaluates model performance under a constrained parameter budget (~1.2k params). Compares compact TF-QuanONet against over-parameterized **FNO** and **DeepONet** (~10k params) to highlight quantum parameter efficiency.     | **Table 5 & 6**`<br>`(Sec 5.2.3) |
+| **`reproduce_table7.sh`** | **Implicit Frame Capacity (Architecture Search)**: Grid search for TF-QuanONet (varying $h_b, h_t$) and DeepONet (varying Depth/Width). Demonstrates that QuanONet avoids the error saturation observed in classical models, verifying the $\mathcal{O}(p^2)$ implicit frame. | **Table 7**`<br>`(Sec 5.3.1)     |
+| **`reproduce_table8.sh`** | **Circuit Architecture Ablation**: Investigates the trade-off between **Circuit Width** (Qubits $p \in \{2, 5, 10\}$) and **Depth**. Analyzes how increasing qubit count impacts expressivity vs. trainability (barren plateaus).                                   | **Table 8**`<br>`(Sec 5.3.2)     |
 
 ---
 
@@ -117,41 +116,40 @@ The `main.py` script supports the following arguments:
 
 ### 1. Task & Data Setup
 
-| Argument | Description | Default |
-| --- | --- | --- |
-| `--operator` | Problem type: `Inverse`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | **Required** |
-| `--num_train` / `--num_test` | Number of function samples for training/testing. | `1000` / `1000` |
-| `--train_sample_num` | Points sampled per function for training (). | `10` |
-| `--test_sample_num` | Points sampled per function for testing (). | `100` |
-| `--num_points` | **Output** resolution (Trunk/Target grid size). | `100` |
-| `--num_points_0` | **Input** resolution (Branch/Source function size). | `100` (PDE) / `1000` (ODE) |
-| `--num_cal` | **High-Fidelity Resolution** for data generation (Ground Truth). | `1000` (ODE) / `100` (PDE) |
-| `--seed` | Random seed for reproducibility. | `0` |
+| Argument                         | Description                                                                                         | Default                        |
+| -------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `--operator`                   | Problem type:`Inverse`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | **Required**             |
+| `--num_train` / `--num_test` | Number of function samples for training/testing.                                                    | `1000` / `1000`            |
+| `--train_sample_num`           | Points sampled per function for training ().                                                        | `10`                         |
+| `--test_sample_num`            | Points sampled per function for testing ().                                                         | `100`                        |
+| `--num_points`                 | **Output** resolution (Trunk/Target grid size).                                               | `100`                        |
+| `--num_points_0`               | **Input** resolution (Branch/Source function size).                                           | `100` (PDE) / `1000` (ODE) |
+| `--num_cal`                    | **High-Fidelity Resolution** for data generation (Ground Truth).                              | `1000` (ODE) / `100` (PDE) |
+| `--seed`                       | Random seed for reproducibility.                                                                    | `0`                          |
 
 ### 2. Model Architecture (`--net_size`)
 
-| Model | Format | Example |
-| :--- | :--- | :--- |
-| **QuanONet** | `[b_depth, b_ansatz, t_depth, t_ansatz]` | `20 2 10 2` |
-| **DeepONet** | `[b_depth, b_width, t_depth, t_width]` <br> *Optional 5th arg for output dim:* `[... p]` | `3 100 3 100`<br>`3 100 3 50 10` |
-| **FNO** | `[modes, width, layers, fc_hidden]` | `16 32 3 32` |
+| Model              | Format                                                                                             | Example                              |
+| :----------------- | :------------------------------------------------------------------------------------------------- | :----------------------------------- |
+| **QuanONet** | `[b_depth, b_ansatz, t_depth, t_ansatz]`                                                         | `20 2 10 2`                        |
+| **DeepONet** | `[b_depth, b_width, t_depth, t_width]` `<br>` *Optional 5th arg for output dim:* `[... p]` | `3 100 3 100<br>``3 100 3 50 10` |
+| **FNO**      | `[modes, width, layers, fc_hidden]`                                                              | `16 32 3 32`                       |
 
 ### 3. Quantum Specifics
 
-| Argument | Description | Default |
-| --- | --- | --- |
-| `--num_qubits` | Number of qubits. Defines latent dimension . | `5` |
-| `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`). | `false` |
-| `--scale_coeff` | Scaling coefficient for encoding. | `0.01` |
-| `--ham_bound` | Hamiltonian eigenvalue range (e.g., `5 5` for ). | `[-5, 5]` |
+| Argument                | Description                                                    | Default     |
+| ----------------------- | -------------------------------------------------------------- | ----------- |
+| `--num_qubits`        | Number of qubits. Defines latent dimension .                   | `5`       |
+| `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`). | `true`    |
+| `--scale_coeff`       | Scaling coefficient for encoding.                              | `0.01`    |
+| `--ham_bound`         | Hamiltonian eigenvalue range (e.g.,`5 5` for ).              | `[-5, 5]` |
 
 ### 4. Training & System
 
-| Argument | Description | Default |
-| --- | --- | --- |
-| `--batch_size` | Size of mini-batches. | `100` |
-| `--learning_rate` | Initial learning rate. | `0.001` |
-| `--num_epochs` | Number of training epochs. | `1000` |
-| `--gpu` | GPU ID (e.g., `0`). If unspecified, uses **Smart Auto-Select**. | `None` (Auto) |
-| `--prefix` | Prefix for output directories (logs/checkpoints). | `None` |
-
+| Argument            | Description                                                            | Default         |
+| ------------------- | ---------------------------------------------------------------------- | --------------- |
+| `--batch_size`    | Size of mini-batches.                                                  | `100`         |
+| `--learning_rate` | Initial learning rate.                                                 | `0.0001`      |
+| `--num_epochs`    | Number of training epochs.                                             | `1000`        |
+| `--gpu`           | GPU ID (e.g.,`0`). If unspecified, uses **Smart Auto-Select**. | `None` (Auto) |
+| `--prefix`        | Prefix for output directories (logs/checkpoints).                      | `None`        |
