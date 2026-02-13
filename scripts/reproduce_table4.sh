@@ -22,13 +22,18 @@ TEST_SAMPLE=100
 BATCH_SIZE=100
 LR=0.0001
 PREFIX="Table4_Reproduction"
-SEEDS=(0 1 2 3 4)
+# SEEDS=(0 1 2 3 4)
+SEEDS=(0)
 
 # Iteration Lists
-OPERATORS=("Inverse" "Homogeneous" "Nonlinear" "RDiffusion" "Advection" "Darcy")
-MODELS=("HEAQNN" "QuanONet" "DeepONet" "FNN")
-FREQUENCIES=("true" "false")
-SCALES=(0.1 0.01 0.001)
+# OPERATORS=("Inverse" "Homogeneous" "Nonlinear" "RDiffusion" "Advection" "Darcy")
+# MODELS=("HEAQNN" "QuanONet" "DeepONet" "FNN")
+# FREQUENCIES=("true" "false")
+# SCALES=(0.1 0.01 0.001)
+OPERATORS=("Inverse" "RDiffusion")
+MODELS=("HEAQNN")
+FREQUENCIES=("true")
+SCALES=(0.1)
 
 # ==============================================================================
 # 2. Main Execution Loop
@@ -89,8 +94,7 @@ for OP in "${OPERATORS[@]}"; do
                 
                 for SCALE in "${SCALES[@]}"; do
                     for SEED in "${SEEDS[@]}"; do
-                        
-                        LOG_FILE="${LOG_DIR}/${OP}_${MODEL}_TF${IF_TF}_S${SCALE}_Seed${SEED}.log"
+
                         echo "  [Quantum] Running ${MODEL} | TF=${IF_TF} | Size=[${NET_SIZE}] | Scale=${SCALE} | Seed=${SEED}"
                         
                         # Execute Quantum Training
@@ -109,7 +113,7 @@ for OP in "${OPERATORS[@]}"; do
                             --seed "${SEED}" \
                             --prefix "${PREFIX}" \
                             ${GPU_FLAG} \
-                            > "${LOG_FILE}" 2>&1
+                            > /dev/null 2>&1
                     done
                 done
             done
@@ -127,7 +131,6 @@ for OP in "${OPERATORS[@]}"; do
             fi
 
             for SEED in "${SEEDS[@]}"; do
-                LOG_FILE="${LOG_DIR}/${OP}_${MODEL}_Seed${SEED}.log"
                 echo "  [Classical] Running ${MODEL} | Size=[${NET_SIZE}] | Seed=${SEED}"
                 
                 # Execute Classical Training
@@ -144,7 +147,7 @@ for OP in "${OPERATORS[@]}"; do
                     --seed "${SEED}" \
                     --prefix "${PREFIX}" \
                     ${GPU_FLAG} \
-                    > "${LOG_FILE}" 2>&1
+                    > /dev/null 2>&1
             done
         fi
     done

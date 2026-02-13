@@ -80,8 +80,6 @@ for N_Q in "${QUBIT_CASES[@]}"; do
             NET_SIZE="${HB} 2 ${HT} 2"
             
             for SEED in "${SEEDS[@]}"; do
-                
-                LOG_FILE="${LOG_DIR}/${OPERATOR}_${MODEL}_Q${N_Q}_HB${HB}_HT${HT}_Seed${SEED}.log"
                 echo "  Running Q${N_Q} | Size=[${NET_SIZE}] | Seed=${SEED}"
                 
                 # Execute Training
@@ -99,7 +97,7 @@ for N_Q in "${QUBIT_CASES[@]}"; do
                     --seed "${SEED}" \
                     --prefix "${PREFIX}" \
                     ${GPU_FLAG} \
-                    > "${LOG_FILE}" 2>&1
+                    > /dev/null 2>&1
             done
         done
     done

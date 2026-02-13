@@ -87,8 +87,6 @@ for OP in "${OPERATORS[@]}"; do
         fi
 
         for SEED in "${SEEDS[@]}"; do
-            
-            LOG_FILE="${LOG_DIR}/${OP}_${MODEL}_Seed${SEED}.log"
             echo "  Running ${MODEL_DESC} | Size=[${NET_SIZE}] | Seed=${SEED}"
             
             # Execute Training
@@ -107,7 +105,7 @@ for OP in "${OPERATORS[@]}"; do
                 --prefix "${PREFIX}" \
                 ${GPU_FLAG} \
                 ${EXTRA_ARGS} \
-                > "${LOG_FILE}" 2>&1
+                > /dev/null 2>&1
         done
     done
 done

@@ -68,7 +68,6 @@ for HB in "${HB_LIST[@]}"; do
         NET_SIZE="${HB} 2 ${HT} 2"
         
         for SEED in "${SEEDS[@]}"; do
-            LOG_FILE="${LOG_DIR}/${OPERATOR}_${MODEL}_HB${HB}_HT${HT}_Seed${SEED}.log"
             echo "  [Quantum] Running ${MODEL} | Size=[${NET_SIZE}] | Seed=${SEED}"
             
             python main.py \
@@ -85,7 +84,7 @@ for HB in "${HB_LIST[@]}"; do
                 --seed "${SEED}" \
                 --prefix "${PREFIX}" \
                 ${GPU_FLAG} \
-                > "${LOG_FILE}" 2>&1
+                > /dev/null 2>&1
         done
     done
 done
@@ -108,7 +107,6 @@ for DEPTH in "${DEPTH_LIST[@]}"; do
         NET_SIZE="${DEPTH} ${WIDTH} ${DEPTH} ${WIDTH} ${OUTPUT_DIM}"
         
         for SEED in "${SEEDS[@]}"; do
-            LOG_FILE="${LOG_DIR}/${OPERATOR}_${MODEL}_D${DEPTH}_W${WIDTH}_Seed${SEED}.log"
             echo "  [Classical] Running ${MODEL} | Size=[${NET_SIZE}] | Seed=${SEED}"
             
             python main.py \
@@ -123,7 +121,7 @@ for DEPTH in "${DEPTH_LIST[@]}"; do
                 --seed "${SEED}" \
                 --prefix "${PREFIX}" \
                 ${GPU_FLAG} \
-                > "${LOG_FILE}" 2>&1
+                > /dev/null 2>&1
         done
     done
 done

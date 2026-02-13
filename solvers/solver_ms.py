@@ -20,7 +20,7 @@ except ImportError:
 
 # Imports from project
 from data_utils.data_manager import DataManager
-from utils.logger import setup_logger, StreamToLogger, save_results
+from utils.logger import setup_logger, StreamToLogger, save_results, get_experiment_id
 from utils.metrics import compute_metrics
 from utils.utils import count_parameters 
 
@@ -45,8 +45,21 @@ class MSSolver:
         self.dairy_dir = os.path.join(prefix, "dairy", self.operator_type)
         
         # Run ID
-        self.describe = f"{self.operator_type}_{self.model_type}_{config.get('num_train')}x{config.get('num_points')}_{config.get('seed')}"
-        
+        q_info = ""
+        if self.model_type in ['QuanONet', 'HEAQNN']:
+            tf = "TF" if str(config.get('if_trainable_freq', 'false')).lower() == 'true' else "FF"
+            sc = config.get('scale_coeff', 0.01)
+            nq = config.get('num_qubits', 5)
+            q_info = f"_{tf}_Q{nq}_S{sc}"
+            
+            # 如果有 net_size，也拼进去防止 Table 7 的网格搜索覆盖
+            if config.get('net_size'):
+                net_str = "-".join(map(str, config.get('net_size')))
+                q_info += f"_Net{net_str}"
+
+        self.describe = get_experiment_id(config)
+        self.config['run_id'] = self.describe # 注入 config 供后续使用
+
         log_path = os.path.join(self.dairy_dir, f"train_{self.describe}.log")
         self.logger = setup_logger(log_path)
         sys.stdout = StreamToLogger(self.logger) # Redirect print to log

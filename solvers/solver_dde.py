@@ -11,7 +11,7 @@ from deepxde.data import Data
 from deepxde.data.sampler import BatchSampler 
 
 from data_utils.data_manager import DataManager
-from utils.logger import setup_logger, StreamToLogger, save_results
+from utils.logger import setup_logger, StreamToLogger, save_results, get_experiment_id
 from utils.metrics import compute_metrics
 from utils.common import set_random_seed
 
@@ -69,7 +69,12 @@ class DDESolver:
         self.ckpt_dir = os.path.join(prefix, "checkpoints", self.operator_type)
         self.dairy_dir = os.path.join(prefix, "dairy", self.operator_type)
         
-        self.run_id = f"{self.model_type}_{config.get('num_train')}x{config.get('num_points')}_{config.get('seed')}"
+        net_info = ""
+        if config.get('net_size'):
+            net_info = "_Net" + "-".join(map(str, config.get('net_size')))
+            
+        self.run_id = get_experiment_id(config)
+        self.config['run_id'] = self.run_id
         
         log_path = os.path.join(self.dairy_dir, f"train_{self.run_id}.log")
         self.logger = setup_logger(log_path)
