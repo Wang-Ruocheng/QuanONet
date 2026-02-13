@@ -22,18 +22,14 @@ TEST_SAMPLE=100
 BATCH_SIZE=100
 LR=0.0001
 PREFIX="Table4_Reproduction"
-# SEEDS=(0 1 2 3 4)
-SEEDS=(0)
+SEEDS=(0 1 2 3 4)
 
-# Iteration Lists
-# OPERATORS=("Inverse" "Homogeneous" "Nonlinear" "RDiffusion" "Advection" "Darcy")
-# MODELS=("HEAQNN" "QuanONet" "DeepONet" "FNN")
-# FREQUENCIES=("true" "false")
-# SCALES=(0.1 0.01 0.001)
-OPERATORS=("Inverse" "RDiffusion")
-MODELS=("HEAQNN")
-FREQUENCIES=("true")
-SCALES=(0.1)
+Iteration Lists
+OPERATORS=("Inverse" "Homogeneous" "Nonlinear" "RDiffusion" "Advection" "Darcy")
+MODELS=("HEAQNN" "QuanONet" "DeepONet" "FNN")
+FREQUENCIES=("true" "false")
+SCALES=(0.1 0.01 0.001)
+
 
 # ==============================================================================
 # 2. Main Execution Loop
