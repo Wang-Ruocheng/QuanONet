@@ -22,15 +22,41 @@ The repository adopts a unified solver architecture handling both Quantum (MindS
 ```text
 .
 ├── main.py                # Unified Entry Point (Auto-backend selection)
-├── scripts/               # Automated reproduction scripts (Table 4, 5, 7)
-├── configs/               # Configuration files
-├── core/                  # Model Definitions (QuanONet, DeepONet, FNO)
-├── solvers/               # Solver implementations (Quantum & Classical)
-├── data_utils/            # Data generation and processing
-├── dairy/                 # Training logs and history
-├── logs/                  # Evaluation metrics (.json)
-├── data/                  # Dataset storage
-└── requirements.txt       # Project dependencies
+├── requirements.txt       # Project dependencies
+├── README.md              # Project documentation
+├── .gitignore             # Git ignore rules
+│
+├── scripts/               # Automated reproduction bash scripts
+│   ├── reproduce_table4.sh  # General Benchmarks (ODE & PDE)
+│   ├── reproduce_table5.sh  # Asymmetric Parameterization (vs. FNO)
+│   ├── reproduce_table7.sh  # Implicit Frame Capacity Search
+│   ├── reproduce_table8.sh  # Circuit Architecture Ablation
+│   └── reproduce_sec54.sh   # Hamiltonian Design Ablation
+│
+├── core/                  # Core model architectures
+│   ├── models.py            # Unified model wrapper
+│   ├── quantum_circuits.py  # QuanONet & HEAQNN circuits (MindSpore)
+│   ├── dde_models.py        # Classical baselines (DeepONet, FNO, FNN)
+│   └── layers.py            # Custom neural network layers
+│
+├── solvers/               # Training & Evaluation solvers
+│   ├── solver_ms.py         # Quantum solver (MindSpore backend)
+│   └── solver_dde.py        # Classical solver (DeepXDE/PyTorch backend)
+│
+├── data_utils/            # Data pipelines and generation
+│   ├── PDE_SYSTEMS.py       # Definitions of physical operators (Inverse, Darcy, etc.)
+│   ├── data_generation.py   # Dataset generation scripts
+│   ├── data_manager.py      # Data loading, formatting, and batching
+│   └── random_func.py       # Gaussian Random Field (GRF) generators
+│
+├── utils/                 # Utilities and helpers
+│   ├── common.py            # Argument parsing (hyperparameters)
+│   ├── logger.py            # Unified logging, tracking, and JSON saving
+│   ├── metrics.py           # Evaluation metrics computation (L2, MSE)
+│   └── backend.py           # Hardware backend management
+│
+├── configs/               # Configuration presets
+└── image/                 # Architectural diagrams (qon_circ2.png, tf.png)
 
 ```
 
@@ -134,7 +160,7 @@ The `main.py` script supports the following arguments:
 | Model              | Format                                                                                             | Example                              |
 | :----------------- | :------------------------------------------------------------------------------------------------- | :----------------------------------- |
 | **QuanONet** | `[b_depth, b_ansatz, t_depth, t_ansatz]`                                                         | `20 2 10 2`                        |
-| **DeepONet** | `[b_depth, b_width, t_depth, t_width]` <br> *Optional 5th arg for output dim:* `[... p]` | `3 100 3 100<br>``3 100 3 50 10` |
+| **DeepONet** | `[b_depth, b_width, t_depth, t_width]` <br> *Optional 5th arg for output dim:* `[... p]` | `3 100 3 100`<br>`3 100 3 50 10` |
 | **FNO**      | `[modes, width, layers, fc_hidden]`                                                              | `16 32 3 32`                       |
 
 ### 3. Quantum Specifics
