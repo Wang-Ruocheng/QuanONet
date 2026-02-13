@@ -57,9 +57,13 @@ def get_base_parser():
     # Quantum Specific
     parser.add_argument('--num_qubits', type=int, default=5, help='[Quantum] Number of qubits')
     parser.add_argument('--scale_coeff', type=float, help='[Quantum] Scaling coefficient')
-    parser.add_argument('--ham_bound', type=int, nargs='+', help='[Quantum] Hamiltonian bounds')
     parser.add_argument('--if_trainable_freq', type=str, default='true', help='[Quantum] Trainable frequency')
-    
+    parser.add_argument('--ham_bound', type=int, nargs='+', default=[-5, 5], 
+                    help='[Quantum] Hamiltonian bounds (e.g., --ham_bound -5 5)')
+    parser.add_argument('--ham_pauli', type=str, default='Z', choices=['X', 'Y', 'Z'],
+                        help='Pauli observable basis for the Hamiltonian (default: Z).')
+    parser.add_argument('--ham_diag', type=float, nargs='+', default=None,
+                        help='Manually specify the exact Hamiltonian eigenvalues (e.g., --ham_diag -5 5 5 5). If set, this strictly overrides --ham_bound and --ham_pauli.')
     return parser
 
 def load_config(args):

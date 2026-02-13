@@ -83,13 +83,24 @@ def get_experiment_id(config):
         scale = config.get('scale_coeff', 0.01)
         exp_id += f"_S{scale}"
         
-        # Hamiltonian Bound (如果修改了哈密顿量边界)
-        ham = config.get('ham_bound')
-        if ham and isinstance(ham, list):
-            ham_str = "-".join(map(str, ham))
-            exp_id += f"_Ham{ham_str}"
-
-    # 4. 数据量与随机种子
+        # 1. 记录 Pauli 基底 (默认为 Z，如果不是 Z 则显式标出)
+        pauli = config.get('ham_pauli', 'Z')
+        if pauli != 'Z':
+            exp_id += f"_Pauli{pauli}"
+            
+        # 2. 记录对角谱或边界 (Diag 优先级最高)
+        diag = config.get('ham_diag')
+        if diag:
+            # 如果是自定义谱矩阵
+            diag_str = "-".join(map(str, diag))
+            exp_id += f"_Diag{diag_str}"
+        else:
+            # 如果只是普通的 bound
+            ham = config.get('ham_bound')
+            if ham and isinstance(ham, list) and ham != [-5, 5]: # 仅当非默认值时标出
+                ham_str = "-".join(map(str, ham))
+                exp_id += f"_Ham{ham_str}"    # 4. 数据量与随机种子
+                
     exp_id += f"_{nt}x{np_}_Seed{seed}"
     
     return exp_id

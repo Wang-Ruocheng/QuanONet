@@ -107,6 +107,8 @@ We provide automated bash scripts in the `scripts/` directory to reproduce the e
 | **`reproduce_table5.sh`** | **Asymmetric Parameterization & FNO**: Evaluates model performance under a constrained parameter budget (~1.2k params). Compares compact TF-QuanONet against over-parameterized **FNO** and **DeepONet** (~10k params) to highlight quantum parameter efficiency.     | **Table 5 & 6**`<br>`(Sec 5.2.3) |
 | **`reproduce_table7.sh`** | **Implicit Frame Capacity (Architecture Search)**: Grid search for TF-QuanONet (varying $h_b, h_t$) and DeepONet (varying Depth/Width). Demonstrates that QuanONet avoids the error saturation observed in classical models, verifying the $\mathcal{O}(p^2)$ implicit frame. | **Table 7**`<br>`(Sec 5.3.1)     |
 | **`reproduce_table8.sh`** | **Circuit Architecture Ablation**: Investigates the trade-off between **Circuit Width** (Qubits $p \in \{2, 5, 10\}$) and **Depth**. Analyzes how increasing qubit count impacts expressivity vs. trainability (barren plateaus).                                   | **Table 8**`<br>`(Sec 5.3.2)     |
+| **`reproduce_sec54.sh`** | **Hamiltonian Ablation**: Evaluates the impact of Hamiltonian design on model expressivity, sweeping over Pauli basis choices, spectral radii (bounds), and exact spectral degeneracies. | **Fig 10 & 11**<br>(Sec 5.4) |
+
 
 ---
 
@@ -136,13 +138,14 @@ The `main.py` script supports the following arguments:
 | **FNO**      | `[modes, width, layers, fc_hidden]`                                                              | `16 32 3 32`                       |
 
 ### 3. Quantum Specifics
-
-| Argument                | Description                                                    | Default     |
-| ----------------------- | -------------------------------------------------------------- | ----------- |
-| `--num_qubits`        | Number of qubits. Defines latent dimension .                   | `5`       |
-| `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`). | `true`    |
-| `--scale_coeff`       | Scaling coefficient for encoding.                              | `0.01`    |
-| `--ham_bound`         | Hamiltonian eigenvalue range (e.g.,`5 5` for ).              | `[-5, 5]` |
+| Argument | Description | Default |
+| :--- | :--- | :--- |
+| `--num_qubits` | Number of qubits. Defines latent dimension $p=2^n$. | `5` |
+| `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`). | `false` |
+| `--scale_coeff` | Scaling coefficient for encoding. | `0.01` |
+| `--ham_bound` | Hamiltonian eigenvalue range (e.g., `-5 5` for $[-5, 5]$). | `[-5, 5]` |
+| `--ham_pauli` | Pauli basis for the Hamiltonian (`X`, `Y`, or `Z`). | `Z` |
+| `--ham_diag` | Manually specify exact eigenvalues (e.g., `-5 5 5 5`). <br> **Note**: If provided, this strictly **overrides** both `--ham_bound` and `--ham_pauli`. | `None` |
 
 ### 4. Training & System
 
