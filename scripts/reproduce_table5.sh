@@ -63,6 +63,7 @@ for OP in "${OPERATORS[@]}"; do
         # --- Configure Model Specific Settings ---
         NET_SIZE=""
         EXTRA_ARGS=""
+        CURRENT_BATCH_SIZE=${BATCH_SIZE}
         
         if [[ "$MODEL" == "QuanONet" ]]; then
             # TF-QuanONet Setup
@@ -84,6 +85,7 @@ for OP in "${OPERATORS[@]}"; do
             # Size=15 14 3 32 (modes, width, depth, fc_hidden)
             NET_SIZE="15 14 3 32"
             MODEL_DESC="FNO"
+            CURRENT_BATCH_SIZE=10
         fi
 
         for SEED in "${SEEDS[@]}"; do
@@ -97,7 +99,7 @@ for OP in "${OPERATORS[@]}"; do
                 --net_size ${NET_SIZE} \
                 --num_train ${NUM_TRAIN} --train_sample_num ${TRAIN_SAMPLE} \
                 --num_test ${NUM_TEST} --test_sample_num ${TEST_SAMPLE} \
-                --batch_size ${BATCH_SIZE} \
+                --batch_size ${CURRENT_BATCH_SIZE} \
                 --num_epochs ${EPOCHS} \
                 --learning_rate ${LR} \
                 --num_points ${PTS} --num_points_0 ${PTS_0} \
