@@ -16,20 +16,17 @@ mkdir -p "$LOG_DIR"
 
 # Common Hyperparameters
 NUM_TRAIN=1000
-TRAIN_SAMPLE=10
 NUM_TEST=1000
-TEST_SAMPLE=100
 BATCH_SIZE=100
 LR=0.0001
 PREFIX="Table4_Reproduction"
 SEEDS=(0 1 2 3 4)
 
-Iteration Lists
+# Iteration Lists
 OPERATORS=("Inverse" "Homogeneous" "Nonlinear" "RDiffusion" "Advection" "Darcy")
 MODELS=("HEAQNN" "QuanONet" "DeepONet" "FNN")
 FREQUENCIES=("true" "false")
 SCALES=(0.1 0.01 0.001)
-
 
 # ==============================================================================
 # 2. Main Execution Loop
@@ -50,19 +47,23 @@ for OP in "${OPERATORS[@]}"; do
     if [[ "$OP" == "Inverse" || "$OP" == "Homogeneous" || "$OP" == "Nonlinear" ]]; then
         PROB_TYPE="ODE"
         EPOCHS=1000
-        # ODE specific resolution defaults (if needed, otherwise relying on main.py defaults)
+        # ODE specific sampling and resolution defaults
+        TRAIN_SAMPLE=10
+        TEST_SAMPLE=100
         PTS=100
         PTS_0=100
     else
         PROB_TYPE="PDE"
         EPOCHS=100
-        # PDE specific resolution defaults
+        # PDE specific sampling and resolution defaults
+        TRAIN_SAMPLE=100
+        TEST_SAMPLE=1000
         PTS=100
         PTS_0=100
     fi
 
     echo "----------------------------------------------------------------"
-    echo "▶ Operator: ${OP} (${PROB_TYPE}) | Epochs: ${EPOCHS}"
+    echo "▶ Operator: ${OP} (${PROB_TYPE}) | Epochs: ${EPOCHS} | Train P: ${TRAIN_SAMPLE} | Test P: ${TEST_SAMPLE}"
     echo "----------------------------------------------------------------"
 
     for MODEL in "${MODELS[@]}"; do
