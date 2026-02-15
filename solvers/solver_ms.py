@@ -57,10 +57,10 @@ class MSSolver:
                 net_str = "-".join(map(str, config.get('net_size')))
                 q_info += f"_Net{net_str}"
 
-        self.describe = get_experiment_id(config)
-        self.config['run_id'] = self.describe # 注入 config 供后续使用
+        self.run_id = get_experiment_id(config)
+        self.config['run_id'] = self.run_id # 注入 config 供后续使用
 
-        log_path = os.path.join(self.dairy_dir, f"train_{self.describe}.log")
+        log_path = os.path.join(self.dairy_dir, f"train_{self.run_id}.log")
         self.logger = setup_logger(log_path)
         sys.stdout = StreamToLogger(self.logger) # Redirect print to log
         
@@ -156,6 +156,10 @@ class MSSolver:
         return model
 
     def train(self):
+        json_path = os.path.join(self.logs_dir, f"eval_{self.config['run_id'] }.json")
+        if os.path.exists(json_path):
+            print(f"⏩ [Resume] The experiment has been completed and {json_path} has been detected. Skip the training directly.")
+            sys.exit(0)
         self.logger.info("Starting Training...")
         net_with_loss = nn.WithLossCell(self.model, self.loss_fn)
         train_net = nn.TrainOneStepCell(net_with_loss, self.optimizer)
@@ -221,7 +225,7 @@ class MSSolver:
             if avg_loss < self.best_loss:
                 self.best_loss = avg_loss
                 if self.config.get('if_save', True):
-                    ckpt_name = f"best_{self.describe}.ckpt"
+                    ckpt_name = f"best_{self.run_id}.ckpt"
                     self.best_model_path = os.path.join(self.ckpt_dir, ckpt_name)
                     os.makedirs(self.ckpt_dir, exist_ok=True)
                     save_checkpoint(self.model, self.best_model_path)

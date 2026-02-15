@@ -199,6 +199,10 @@ class DDESolver:
 
     def train(self):
         """Execute training loop."""
+        json_path = os.path.join(self.logs_dir, f"eval_{self.run_id}.json")
+        if os.path.exists(json_path):
+            print(f"⏩ [Resume] The experiment has been completed and {json_path} has been detected. Skip the training directly.")
+            sys.exit(0)
         lr = self.config.get('learning_rate', 0.0001)
         epochs = self.config.get('num_epochs', 1000)
         batch_size = self.config.get('batch_size', 100)
