@@ -9,7 +9,7 @@
 # ==============================================================================
 
 GPU_ID=$1
-PREFIX="Sec54_Ablation"
+PREFIX="Sec54_Reproduction"
 
 # Common Hyperparameters
 OPERATOR="Inverse"
