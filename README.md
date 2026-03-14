@@ -22,6 +22,7 @@ The repository adopts a unified solver architecture handling both Quantum (MindS
 ```text
 .
 ├── main.py                # Unified Entry Point (Auto-backend selection)
+├── convert_ckpt.py        # Converts MindSpore .ckpt to .npz for hardware inference
 ├── requirements.txt       # Project dependencies
 ├── README.md              # Project documentation
 ├── .gitignore             # Git ignore rules
@@ -55,6 +56,12 @@ The repository adopts a unified solver architecture handling both Quantum (MindS
 │   ├── metrics.py           # Evaluation metrics computation (L2, MSE)
 │   └── backend.py           # Hardware backend management
 │
+├── hardware_deployment/        # Real-device deployment on IBM Quantum
+│   ├── requirements_qiskit.txt # Standalone Qiskit environment dependencies
+│   ├── 1_backend_analysis.py   # Physical chip topology and gate fidelity analysis
+│   ├── 2_ibm_inference.py      # Transpilation, execution, and plotting
+│   └── best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.01_1000x100_Seed0.npz # Pre-trained weights
+│
 ├── configs/               # Configuration presets
 └── image/                 # Architectural diagrams (qon_circ2.png, tf.png)
 
@@ -66,7 +73,6 @@ The project requires **MindSpore** (for Quantum models) and **PyTorch** + **Deep
 
 ```bash
 pip install -r requirements.txt
-
 ```
 
 ## 🚀 Quick Start
@@ -182,3 +188,43 @@ The `main.py` script supports the following arguments:
 | `--num_epochs`    | Number of training epochs.                                             | `1000`        |
 | `--gpu`           | GPU ID (e.g.,`0`). If unspecified, uses **Smart Auto-Select**. | `None` (Auto) |
 | `--prefix`        | Prefix for output directories (logs/checkpoints).                      | `None`        |
+
+### 5. Real-Device Deployment (IBM Quantum)
+
+To reproduce the hardware inference results presented in **Section 5.5**, navigate to the `hardware_deployment/` directory. We have provided a pre-trained checkpoint (`best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.01_1000x100_Seed0.npz`) that strictly matches the paper's lightweight hardware configuration (2 qubits, m=10, depth=5).
+
+#### Deployment Workflow
+
+To ensure high-fidelity execution on noisy superconducting qubits (NISQ), we decoupled the hardware deployment into a two-step **hardware-aware** workflow:
+
+**Step 1: Hardware-Aware Qubit Routing (`1_backend_analysis.py`)** This script fetches real-time calibration data (T1/T2 relaxation times, readout errors, and ECR/CZ gate errors) from the IBM Quantum backend. It scores the physical coupling map and recommends the optimal physical qubit pairs with the lowest noise for logical-to-physical mapping.
+
+Bash
+
+```bash
+export QISKIT_IBM_TOKEN="your_token_here"
+python 1_backend_analysis.py
+```
+
+**Step 2: Inference & Evaluation (`2_ibm_inference.py`)** This script loads the pre-trained weights, builds the logical circuit, and transpiles it onto the optimal physical qubits. You can run this inference script in two modes:
+
+- **Mode A: Ideal Simulator (No Token Required)** If you want to quickly verify the circuit construction and logical depth locally without connecting to IBM servers, simply run:
+
+  Bash
+
+  ```bash
+  python 2_ibm_inference.py
+  ```
+
+  *Note: The script will automatically and safely skip the hardware fetch, outputting a comparison plot between the Ground Truth and the Ideal Simulator.*
+
+- **Mode B: Real Superconducting Hardware (Requires IBM Token)** To transpile the circuit to native basis gates and fetch/run results on an actual noisy QPU:
+
+  ```bash
+  export QISKIT_IBM_TOKEN="your_token_here"
+  python 2_ibm_inference.py
+  ```
+
+#### (Optional) Convert Your Own Checkpoints
+
+If you train a new quantum model using `main.py`, the weights will be saved as a MindSpore `.ckpt` file. You can use the provided `convert_ckpt.py` script in the root directory to convert it into an `.npz` format compatible with our Qiskit inference pipeline.
