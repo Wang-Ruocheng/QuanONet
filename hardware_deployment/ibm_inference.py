@@ -113,7 +113,7 @@ def main():
     # Setup Argument Parser
     parser = argparse.ArgumentParser(description="QuanONet Hardware Inference Script")
     parser.add_argument('--job_id', type=str, default=None, help="Fetch results from an existing IBM Quantum Job ID.")
-    parser.add_argument('--weight_path', type=str, default="best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz", help="Path to the pre-trained weights.")
+    parser.add_argument('--weight_path', type=str, default="best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz", help="Path to the pre-trained weights.")
     
     # Optional arguments to manually override network dimensions
     parser.add_argument('--n_qubits', type=int, default=None)

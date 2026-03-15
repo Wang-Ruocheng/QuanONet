@@ -65,8 +65,8 @@ def generate_random_gaussian_field(m, length_scale=0.2, if_period=False):
 
 # ODE Systems definitions
 ODE_SYSTEMS = {
-    'Inverse': {
-        'description': 'Inverse operator problem: du/dx = u0(x)',
+    'Antideriv': {
+        'description': 'Antideriv operator problem: du/dx = u0(x)',
         'ode_func': lambda u0_fn: lambda x, u: u0_fn(x)
     },
     'Homogeneous': {
@@ -326,8 +326,8 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
     return np.array(u0s)[train_index].astype(np.float32), np.array(us)[train_index].astype(np.float32), np.array(u0s)[test_index].astype(np.float32), np.array(us)[test_index].astype(np.float32), np.linspace(0, 1, num_points).astype(np.float32)
 
 
-def generate_Inverse_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
-    return generate_ODE_Operator_data('Inverse', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
+def generate_Antideriv_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
+    return generate_ODE_Operator_data('Antideriv', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
 
 
 def generate_Homogeneous_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):

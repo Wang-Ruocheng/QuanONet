@@ -25,7 +25,7 @@ LR=0.0001
 
 # Iteration Lists
 SEEDS=(0 1 2 3 4)
-OPERATORS=("Inverse" "Homogeneous" "Nonlinear")
+OPERATORS=("Antideriv" "Homogeneous" "Nonlinear")
 MODELS=("QuanONet" "DeepONet" "FNO") # QuanONet here implies TF-QuanONet
 
 # ==============================================================================

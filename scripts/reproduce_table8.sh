@@ -4,7 +4,7 @@
 # Script Name: reproduce_table8.sh
 # Description: Reproduce Table 8 benchmarks (Parameter Efficiency / Scalability).
 #              Dynamic Grid Search for TF-QuanONet based on Qubit counts.
-# Operator:    Inverse (ODE)
+# Operator:    Antideriv (ODE)
 # Usage:       ./scripts/reproduce_table8.sh [GPU_ID]
 # ==============================================================================
 
@@ -16,7 +16,7 @@ LOG_DIR="${PREFIX}/dairy"
 mkdir -p "$LOG_DIR"
 
 # Common Hyperparameters
-OPERATOR="Inverse"
+OPERATOR="Antideriv"
 MODEL="QuanONet"      # Specifically TF-QuanONet
 IF_TF="true"          # Trainable Frequency = True
 NUM_TRAIN=1000

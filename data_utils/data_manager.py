@@ -7,7 +7,7 @@ import os
 import numpy as np
 import logging
 from .data_generation import (
-    generate_Inverse_Operator_data,
+    generate_Antideriv_Operator_data,
     generate_Homogeneous_Operator_data,
     generate_Nonlinear_Operator_data,
     generate_RDiffusion_Operator_data,
@@ -20,7 +20,7 @@ from .data_processing import ODE_encode, PDE_encode, ODE_fncode
 
 # Map operator names to their generator functions
 GENERATOR_MAP = {
-    'Inverse': generate_Inverse_Operator_data,
+    'Antideriv': generate_Antideriv_Operator_data,
     'Homogeneous': generate_Homogeneous_Operator_data,
     'Nonlinear': generate_Nonlinear_Operator_data,
     'RDiffusion': generate_RDiffusion_Operator_data,
@@ -61,7 +61,7 @@ class DataManager:
                 self.num_cal = 100   # PDE 默认值
                 self.logger.info(f"Using default num_cal=100 for PDE operator: {self.operator_type}")
             else:
-                self.num_cal = 1000  # ODE 默认值 (Inverse, Homogeneous, etc.)
+                self.num_cal = 1000  # ODE 默认值 (Antideriv, Homogeneous, etc.)
                 self.logger.info(f"Using default num_cal=1000 for ODE operator: {self.operator_type}")
         
     def get_data(self):

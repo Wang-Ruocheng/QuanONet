@@ -12,7 +12,7 @@ GPU_ID=$1
 PREFIX="Sec54_Reproduction"
 
 # Common Hyperparameters
-OPERATOR="Inverse"
+OPERATOR="Antideriv"
 MODEL="QuanONet"
 NUM_TRAIN=1000
 TRAIN_SAMPLE=10

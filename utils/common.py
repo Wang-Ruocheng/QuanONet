@@ -18,7 +18,7 @@ def get_base_parser():
     # ==========================================
     # 1. Core Identity
     # ==========================================
-    parser.add_argument('--operator', '-o', type=str, required=True, help='Operator type (e.g., Inverse, Darcy)')
+    parser.add_argument('--operator', '-o', type=str, required=True, help='Operator type (e.g., Antideriv, Darcy)')
     parser.add_argument('--model_type', '-m', type=str, required=True, help='Model architecture (e.g., DeepONet, QuanONet)')
     parser.add_argument('--config', '-c', type=str, default=None, help='Path to JSON config file')
     

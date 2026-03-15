@@ -4,7 +4,7 @@
 # Script Name: reproduce_table7.sh
 # Description: Reproduce Table 7 benchmarks (Parameter Efficiency Analysis).
 #              Grid search for TF-QuanONet (Hidden dims) & DeepONet (Width/Depth).
-# Operator:    Inverse (ODE)
+# Operator:    Antideriv (ODE)
 # Usage:       ./scripts/reproduce_table7.sh [GPU_ID]
 # ==============================================================================
 
@@ -16,7 +16,7 @@ LOG_DIR="${PREFIX}/dairy"
 mkdir -p "$LOG_DIR"
 
 # Fixed Hyperparameters
-OPERATOR="Inverse"
+OPERATOR="Antideriv"
 NUM_TRAIN=1000
 TRAIN_SAMPLE=10
 NUM_TEST=1000

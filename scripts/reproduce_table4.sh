@@ -23,7 +23,7 @@ PREFIX="Table4_Reproduction"
 SEEDS=(0 1 2 3 4)
 
 # Iteration Lists
-OPERATORS=("Inverse" "Homogeneous" "Nonlinear" "RDiffusion" "Advection" "Darcy")
+OPERATORS=("Antideriv" "Homogeneous" "Nonlinear" "RDiffusion" "Advection" "Darcy")
 MODELS=("HEAQNN" "QuanONet" "DeepONet" "FNN")
 FREQUENCIES=("true" "false")
 SCALES=(0.1 0.01 0.001)
@@ -44,7 +44,7 @@ echo "🚀 Starting Table 4 Reproduction Experiment on GPU ${GPU_ID}..."
 for OP in "${OPERATORS[@]}"; do
     
     # --- A. Determine Problem Type (ODE vs PDE) ---
-    if [[ "$OP" == "Inverse" || "$OP" == "Homogeneous" || "$OP" == "Nonlinear" ]]; then
+    if [[ "$OP" == "Antideriv" || "$OP" == "Homogeneous" || "$OP" == "Nonlinear" ]]; then
         PROB_TYPE="ODE"
         EPOCHS=1000
         # ODE specific sampling and resolution defaults

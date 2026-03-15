@@ -7,7 +7,7 @@ class SpectralConv1d(nn.Module):
         super(SpectralConv1d, self).__init__()
 
         """
-        1D Fourier layer. It does FFT, linear transform, and Inverse FFT.    
+        1D Fourier layer. It does FFT, linear transform, and Antideriv FFT.    
         """
 
         self.in_channels = in_channels
