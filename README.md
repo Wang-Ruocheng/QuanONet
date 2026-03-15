@@ -79,6 +79,10 @@ pip install -r requirements.txt
 
 All models are trained using the unified `main.py` entry point.
 
+### **Note on Datasets 💡** 
+
+You do not need to download or manually generate any datasets. The framework features an **on-the-fly data generation** pipeline. Upon the first run of any task, the system will automatically generate the corresponding Gaussian Random Field (GRF) data, solve the equations, and cache the `.npz` files locally for future use.
+
 ### Smart Device Selection 🤖
 
 You don't need to manually specify the device. The system automatically assigns:
@@ -138,6 +142,7 @@ We provide automated bash scripts in the `scripts/` directory to reproduce the e
 | **`reproduce_table4.sh`** | **General Benchmarks**: Comprehensive comparison of **TF-QuanONet** against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across 6 operator learning tasks (ODEs: Antiderivative, Homogeneous, Nonlinear; PDEs: Diffusion-Reaction, Advection, Darcy).      | **Table 4**`<br>`(Sec 5.2.2)     |
 | **`reproduce_table5.sh`** | **Asymmetric Parameterization & FNO**: Evaluates model performance under a constrained parameter budget (~1.2k params). Compares compact TF-QuanONet against over-parameterized **FNO** and **DeepONet** (~10k params) to highlight quantum parameter efficiency.     | **Table 5 & 6**`<br>`(Sec 5.2.3) |
 | **`reproduce_table7.sh`** | **Implicit Frame Capacity (Architecture Search)**: Grid search for TF-QuanONet (varying $h_b, h_t$) and DeepONet (varying Depth/Width). Demonstrates that QuanONet avoids the error saturation observed in classical models, verifying the $\mathcal{O}(p^2)$ implicit frame. | **Table 7**`<br>`(Sec 5.3.1)     |
+| **`reproduce_fig9_scaling.sh`** | **High-Dimensional Scaling Limit**: Sweeps the latent dimension $p$ from 4 to 256 (2 to 8 qubits). Demonstrates that TF-QuanONet robustly converges to the intrinsic error floor. | **Fig 9**`<br>`(Sec 5.3.1) |
 | **`reproduce_table8.sh`** | **Circuit Architecture Ablation**: Investigates the trade-off between **Circuit Width** (Qubits $p \in \{2, 5, 10\}$) and **Depth**. Analyzes how increasing qubit count impacts expressivity vs. trainability (barren plateaus).                                   | **Table 8**`<br>`(Sec 5.3.2)     |
 | **`reproduce_sec54.sh`**  | **Hamiltonian Ablation**: Evaluates the impact of Hamiltonian design on model expressivity, sweeping over Pauli basis choices, spectral radii (bounds), and exact spectral degeneracies.                                                                                          | **Fig 10 & 11**`<br>`(Sec 5.4)   |
 
