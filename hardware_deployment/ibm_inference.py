@@ -1,4 +1,5 @@
 import os
+import re
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -109,19 +110,42 @@ def profile_hardware(backend):
     return best['pair']
 
 def main():
-    # Setup Argument Parser for optional Job ID
+    # Setup Argument Parser
     parser = argparse.ArgumentParser(description="QuanONet Hardware Inference Script")
-    parser.add_argument('--job_id', type=str, default=None, help="Fetch results from an existing IBM Quantum Job ID instead of submitting a new one.")
+    parser.add_argument('--job_id', type=str, default=None, help="Fetch results from an existing IBM Quantum Job ID.")
+    parser.add_argument('--weight_path', type=str, default="best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz", help="Path to the pre-trained weights.")
+    
+    # Optional arguments to manually override network dimensions
+    parser.add_argument('--n_qubits', type=int, default=None)
+    parser.add_argument('--n_branch', type=int, default=None)
+    parser.add_argument('--n_trunk', type=int, default=None)
+    parser.add_argument('--n_hidden', type=int, default=None)
     args = parser.parse_args()
 
-    # 1. Load Pre-trained Weights
-    weight_path = "best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz"
+    weight_path = args.weight_path
     if not os.path.exists(weight_path):
         print(f"Warning: Pre-trained weights {weight_path} not found.")
         return
 
+    # Default fallbacks
+    parsed_q, parsed_b, parsed_t, parsed_h = 2, 5, 5, 1 
+    
+    #  Net[branch]-[hidden]-[trunk]-[hidden]_Q[qubits]
+    match = re.search(r"Net(\d+)-(\d+)-(\d+)-(\d+)_Q(\d+)", weight_path)
+    if match:
+        parsed_b = int(match.group(1))
+        parsed_h = int(match.group(2))
+        parsed_t = int(match.group(3))
+        parsed_q = int(match.group(5))
+        print(f"-> Automatically parsed architecture from filename: {parsed_b}-{parsed_h}-{parsed_t}-{parsed_h} (Qubits: {parsed_q})")
+
+    n_qubits = args.n_qubits if args.n_qubits is not None else parsed_q
+    n_branch_layers = args.n_branch if args.n_branch is not None else parsed_b
+    n_trunk_layers = args.n_trunk if args.n_trunk is not None else parsed_t
+    n_hidden_layers = args.n_hidden if args.n_hidden is not None else parsed_h
+
+    # 1. Load Pre-trained Weights
     data = np.load(weight_path)
-    n_qubits, n_branch_layers, n_trunk_layers, n_hidden_layers = 2, 5, 5, 1
     
     raw_weights = data["QuanONet.weight"]
     weights = raw_weights.reshape(n_branch_layers + n_trunk_layers, n_hidden_layers, 3, n_qubits)

@@ -195,8 +195,6 @@ The folder `hardware_deployment/` contains the scripts used to deploy and evalua
 
 Due to potential dependency conflicts between different quantum frameworks, we provide a standalone environment for real-device inference using Qiskit.
 
-We have included a pre-trained weight file (`best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz`) that matches the lightweight hardware configuration (2 qubits, m=10, depth=5) for quick reproduction.
-
 ### 1.Setup
 
 1. Create a fresh virtual environment and install the required packages:
@@ -242,4 +240,19 @@ To bypass the long IBM Quantum queue times and instantly generate the comparison
 
 ```bash
 python ibm_inference.py --job_id <YOUR_JOB_ID_HERE>
+```
+
+We have included a pre-trained weight file (`best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz`) that matches the lightweight hardware configuration (2 qubits, m=10, depth=5) for quick reproduction. If you wish to evaluate your own newly trained models on real hardware, please follow these steps:
+
+1. **Convert Weights:** Use the `convert_ckpt.py` script provided in the repository's root directory to convert your MindSpore `.ckpt` checkpoint into an `.npz` file.
+2. **Run Inference:** Execute the script and specify your custom weight path via the command line:
+
+```bash
+python ibm_inference.py --weight_path YOUR_WEIGHT_FILE.npz
+```
+
+1. **Architecture Parsing:** The script is designed to automatically parse the network dimensions if your filename follows our default convention (e.g., containing `Net[branch]-[hidden]-[trunk]-[hidden]_Q[qubits]`). If your custom file does not follow this naming rule, you **must** manually specify the architecture using the following arguments:
+
+```bash
+python ibm_inference.py --weight_path custom.npz --n_qubits 4 --n_branch 5 --n_trunk 5 --n_hidden 1
 ```
