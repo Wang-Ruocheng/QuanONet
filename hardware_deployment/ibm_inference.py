@@ -114,6 +114,7 @@ def main():
     parser = argparse.ArgumentParser(description="QuanONet Hardware Inference Script")
     parser.add_argument('--job_id', type=str, default=None, help="Fetch results from an existing IBM Quantum Job ID.")
     parser.add_argument('--weight_path', type=str, default="best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz", help="Path to the pre-trained weights.")
+    parser.add_argument('--simulator_only', action='store_true', help="Force ideal simulation only, bypassing real hardware even if token is set.")
     
     # Optional arguments to manually override network dimensions
     parser.add_argument('--n_qubits', type=int, default=None)
@@ -188,7 +189,7 @@ def main():
 
     # 5. Real Device Execution or Fetching
     token = os.getenv("QISKIT_IBM_TOKEN")
-    if token:
+    if token and not args.simulator_only:
         try:
             service = QiskitRuntimeService(channel="ibm_cloud", token=token)
         except:
@@ -271,7 +272,10 @@ def main():
                 noisy_pred = None
                 backend_name = "Unknown"
     else:
-        print("\nIBM Token not found. Skipping real hardware execution.")
+        if args.simulator_only:
+            print("\n--- Simulator Only Mode: Bypassing real hardware execution. ---")
+        else:
+            print("\nIBM Token not found. Skipping real hardware execution.")
         noisy_pred = None
         backend_name = "Unknown"
 
