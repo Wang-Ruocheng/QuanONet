@@ -167,21 +167,21 @@ export QISKIT_IBM_TOKEN="your_token_here"
 
 **Execution (`ibm_inference.py`):**
 
-This unified script automatically analyzes the physical chip topology, routes optimal qubits based on calibration data, transpiles the circuit, and executes inference.
+This unified script automatically analyzes the physical chip topology, routes optimal qubits based on calibration data, transpiles the circuit, and executes inference. It supports evaluating both linear (`x`) and trigonometric (`cos(\pi x)`) initial conditions via the `--input_func` argument.
 
 - **Mode 1: Ideal Simulation (Local)**
 
   Verify logical depth without a server connection.
 
   ```bash
-  python ibm_inference.py --simulator_only
+  python ibm_inference.py --simulator_only --input_func linear
   ```
 - **Mode 2: Real Hardware Execution**
 
   Automatically profiles the least busy QPU and submits a new physical execution job.
 
   ```bash
-  python ibm_inference.py
+  python ibm_inference.py --input_func cos
   ```
 - **Mode 3: Fetch Existing Results**
 
