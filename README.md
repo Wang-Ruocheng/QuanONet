@@ -189,15 +189,15 @@ The `main.py` script supports the following arguments:
 | `--gpu`           | GPU ID (e.g.,`0`). If unspecified, uses **Smart Auto-Select**. | `None` (Auto) |
 | `--prefix`        | Prefix for output directories (logs/checkpoints).                      | `None`        |
 
-### 5. Real-Device Deployment on IBM Quantum
+## 🖥️ Real-Device Deployment on IBM Quantum
 
-This folder contains the scripts used to deploy and evaluate **QuanONet** on real superconducting quantum processors (e.g., `ibm_fez`, `ibm_torino`), as reported in **Section 5.5** of our manuscript.
+The folder `hardware_deployment/` contains the scripts used to deploy and evaluate **QuanONet** on real superconducting quantum processors (e.g., `ibm_fez`, `ibm_torino`), as reported in **Section 5.5** of our manuscript.
 
 Due to potential dependency conflicts between different quantum frameworks, we provide a standalone environment for real-device inference using Qiskit.
 
-We have included a pre-trained weight file (`best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz`) that strictly matches the paper's lightweight hardware configuration (2 qubits, m=10, depth=5) for quick reproduction.
+We have included a pre-trained weight file (`best_Inverse_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz`) that matches the lightweight hardware configuration (2 qubits, m=10, depth=5) for quick reproduction.
 
-#### Setup
+### 1.Setup
 
 1. Create a fresh virtual environment and install the required packages:
 
@@ -206,14 +206,7 @@ We have included a pre-trained weight file (`best_Inverse_QuanONet_Net5-1-5-1_Q2
 pip install -r requirements_qiskit.txt
 ```
 
-1. (Optional but required for real hardware) Set your IBM Quantum token as an environment variable:
-
-
-   ```bash
-   export QISKIT_IBM_TOKEN="your_token_here"
-   ```
-
-####  Workflow & Execution
+### 2.Workflow & Execution
 
 We have integrated the hardware profiling and inference pipeline into a single unified script: **`ibm_inference.py`**.
 
@@ -221,7 +214,7 @@ This script automatically scans the physical coupling map of the IBM backend, ev
 
 You can run the deployment in three different modes:
 
-##### Mode 1: Ideal Simulation (Local)
+#### Mode 1: Ideal Simulation
 
 To verify the circuit construction and logical depth locally without connecting to IBM servers:
 
@@ -230,18 +223,19 @@ To verify the circuit construction and logical depth locally without connecting 
 python ibm_inference.py
 ```
 
-##### Mode 2: Real Hardware Execution (Submit New Job)
+#### Mode 2: Real Hardware Execution
 
 To automatically find the least busy IBM Quantum backend, perform hardware profiling, transpile the circuit, and submit a new job to the noisy QPU:
 
 ```bash
 # Ensure QISKIT_IBM_TOKEN is exported
+export QISKIT_IBM_TOKEN="your_token_here"
 python ibm_inference.py
 ```
 
 *(Note: This mode may require waiting in the IBM Quantum queue. A Job ID will be printed in your terminal.)*
 
-##### Mode 3: Fetch Existing Job Results (Fast Reproduction)
+#### Mode 3: Fetch Existing Job Results
 
 To bypass the long IBM Quantum queue times and instantly generate the comparison plot using a previously completed job:
 
@@ -249,5 +243,3 @@ To bypass the long IBM Quantum queue times and instantly generate the comparison
 ```bash
 python ibm_inference.py --job_id <YOUR_JOB_ID_HERE>
 ```
-
-*(Example: `python ibm_inference.py --job_id d6r2dtcu243c73a0tvrg`)*
