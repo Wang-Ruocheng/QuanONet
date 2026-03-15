@@ -1,8 +1,10 @@
 # === 1. 忽略数据文件 ===
 data/
-*.npz
 *.npy
 *.csv
+# 忽略所有的 npz 文件（通常是生成的数据或缓存）
+*.npz
+!hardware_deployment/*.npz
 
 # === 2. 忽略训练产物 (日志、权重、结果) ===
 logs/

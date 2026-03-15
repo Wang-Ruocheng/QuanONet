@@ -6,7 +6,6 @@
 
 QuanONet is a pure quantum neural operator framework designed for the Noisy Intermediate-Scale Quantum (NISQ) era to solve partial differential equations (PDEs). Unlike hybrid architectures that rely on classical post-processing, QuanONet performs end-to-end learning within the quantum Hilbert space.
 
-
 ## Repository Structure
 
 The repository utilizes a unified solver architecture that handles both Quantum (MindSpore) and Classical (PyTorch/DeepXDE) backends:
@@ -109,14 +108,14 @@ The `scripts/` directory contains automated bash scripts to reproduce the primar
 ./scripts/reproduce_table4.sh
 ```
 
-| **Script**                  | **Description**                                              | **Relevant Section**    |
-| --------------------------- | ------------------------------------------------------------ | ----------------------- |
-| `reproduce_table4.sh`       | **General Benchmarks**: Evaluates TF-QuanONet against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across ODE and PDE operator tasks. | Table 4 (Sec 5.2.2)     |
-| `reproduce_table5.sh`       | **Asymmetric Parameterization**: Compares compact TF-QuanONet (~1.2k params) against over-parameterized FNO and DeepONet (~10k params). | Table 5 & 6 (Sec 5.2.3) |
-| `reproduce_table7.sh`       | **Implicit Frame Capacity**: Grid search over network width and depth to verify the $\mathcal{O}(p^2)$ implicit frame and analyze error saturation. | Table 7 (Sec 5.3.1)     |
-| `reproduce_fig9_scaling.sh` | **High-Dimensional Scaling Limit**: Sweeps the latent dimension $p$ from 4 to 256. Demonstrates optimization stability in high dimensions. | Fig 9 (Sec 5.3.1)       |
-| `reproduce_table8.sh`       | **Circuit Architecture Ablation**: Investigates the trade-off between circuit width (qubits) and depth regarding expressivity vs. trainability. | Table 8 (Sec 5.3.2)     |
-| `reproduce_sec54.sh`        | **Hamiltonian Ablation**: Evaluates the impact of Hamiltonian design (Pauli basis, spectral radii, and degeneracy) on model expressivity. | Fig 10 & 11 (Sec 5.4)   |
+| **Script**              | **Description**                                                                                                                                        | **Relevant Section** |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| `reproduce_table4.sh`       | **General Benchmarks**: Evaluates TF-QuanONet against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across ODE and PDE operator tasks. | Table 4 (Sec 5.2.2)        |
+| `reproduce_table5.sh`       | **Asymmetric Parameterization**: Compares compact TF-QuanONet (~1.2k params) against over-parameterized FNO and DeepONet (~10k params).                | Table 5 & 6 (Sec 5.2.3)    |
+| `reproduce_table7.sh`       | **Implicit Frame Capacity**: Grid search over network width and depth to verify the $\mathcal{O}(p^2)$ implicit frame and analyze error saturation.  | Table 7 (Sec 5.3.1)        |
+| `reproduce_fig9_scaling.sh` | **High-Dimensional Scaling Limit**: Sweeps the latent dimension $p$ from 4 to 256. Demonstrates optimization stability in high dimensions.           | Fig 9 (Sec 5.3.1)          |
+| `reproduce_table8.sh`       | **Circuit Architecture Ablation**: Investigates the trade-off between circuit width (qubits) and depth regarding expressivity vs. trainability.        | Table 8 (Sec 5.3.2)        |
+| `reproduce_sec54.sh`        | **Hamiltonian Ablation**: Evaluates the impact of Hamiltonian design (Pauli basis, spectral radii, and degeneracy) on model expressivity.              | Fig 10 & 11 (Sec 5.4)      |
 
 **Visualization:** To reproduce the 2D operator mapping heatmaps (e.g., Diffusion-Reaction, Advection, Darcy Flow) presented in Figure 7, utilize the dedicated visualization Jupyter Notebooks located in the `utils/` directory.
 
@@ -126,34 +125,34 @@ The `main.py` script accepts the following primary configurations:
 
 ### 1. Task & Data Setup
 
-| **Argument**                 | **Description**                                              | **Default**                |
-| ---------------------------- | ------------------------------------------------------------ | -------------------------- |
-| `--operator`                 | Problem type: `Antideriv`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | **Required**               |
-| `--num_train` / `--num_test` | Number of function samples for training/testing.             | `1000` / `1000`            |
-| `--train_sample_num`         | Points sampled per function for training.                    | `10`                       |
-| `--test_sample_num`          | Points sampled per function for testing.                     | `100`                      |
-| `--num_points`               | Output resolution (Trunk/Target grid size).                  | `100`                      |
-| `--num_points_0`             | Input resolution (Branch/Source function size).              | `100` (PDE) / `1000` (ODE) |
-| `--num_cal`                  | High-Fidelity resolution for Ground Truth data generation.   | `1000` (ODE) / `100` (PDE) |
+| **Argument**               | **Description**                                                                                 | **Default**              |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `--operator`                   | Problem type:`Antideriv`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | **Required**             |
+| `--num_train` / `--num_test` | Number of function samples for training/testing.                                                      | `1000` / `1000`            |
+| `--train_sample_num`           | Points sampled per function for training.                                                             | `10`                         |
+| `--test_sample_num`            | Points sampled per function for testing.                                                              | `100`                        |
+| `--num_points`                 | Output resolution (Trunk/Target grid size).                                                           | `100`                        |
+| `--num_points_0`               | Input resolution (Branch/Source function size).                                                       | `100` (PDE) / `1000` (ODE) |
+| `--num_cal`                    | High-Fidelity resolution for Ground Truth data generation.                                            | `1000` (ODE) / `100` (PDE) |
 
 ### 2. Model Architecture (`--net_size`)
 
-| **Model**    | **Format**                                                   | **Example**                   |
-| ------------ | ------------------------------------------------------------ | ----------------------------- |
-| **QuanONet** | `[b_depth, b_ansatz, t_depth, t_ansatz]`                     | `20 2 10 2`                   |
+| **Model**    | **Format**                                                                          | **Example**                 |
+| ------------------ | ----------------------------------------------------------------------------------------- | --------------------------------- |
+| **QuanONet** | `[b_depth, b_ansatz, t_depth, t_ansatz]`                                                | `20 2 10 2`                     |
 | **DeepONet** | `[b_depth, b_width, t_depth, t_width]` *Optional 5th arg for output dim:* `[... p]` | `3 100 3 100` `3 100 3 50 10` |
-| **FNO**      | `[modes, width, layers, fc_hidden]`                          | `16 32 3 32`                  |
+| **FNO**      | `[modes, width, layers, fc_hidden]`                                                     | `16 32 3 32`                    |
 
 ### 3. Quantum Specifics
 
-| **Argument**          | **Description**                                              | **Default** |
-| --------------------- | ------------------------------------------------------------ | ----------- |
-| `--num_qubits`        | Defines latent dimension $p=2^n$.                            | `5`         |
-| `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`).   | `false`     |
-| `--scale_coeff`       | Scaling coefficient for encoding.                            | `0.01`      |
-| `--ham_bound`         | Hamiltonian eigenvalue range.                                | `[-5, 5]`   |
-| `--ham_pauli`         | Pauli basis for the Hamiltonian (`X`, `Y`, or `Z`).          | `Z`         |
-| `--ham_diag`          | Manually specify exact eigenvalues. Overrides bounds and Pauli basis. | `None`      |
+| **Argument**      | **Description**                                                 | **Default** |
+| ----------------------- | --------------------------------------------------------------------- | ----------------- |
+| `--num_qubits`        | Defines latent dimension$p=2^n$.                                    | `5`             |
+| `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`).        | `false`         |
+| `--scale_coeff`       | Scaling coefficient for encoding.                                     | `0.01`          |
+| `--ham_bound`         | Hamiltonian eigenvalue range.                                         | `[-5, 5]`       |
+| `--ham_pauli`         | Pauli basis for the Hamiltonian (`X`, `Y`, or `Z`).             | `Z`             |
+| `--ham_diag`          | Manually specify exact eigenvalues. Overrides bounds and Pauli basis. | `None`          |
 
 ## Real-Device Deployment (IBM Quantum)
 
@@ -172,12 +171,11 @@ This unified script automatically analyzes the physical chip topology, routes op
 
 - **Mode 1: Ideal Simulation (Local)**
 
-  Verify logical depth without a server connection (ensure `QISKIT_IBM_TOKEN` is unset).
+  Verify logical depth without a server connection.
 
   ```bash
-  python ibm_inference.py
+  python ibm_inference.py --simulator_only
   ```
-  
 - **Mode 2: Real Hardware Execution**
 
   Automatically profiles the least busy QPU and submits a new physical execution job.
@@ -185,7 +183,6 @@ This unified script automatically analyzes the physical chip topology, routes op
   ```bash
   python ibm_inference.py
   ```
-  
 - **Mode 3: Fetch Existing Results**
 
   Bypass queue times by fetching completed job data directly.
@@ -202,7 +199,6 @@ The repository includes a pre-trained checkpoint (`best_Antideriv_QuanONet_Net5-
 2. Execute with the weight path argument: `python ibm_inference.py --weight_path YOUR_WEIGHT_FILE.npz`.
 3. The script automatically parses the network dimensions from the filename. If a custom naming convention is used, dimensions must be passed manually (e.g., `--n_qubits 4 --n_branch 5 --n_trunk 5 --n_hidden 1`).
 
-
 ## Citation
 
 If you utilize this framework, the implicit quadratic frame theory, or the real-device deployment pipeline in your research, please cite our primary manuscript:
@@ -217,7 +213,6 @@ If you utilize this framework, the implicit quadratic frame theory, or the real-
 ```
 
 For the preliminary conference version establishing the foundational QuanONet architecture, please cite:
-
 
 ```bibtex
 @inproceedings{wang2025quanonet,
