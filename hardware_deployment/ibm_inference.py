@@ -115,6 +115,7 @@ def main():
     parser.add_argument('--job_id', type=str, default=None, help="Fetch results from an existing IBM Quantum Job ID.")
     parser.add_argument('--weight_path', type=str, default="best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz", help="Path to the pre-trained weights.")
     parser.add_argument('--simulator_only', action='store_true', help="Force ideal simulation only, bypassing real hardware even if token is set.")
+    parser.add_argument('--input_func', type=str, choices=['cos', 'linear'], default='cos', help="Input function u(x) to test: 'cos' for cos(pi*x), 'linear' for x.")
     
     # Optional arguments to manually override network dimensions
     parser.add_argument('--n_qubits', type=int, default=None)
@@ -158,12 +159,21 @@ def main():
     coefficients = np.stack([np.concatenate([t_w, b_w], axis=0), np.concatenate([t_b, b_b], axis=0)], axis=1)
     global_bias = float(data["bias"])
 
-    # 2. Prepare Inputs
+    # 2. Prepare Inputs based on chosen function
+    print(f"\n--- Preparing Input Function: {args.input_func} ---")
     num_points_0, num_points = 10, 100
-    branch_vec = np.cos(np.pi * np.linspace(0, 1, num_points_0))
     trunk_vec = np.linspace(0, 1, num_points)
+
+    if args.input_func == 'cos':
+        branch_vec = np.cos(np.pi * np.linspace(0, 1, num_points_0))
+        true_solution = np.sin(np.pi * trunk_vec) / np.pi
+        func_title = "cos(\pi x)"
+    elif args.input_func == 'linear':
+        branch_vec = np.linspace(0, 1, num_points_0)
+        true_solution = 0.5 * trunk_vec**2
+        func_title = "x"
+
     inputs = np.hstack([np.tile(branch_vec, (num_points, 1)), trunk_vec.reshape(-1, 1)])
-    true_solution = np.sin(np.pi * trunk_vec) / np.pi
 
     # 3. Construct Logical Circuit & Hamiltonian
     branch_param = ParameterVector('branch', num_points_0)
@@ -286,14 +296,16 @@ def main():
     if noisy_pred is not None:
         plt.plot(trunk_vec, noisy_pred, 'r-', linewidth=1.5, alpha=0.7, label=f'Noisy QuanONet ({backend_name})')
     
-    plt.title("QuanONet Inference: Ideal vs. Real Superconducting Hardware", fontsize=12)
+    plt.title(f"QuanONet Inference: Ideal vs. Real Hardware [$u(x)={func_title}$]", fontsize=12)
     plt.xlabel("Spatial Coordinate x")
     plt.ylabel("Operator Output u(x)")
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig("hardware_inference_comparison.pdf", dpi=300)
-    print("\n-> Inference plot saved to hardware_inference_comparison.pdf")
+    
+    save_filename = f"hardware_inference_comparison_{args.input_func}.pdf"
+    plt.savefig(save_filename, dpi=300)
+    print(f"\n-> Inference plot saved to {save_filename}")
 
 if __name__ == "__main__":
     main()
