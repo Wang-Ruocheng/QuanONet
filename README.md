@@ -16,7 +16,6 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 ├── convert_ckpt.py        # Converts MindSpore .ckpt to .npz for hardware inference
 ├── requirements.txt       # Project dependencies
 ├── README.md              # Project documentation
-├── .gitignore             # Git ignore rules
 │
 ├── scripts/               # Automated reproduction bash scripts
 │   ├── reproduce_table4.sh  # General Benchmarks (ODE & PDE)
@@ -61,8 +60,12 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 
 The framework requires MindSpore (for Quantum models) and PyTorch + DeepXDE (for Classical baselines).
 
+We recommend creating and managing your Python virtual environment with [uv](https://github.com/astral-sh/uv):
+
 ```bash
-pip install -r requirements.txt
+uv venv --python 3.11
+source .venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
 ## Usage and Execution
