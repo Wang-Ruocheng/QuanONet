@@ -9,7 +9,6 @@ import json
 from datetime import datetime
 from tqdm import tqdm
 
-# Lazy import MindSpore to prevent crashes in PyTorch-only envs
 try:
     import mindspore as ms
     import mindspore.nn as nn
@@ -18,14 +17,11 @@ try:
 except ImportError:
     ms = None
 
-# Imports from project
 from data_utils.data_manager import DataManager
-from utils.logger import setup_logger, StreamToLogger, save_results, get_experiment_id
+from utils.logger import ExperimentLogger, setup_logger, StreamToLogger
 from utils.metrics import compute_metrics
 from utils.utils import count_parameters 
 
-# Import Core Models (MindSpore versions)
-# Ensure core/models.py exists and matches this import
 from core.models import QuanONet, HEAQNN, FNN, DeepONet
 from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator
 
@@ -38,35 +34,19 @@ class MSSolver:
         self.operator_type = config['operator_type']
         self.model_type = config['model_type']
         
-        # 1. Setup Directories & Logger
-        prefix = config.get('prefix') or "."
-        self.logs_dir = os.path.join(prefix, "logs", self.operator_type)
-        self.ckpt_dir = os.path.join(prefix, "checkpoints", self.operator_type)
-        self.dairy_dir = os.path.join(prefix, "dairy", self.operator_type)
-        
-        # Run ID
-        q_info = ""
-        if self.model_type in ['QuanONet', 'HEAQNN']:
-            tf = "TF" if str(config.get('if_trainable_freq', 'false')).lower() == 'true' else "FF"
-            sc = config.get('scale_coeff', 0.01)
-            nq = config.get('num_qubits', 5)
-            q_info = f"_{tf}_Q{nq}_S{sc}"
-            
-            # 如果有 net_size，也拼进去防止 Table 7 的网格搜索覆盖
-            if config.get('net_size'):
-                net_str = "-".join(map(str, config.get('net_size')))
-                q_info += f"_Net{net_str}"
+        # 1. ⚡ 初始化超级日志记录器 (ExperimentLogger)
+        prefix = config.get('prefix') or "outputs"
+        self.exp_logger = ExperimentLogger(config, base_output_dir=prefix)
+        self.run_id = self.exp_logger.exp_name
+        self.config['run_id'] = self.run_id 
 
-        self.run_id = get_experiment_id(config)
-        self.config['run_id'] = self.run_id # 注入 config 供后续使用
-
-        log_path = os.path.join(self.dairy_dir, f"train_{self.run_id}.log")
-        self.logger = setup_logger(log_path)
-        sys.stdout = StreamToLogger(self.logger) # Redirect print to log
+        # 设置纯文本日志定向
+        self.logger = setup_logger(self.exp_logger.text_log_path)
+        sys.stdout = StreamToLogger(self.logger) 
         
         # Context Setup
         device_target = "GPU" if config.get('gpu') is not None else "CPU"
-        mode = ms.PYNATIVE_MODE # Default to PyNative
+        mode = ms.PYNATIVE_MODE 
         ms.context.set_context(mode=mode, device_target=device_target)
         if config.get('gpu') is not None:
              ms.context.set_context(device_id=config['gpu'])
@@ -75,9 +55,9 @@ class MSSolver:
         self.logger.info(f"Context: {device_target}, Mode: PyNative")
 
         # 2. Load Data (Unified Manager)
-        self.dm = DataManager(config, data_dir=os.path.join(prefix, "data"), logger=self.logger)
-        self.data_dict_np = self.dm.get_data() # Returns Numpy
-        self._convert_data_to_ms() # Convert to Tensor
+        self.dm = DataManager(config, data_dir=os.path.join(prefix, "..", "data"), logger=self.logger)
+        self.data_dict_np = self.dm.get_data() 
+        self._convert_data_to_ms() 
         
         # 3. Build Model
         self.model = self._create_model()
@@ -86,9 +66,7 @@ class MSSolver:
         self.optimizer = nn.Adam(self.model.trainable_params(), learning_rate=config['learning_rate'])
         self.loss_fn = nn.MSELoss()
         
-        # Checkpoint management
         self.best_loss = float('inf')
-        self.best_model_path = None
 
     def _convert_data_to_ms(self):
         """Converts numpy data from DataManager to MindSpore Tensors."""
@@ -99,7 +77,6 @@ class MSSolver:
             if isinstance(v, np.ndarray):
                 self.data[k] = ms.Tensor(v, ms.float32)
         
-        # Handle Branch/Trunk inputs if they exist
         if 'train_branch_input' in self.data:
             self.train_input = (self.data['train_branch_input'], self.data['train_trunk_input'])
             self.test_input = (self.data['test_branch_input'], self.data['test_trunk_input'])
@@ -111,9 +88,8 @@ class MSSolver:
 
     def _create_model(self):
         self.logger.info("Creating Quantum Model...")
-        # Quantum Hamiltonian Setup
         ham_bound = self.config.get('ham_bound')
-        if not ham_bound: ham_bound = [-5, 5] # Default
+        if not ham_bound: ham_bound = [-5, 5] 
         
         if self.config.get('ham_diag') is None:
             ham = generate_simple_hamiltonian(
@@ -127,7 +103,6 @@ class MSSolver:
             
         self.logger.info(f"Hamiltonian Matrix:\n{ham.hamiltonian.matrix()}")
         
-        # Input Dimensions
         if isinstance(self.train_input, tuple):
             branch_in = self.train_input[0].shape[1]
             trunk_in = self.train_input[1].shape[1]
@@ -136,7 +111,6 @@ class MSSolver:
             trunk_in = self.config['trunk_input_size']
 
         net_size = tuple(self.config.get('net_size', [20, 2, 10, 2]))
-        # Fix: handle config parsing for boolean
         if_trainable_freq = str(self.config.get('if_trainable_freq', 'true')).lower() == 'true'
 
         if self.model_type == 'QuanONet':
@@ -145,9 +119,9 @@ class MSSolver:
         elif self.model_type == 'HEAQNN':
             model = HEAQNN(self.config['num_qubits'], branch_in, trunk_in, net_size, ham,
                            self.config.get('scale_coeff', 0.01), if_trainable_freq)
-        elif self.model_type == 'DeepONet': # MS version
+        elif self.model_type == 'DeepONet': 
             model = DeepONet(branch_in, trunk_in, net_size)
-        elif self.model_type == 'FNN': # MS version
+        elif self.model_type == 'FNN': 
             model = FNN(branch_in, trunk_in, 1, net_size)
         else:
             raise ValueError(f"Unknown MS model: {self.model_type}")
@@ -156,10 +130,11 @@ class MSSolver:
         return model
 
     def train(self):
-        json_path = os.path.join(self.logs_dir, f"eval_{self.config['run_id'] }.json")
-        if os.path.exists(json_path):
-            print(f"⏩ [Resume] The experiment has been completed and {json_path} has been detected. Skip the training directly.")
+        # ⚡ 完美的断点续跑机制
+        if self.exp_logger.is_completed():
+            print(f"⏩ [Resume] 实验已完成，检测到已存在结果文件。直接跳过训练！")
             sys.exit(0)
+            
         self.logger.info("Starting Training...")
         net_with_loss = nn.WithLossCell(self.model, self.loss_fn)
         train_net = nn.TrainOneStepCell(net_with_loss, self.optimizer)
@@ -168,7 +143,6 @@ class MSSolver:
         epochs = self.config['num_epochs']
         batch_size = self.config['batch_size']
         
-        # Simple Batching Logic
         if isinstance(self.train_input, tuple):
             num_samples = self.train_input[0].shape[0]
         else:
@@ -177,7 +151,6 @@ class MSSolver:
         num_batches = max(1, num_samples // batch_size)
         history = {'loss_train': [], 'loss_test': []}
         
-        # Initial Checkpoint Loading
         if self.config.get('init_checkpoint'):
              load_checkpoint(self.config['init_checkpoint'], self.model)
              self.logger.info(f"Loaded init checkpoint: {self.config['init_checkpoint']}")
@@ -189,7 +162,6 @@ class MSSolver:
         for epoch in tqdm(range(epochs)):
             epoch_loss = 0
             epoch_rel_err = 0
-            # Permutation for shuffling
             indices = np.random.permutation(num_samples)
             
             for i in range(num_batches):
@@ -206,38 +178,36 @@ class MSSolver:
                 loss_val = float(loss.asnumpy())
                 epoch_loss += loss_val
                 
-                # 计算当前 Batch 的相对误差
-                # 利用公式: L2_Diff = sqrt(MSE * N_elements)
-                # 前提: self.loss_fn 是 nn.MSELoss() 且 reduction='mean' (默认即是)
                 n_elements = batch_out.size
                 l2_diff = np.sqrt(loss_val * n_elements)
                 l2_true = np.linalg.norm(batch_out.asnumpy())
-                
-                # 避免除以零
                 batch_rel = l2_diff / (l2_true + 1e-8)
                 epoch_rel_err += batch_rel
             
             avg_loss = epoch_loss / num_batches
-            avg_rel_err = epoch_rel_err / num_batches  # <--- 计算平均相对误差
+            avg_rel_err = epoch_rel_err / num_batches 
             history['loss_train'].append(avg_loss)
+            
+            # ⚡ 写入 TensorBoard
+            self.exp_logger.log_metric("Loss/train", avg_loss, epoch)
+            self.exp_logger.log_metric("Error/rel_l2", avg_rel_err, epoch)
             
             # Save Best
             if avg_loss < self.best_loss:
                 self.best_loss = avg_loss
                 if self.config.get('if_save', True):
-                    ckpt_name = f"best_{self.run_id}.ckpt"
-                    self.best_model_path = os.path.join(self.ckpt_dir, ckpt_name)
-                    os.makedirs(self.ckpt_dir, exist_ok=True)
+                    # ⚡ 使用统一的 CKPT 路径
+                    self.best_model_path = self.exp_logger.get_ckpt_path()
                     save_checkpoint(self.model, self.best_model_path)
             
             if epoch % 10 == 0:
-                print(f"Epoch {epoch} | MSE: {avg_loss:.6e} | Rel_L2: {avg_rel_err:.4%}")
+                pass # print(f"Epoch {epoch} | MSE: {avg_loss:.6e} | Rel_L2: {avg_rel_err:.4%}")
                 
         return history
 
     def evaluate(self, history=None):
         self.logger.info("Evaluating...")
-        if self.best_model_path and os.path.exists(self.best_model_path):
+        if hasattr(self, 'best_model_path') and self.best_model_path and os.path.exists(self.best_model_path):
             param_dict = load_checkpoint(self.best_model_path)
             load_param_into_net(self.model, param_dict)
             self.logger.info(f"Loaded best model from {self.best_model_path}")
@@ -257,32 +227,29 @@ class MSSolver:
             start = i * batch_size
             end = min((i + 1) * batch_size, num_samples)
             
-            # 切片
             if isinstance(self.test_input, tuple):
                 batch_in = (self.test_input[0][start:end], self.test_input[1][start:end])
             else:
                 batch_in = self.test_input[start:end]
             
-            # 推理
             batch_pred = self.model(batch_in)
-            preds.append(batch_pred.asnumpy()) # 转为 numpy 防止显存堆积
+            preds.append(batch_pred.asnumpy()) 
             
-        # 拼接结果
         y_pred_np = np.concatenate(preds, axis=0)
         y_true_np = self.test_output.asnumpy()
-        # --- 🔴 修改结束 ---
 
-        # 使用 Numpy 计算指标 (比 MindSpore Tensor 更稳定)
         l2_diff = np.linalg.norm(y_pred_np - y_true_np)
         l2_true = np.linalg.norm(y_true_np)
         rel_error = l2_diff / (l2_true + 1e-8)
         
         self.logger.info(f"⚡ Test Relative L2 Error: {rel_error:.6f} ({rel_error:.2%})")
         
-        # 传入 numpy 数组给 metrics
         metrics = compute_metrics(y_true_np, y_pred_np)
         metrics['rel_l2'] = rel_error 
         self.logger.info(f"Metrics: {metrics}")
         
-        save_results(self.config, metrics, history, self.logs_dir)
+        # ⚡ 使用 ExperimentLogger 保存指标
+        self.exp_logger.save_metrics(metrics, history)
+        self.exp_logger.close()
+        
         return metrics
