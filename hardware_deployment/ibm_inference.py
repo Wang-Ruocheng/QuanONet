@@ -201,10 +201,11 @@ def main():
     token = os.getenv("QISKIT_IBM_TOKEN")
     if token and not args.simulator_only:
         try:
+            service = QiskitRuntimeService(channel="ibm_quantum_platform", token=token)
+        except Exception:
             service = QiskitRuntimeService(channel="ibm_cloud", token=token)
-        except:
-            service = QiskitRuntimeService(channel="ibm_quantum", token=token)
-            
+
+        
         if args.job_id:
             # ==========================================
             # MODE: FETCH EXISTING JOB
