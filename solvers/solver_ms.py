@@ -132,7 +132,7 @@ class MSSolver:
     def train(self):
         # ⚡ 完美的断点续跑机制
         if self.exp_logger.is_completed():
-            print(f"⏩ [Resume] 实验已完成，检测到已存在结果文件。直接跳过训练！")
+            print(f"⏩ [Resume] The experiment has been completed and the existing result file has been detected. Skip the training directly.")
             sys.exit(0)
             
         self.logger.info("Starting Training...")
