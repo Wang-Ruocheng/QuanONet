@@ -12,8 +12,6 @@
 # ----------------
 GPU_ID=$1
 PREFIX="Table5_Reproduction"
-LOG_DIR="${PREFIX}/dairy"
-mkdir -p "$LOG_DIR"
 
 # Hyperparameters (Table 5 Specific: Small Data)
 NUM_TRAIN=100        # Reduced training functions

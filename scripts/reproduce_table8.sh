@@ -12,8 +12,6 @@
 # ----------------
 GPU_ID=$1
 PREFIX="Table8_Reproduction"
-LOG_DIR="${PREFIX}/dairy"
-mkdir -p "$LOG_DIR"
 
 # Common Hyperparameters
 OPERATOR="Antideriv"

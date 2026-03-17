@@ -11,8 +11,6 @@
 # 1. Configuration
 # ----------------
 GPU_ID=$1
-LOG_DIR="Table4_Reproduction/dairy"
-mkdir -p "$LOG_DIR"
 
 # Common Hyperparameters
 NUM_TRAIN=1000
