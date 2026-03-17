@@ -120,8 +120,6 @@ The `scripts/` directory contains automated bash scripts to reproduce the primar
 | `reproduce_table8.sh`       | **Circuit Architecture Ablation**: Investigates the trade-off between circuit width (qubits) and depth regarding expressivity vs. trainability.        | Table 8 (Sec 5.3.2)        |
 | `reproduce_sec54.sh`        | **Hamiltonian Ablation**: Evaluates the impact of Hamiltonian design (Pauli basis, spectral radii, and degeneracy) on model expressivity.              | Fig 10 & 11 (Sec 5.4)      |
 
-**Visualization:** To reproduce the 2D operator mapping heatmaps (e.g., Diffusion-Reaction, Advection, Darcy Flow) presented in Figure 7, utilize the dedicated visualization Jupyter Notebooks located in the `utils/` directory.
-
 ## Configuration & Parameters
 
 The `main.py` script accepts the following primary configurations:
