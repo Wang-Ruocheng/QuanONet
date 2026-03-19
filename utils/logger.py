@@ -57,17 +57,16 @@ def get_experiment_id(config):
     Generates a highly detailed, unique descriptor string for filenames.
     Prevents parameter ablation experiments from overwriting each other.
     """
-    # 兼容可能存在的不同键名 ('operator' vs 'operator_type')
     op = config.get('operator_type', config.get('operator', 'Unknown'))
     model = config.get('model_type', 'Unknown')
     nt = config.get('num_train', '?')
     np_ = config.get('num_points', '?')
     seed = config.get('random_seed', config.get('seed', 0))
     
-    # 1. 基础命名
+    # 1. Basic Identifier: Operator + Model
     exp_id = f"{op}_{model}"
     
-    # 2. 网络尺寸 (net_size)
+    # 2. Network Size
     net = config.get('net_size')
     if isinstance(net, list) and len(net) > 0:
         net_str = "-".join(map(str, net))
@@ -75,13 +74,12 @@ def get_experiment_id(config):
     elif net is not None:
         exp_id += f"_Net{net}"
         
-    # 3. 量子特有参数 (Quantum Specifics)
+    # 3. Quantum Specifics
     if model in ['QuanONet', 'HEAQNN']:
-        # 量子比特数
         nq = config.get('num_qubits', 5)
         exp_id += f"_Q{nq}"
         
-        # 是否开启 TF (Trainable Frequency)
+        # Trainable Frequency
         if_tf = str(config.get('if_trainable_freq', 'false')).lower() == 'true'
         exp_id += "_TF" if if_tf else "_FF"
         
@@ -89,25 +87,21 @@ def get_experiment_id(config):
         scale = config.get('scale_coeff', 0.01)
         exp_id += f"_S{scale}"
         
-        # 记录 Pauli 基底 (默认为 Z，如果不是 Z 则显式标出)
         pauli = config.get('ham_pauli', 'Z')
         if pauli != 'Z':
             exp_id += f"_Pauli{pauli}"
             
-        # 记录对角谱或边界 (Diag 优先级最高)
         diag = config.get('ham_diag')
         if diag:
-            # 如果是自定义谱矩阵
             diag_str = "-".join(map(str, diag))
             exp_id += f"_Diag{diag_str}"
         else:
-            # 如果只是普通的 bound
             ham = config.get('ham_bound')
-            if ham and isinstance(ham, list) and ham != [-5, 5]: # 仅当非默认值时标出
+            if ham and isinstance(ham, list) and ham != [-5, 5]:
                 ham_str = "-".join(map(str, ham))
                 exp_id += f"_Ham{ham_str}"    
                 
-    # 4. 数据量与随机种子
+    # 4. Data volume and random seed
     exp_id += f"_{nt}x{np_}_Seed{seed}"
     
     return exp_id
@@ -122,40 +116,39 @@ class ExperimentLogger:
         self.config = config
         self.operator_name = config.get('operator_type', config.get('operator', 'Unknown'))
         
-        # 自动生成具有唯一标识的实验名称
         self.exp_name = get_experiment_id(config)
         
-        # 1. 定义核心层级路径
+        # 1. Compute directory paths
         self.base_dir = os.path.join(base_output_dir, self.operator_name)
         self.exp_dir = os.path.join(self.base_dir, self.exp_name)
         self.tb_dir = os.path.join(self.base_dir, "tensorboard", self.exp_name)
         
-        # 2. 自动创建嵌套文件夹
+        # 2. Auto-create directories
         os.makedirs(self.exp_dir, exist_ok=True)
         os.makedirs(self.tb_dir, exist_ok=True)
         
-        # 3. 初始化 TensorBoard Writer (保存到该算子独立的 tb 目录下)
+        # 3. Init logger
         self.writer = SummaryWriter(log_dir=self.tb_dir) if SummaryWriter else None
         
-        # 4. 获取当前实验的专属纯文本 log 路径
+        # 4. Setup file logger
         self.text_log_path = os.path.join(self.exp_dir, "train.log")
         
-        # 5. 实验初始化时，立刻持久化配置文件
+        # 5. Setup logging to file and console
         self.save_args()
 
     def save_args(self):
-        """保存实验配置到 train_args.json"""
+        """Saves the configuration arguments to a JSON file for reproducibility."""
         args_path = os.path.join(self.exp_dir, "train_args.json")
         with open(args_path, 'w') as f:
             json.dump(self.config, f, indent=4, default=str)
             
     def log_metric(self, tag, value, step):
-        """向 TensorBoard 写入标量数据 (例如 Loss/train, MSE/test)"""
+        """Writes a scalar metric to TensorBoard."""
         if self.writer:
             self.writer.add_scalar(tag, value, step)
 
     def save_metrics(self, metrics, history=None):
-        """保存最终评估结果到 metric.json"""
+        """Saves final metrics and optionally training history to a JSON file."""
         metric_path = os.path.join(self.exp_dir, "metric.json")
         data = {
             'metrics': metrics,
@@ -168,7 +161,7 @@ class ExperimentLogger:
         print(f"Results saved to {metric_path}")
 
     def get_ckpt_path(self, iteration=None, is_final=False):
-        """获取标准化的 Checkpoint 保存路径"""
+        """Generates checkpoint path based on iteration or final model."""
         if is_final:
             return os.path.join(self.exp_dir, "final.ckpt")
         if iteration is not None:
@@ -176,11 +169,12 @@ class ExperimentLogger:
         return os.path.join(self.exp_dir, "best_model.ckpt")
         
     def is_completed(self):
-        """检查该实验是否已经完成 (用于优雅的断点续跑)"""
+        """Checks if the experiment has already been completed by looking for metric.json."""
         metric_path = os.path.join(self.exp_dir, "metric.json")
         return os.path.exists(metric_path)
         
     def close(self):
-        """关闭 TensorBoard Writer"""
+        """Closes the TensorBoard writer if it exists.
+        """
         if self.writer:
             self.writer.close()

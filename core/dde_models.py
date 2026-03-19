@@ -15,7 +15,6 @@ class SpectralConv1d(nn.Module):
         self.modes1 = modes1  #Number of Fourier modes to multiply, at most floor(N/2) + 1
 
         self.scale = (1 / (in_channels*out_channels))
-        # [Legacy] 原始实现：使用 torch.rand (0~1均匀分布，全正数)，不减去 0.5
         self.weights1 = nn.Parameter(self.scale * (torch.rand(in_channels, out_channels, self.modes1, dtype=torch.cfloat)-0.5))
 
     # Complex multiplication
@@ -44,18 +43,17 @@ class FNO1d(nn.Module):
         self.width = width
         self.layers = layers
         
-        # 1. Lifting: 2 -> 8 (有足够的特征空间)
+        # 1. Lifting: 2 -> 8
         self.fc0 = nn.Linear(2, self.width) 
 
-        # 2. Fourier Layers (动态生成层数)
+        # 2. Fourier Layers
         self.convs = nn.ModuleList([SpectralConv1d(self.width, self.width, self.modes1) for _ in range(layers)])
         self.ws = nn.ModuleList([nn.Conv1d(self.width, self.width, 1) for _ in range(layers)])
 
         # 3. Projection: 8 -> 32 -> 1
         self.fc1 = nn.Linear(self.width, fc_hidden) 
         self.fc2 = nn.Linear(fc_hidden, 1)
-        
-        # DeepXDE Compatibility (原文件中也有这行)
+
         self.regularizer = None
 
     def forward(self, x):

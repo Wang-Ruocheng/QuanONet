@@ -144,19 +144,13 @@ class DeepONet(nn.Cell):
     Deep Operator Network with optional Periodic Embedding on Trunk Input.
     """
     def __init__(self, branch_input_size, trunk_input_size, net_size, 
-                 activation=nn.Tanh(), enable_periodic=False, domain_length=1.0):
+                 activation=nn.Tanh(), domain_length=1.0):
         super(DeepONet, self).__init__()
         
         # Unpack network size configuration
         # Assume net_size = (branch_depth, branch_width, trunk_depth, trunk_width)
         (self.branch_depth, self.branch_width, 
          self.trunk_depth, self.trunk_width) = net_size
-        
-        # --- New logic: Periodic embedding ---
-        self.enable_periodic = enable_periodic
-        if self.enable_periodic:
-            self.periodic_embed = PeriodicEmbedding(domain_length=domain_length)
-
 
         self.branch_net = FNNLayer(
             branch_input_size, self.branch_width, 
@@ -183,10 +177,6 @@ class DeepONet(nn.Cell):
         # Input is usually a tuple: (branch_input, trunk_input)
         branch_input = input_tuple[0]
         trunk_input = input_tuple[1]
-        
-        # --- Core modification: Apply periodic embedding to Trunk Input ---
-        if self.enable_periodic:
-            trunk_input = self.periodic_embed(trunk_input)
             
         # Standard DeepONet process
         branch_output = self.branch_net(branch_input)

@@ -35,7 +35,7 @@ class Double(Data):
         return loss_fn(targets, outputs)
 
     def train_next_batch(self, batch_size=None):
-        # [Fix] Use Sampler to return mini-batches
+        # Use Sampler to return mini-batches
         if batch_size is None:
             return self.train_x, self.train_y
         
@@ -60,13 +60,13 @@ class DDESolver:
         self.model_type = config['model_type']
         self.operator_type = config['operator_type']
         
-        # 1. ⚡ 初始化超级日志记录器 (ExperimentLogger)
+        # 1. ExperimentLogger
         prefix = config.get('prefix') or "outputs"
         self.exp_logger = ExperimentLogger(config, base_output_dir=prefix)
         self.run_id = self.exp_logger.exp_name
         self.config['run_id'] = self.run_id
         
-        # 设置纯文本日志定向
+        # Set the plain text log orientation
         self.logger = setup_logger(self.exp_logger.text_log_path)
         sys.stdout = StreamToLogger(self.logger)
         
@@ -178,7 +178,7 @@ class DDESolver:
 
     def train(self):
         """Execute training loop."""
-        # ⚡ 完美的断点续跑机制
+        # Breakpoint resumption mechanism
         if self.exp_logger.is_completed():
             print(f"⏩ [Resume] The experiment has been completed. If the existing result file is detected, skip the training directly.")
             sys.exit(0)
@@ -205,10 +205,9 @@ class DDESolver:
             'loss_test': [float(x) for x in losshistory.loss_test],
             'steps': [int(x) for x in losshistory.steps]
         }
-        
-        # ⚡ 将最后几十个 Epoch 的 Loss 写入 TensorBoard
+
         for i, (train_loss, test_loss, step) in enumerate(zip(history['loss_train'], history['loss_test'], history['steps'])):
-             if i % max(1, len(history['steps']) // 100) == 0: # 采样 100 个点写入 TB
+             if i % max(1, len(history['steps']) // 100) == 0:
                  self.exp_logger.log_metric("Loss/train", train_loss, step)
                  self.exp_logger.log_metric("Loss/test", test_loss, step)
                  
@@ -231,8 +230,7 @@ class DDESolver:
         metrics['rel_l2'] = float(rel_error) 
         
         self.logger.info(f"Final Metrics: {metrics}")
-        
-        # ⚡ 使用 ExperimentLogger 保存指标和权重
+
         self.exp_logger.save_metrics(metrics, history)
         
         ckpt_path = self.exp_logger.get_ckpt_path(is_final=True)

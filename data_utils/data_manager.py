@@ -55,13 +55,13 @@ class DataManager:
         if config.get('num_cal') is not None:
             self.num_cal = config['num_cal']
             
-        # 2. 如果没传，根据算子类型设置默认值
+        # 2. set the default value according to the operator type
         else:
             if self.operator_type in ['RDiffusion', 'Advection', 'Darcy']:
-                self.num_cal = 100   # PDE 默认值
+                self.num_cal = 100   # PDE default
                 self.logger.info(f"Using default num_cal=100 for PDE operator: {self.operator_type}")
             else:
-                self.num_cal = 1000  # ODE 默认值 (Antideriv, Homogeneous, etc.)
+                self.num_cal = 1000  # ODE default (Antideriv, Homogeneous, etc.)
                 self.logger.info(f"Using default num_cal=1000 for ODE operator: {self.operator_type}")
         
     def get_data(self):

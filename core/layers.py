@@ -50,35 +50,7 @@ class CoeffLayer(nn.Cell):
     
     def construct(self, x):
         return x * self.coeff
-
-class PeriodicEmbedding(nn.Cell):
-    def __init__(self, domain_length=1.0):
-        super().__init__()
-        self.two_pi = 2 * np.pi
-        self.period = domain_length
-
-    def construct(self, x):
-        """
-        x: shape (N, d_in)
-        By default, only perform periodic feature mapping on the first dimension (dim=0)
-        """
-        # 1. Extract first dimension (x coordinate)
-        x_coord = x[:, 0:1]
-        
-        # 2. Apply periodic mapping -> (N, 1)
-        cos_x = mnp.cos(self.two_pi * x_coord / self.period)
-        sin_x = mnp.sin(self.two_pi * x_coord / self.period)
-        
-        # 3. Concatenate result
-        if x.shape[1] > 1:
-            # If there are other dimensions (e.g., t), keep them and concatenate after
-            rest_coords = x[:, 1:]
-            # Result shape: (N, 2 + d_rest)
-            return mnp.concatenate([cos_x, sin_x, rest_coords], axis=-1)
-        else:
-            # Result shape: (N, 2)
-            return mnp.concatenate([cos_x, sin_x], axis=-1)
-
+    
 class FNNLayer(nn.Cell):
     """Feedforward Neural Network layer."""
     

@@ -59,24 +59,24 @@ def main():
         sys.exit(1)
 
     if args.gpu is not None:
-        # 【场景 1】用户手动指定了 GPU (例如 --gpu 4)
+        # 【Scenario 1】User specified GPU
         print(f"🔧 [Manual] User specified GPU: {args.gpu}")
         
-        # 设置可见设备，仅暴露用户指定的 GPU
+        # For PyTorch, we set CUDA_VISIBLE_DEVICES to the specified GPU index
         os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
         
         config['gpu'] = 0  
-        config['device_target'] = "GPU" # 确保 MS 知道要用 GPU
+        config['device_target'] = "GPU"
 
     else:
-        # 【场景 2】用户未指定 GPU (自动模式)
+        # 【Scenario 2】Auto-detect GPU based on backend
         if target_backend == 'pytorch':
-            # DDE/PyTorch: 优先使用 GPU
+            # DDE/PyTorch: Use GPU if available, otherwise CPU
             try:
                 import torch
                 if torch.cuda.is_available():
                     print("🚀 [Auto] PyTorch Backend -> Found CUDA, defaulting to GPU 0")
-                    # 默认使用第一块卡
+                    # Default to GPU 0 if multiple GPUs are present, or you can implement more complex logic here
                     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
                     config['gpu'] = 0
                 else:
@@ -86,7 +86,7 @@ def main():
                 config['gpu'] = None
 
         elif target_backend == 'mindspore':
-            # MindSpore: 默认使用 CPU (如您所愿)
+            # MindSpore: Default to CPU
             print("🤖 [Auto] MindSpore Backend -> Defaulting to CPU")
             config['device_target'] = "CPU"
             config['gpu'] = None

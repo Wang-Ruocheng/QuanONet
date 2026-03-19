@@ -26,10 +26,10 @@ class StreamToLogger(object):
 
 def count_parameters(model):
     """
-    通用参数计数器，支持 MindSpore (Cell) 和 PyTorch (nn.Module)
+    Count the number of trainable parameters in a model.
     """
     try:
-        # 1. 尝试 MindSpore 方式
+        # 1. Try MindSpore
         import mindspore.nn as nn
         if isinstance(model, nn.Cell):
             total_params = 0
@@ -40,14 +40,14 @@ def count_parameters(model):
         pass
 
     try:
-        # 2. 尝试 PyTorch 方式 (适用于 DeepXDE 的 net)
+        # 2. Try PyTorch
         import torch
         if isinstance(model, torch.nn.Module):
             return sum(p.numel() for p in model.parameters() if p.requires_grad)
     except ImportError:
         pass
 
-    # 3. 如果都不是，尝试打印 len (比如简单的 list)
+    # 3. Fallback: Try to get length if possible
     try:
         return len(model)
     except:

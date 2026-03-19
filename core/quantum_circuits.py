@@ -63,27 +63,6 @@ def ham_diag_to_operator(diag_elements, num_qubits):
     return op
 
 
-# def generate_ham_diag(num_qubits, rank, seed=None):
-#     """
-#     Generate a 1D array of length 2**num_qubit with 'rank' nonzero entries.
-#     The number of 1's and -1's are both rank//2 (rank must be even).
-#     """
-#     length = 2 ** num_qubits
-#     assert rank <= length, "rank cannot be greater than array length"
-#     assert rank % 2 == 0, "rank must be even for equal number of 1's and -1's"
-#     if seed is not None:
-#         np.random.seed(seed)
-#     arr = np.zeros(length)
-#     # Randomly select 'rank' unique positions
-#     idx = np.random.choice(length, rank, replace=False)
-#     num_ones = rank // 2
-#     num_neg_ones = rank // 2
-#     values = np.array([1] * num_ones + [-1] * num_neg_ones)
-#     np.random.shuffle(values)
-#     arr[idx] = values
-#     return 5*arr
-
-
 def generate_ham_diag_rank1(num_qubits, seed=None):
     """
     Randomly generate a 1 at one position in 2**num_qubits positions, rest all 0, return this array multiplied by 10 minus 5
@@ -145,26 +124,6 @@ def generate_ham_spectrum_uniform(num_qubits, rank, seed=None):
     arr[idx] = non_zero_vals
 
     return arr
-
-
-# def generate_diag_from_rank(rank, num_qubits):
-#     """
-#     Generate diagonal Hamiltonian based on rank: half 1, half -1, rest 0
-#     rank: number of non-zero elements (must be even and not exceed 2^num_qubits)
-#     num_qubits: number of qubits
-#     return: diagonal array of length 2^num_qubits
-#     """
-#     dim = 2 ** num_qubits
-#     if rank > dim:
-#         raise ValueError("rank cannot exceed Hamiltonian dimension")
-#     if rank % 2 != 0:
-#         raise ValueError("rank must be even")
-#     diag = [0] * dim
-#     half = rank // 2
-#     diag[:half] = [5] * half
-#     diag[half:rank] = [-5] * half
-#     # Rest are 0
-#     return diag
 
 def Encode_layer(num_qubits, input_size, e_name_list, PauliRotGate=RX):
     """Create encoding layer for quantum circuit."""

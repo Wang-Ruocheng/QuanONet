@@ -4,7 +4,7 @@ This module provides MindSpore-free versions of data processing functions.
 """
 
 import numpy as np
-from scipy import interpolate  # <--- 关键修复：添加了这个导入
+from scipy import interpolate
 
 def ODE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal):
     """

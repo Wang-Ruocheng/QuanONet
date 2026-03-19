@@ -39,7 +39,7 @@ class MSSolver:
         self.run_id = self.exp_logger.exp_name
         self.config['run_id'] = self.run_id 
 
-        # 设置纯文本日志定向
+        # 1. Setup Logger
         self.logger = setup_logger(self.exp_logger.text_log_path)
         sys.stdout = StreamToLogger(self.logger) 
         
@@ -129,7 +129,6 @@ class MSSolver:
         return model
 
     def train(self):
-        # ⚡ 完美的断点续跑机制
         if self.exp_logger.is_completed():
             print(f"⏩ [Resume] The experiment has been completed and the existing result file has been detected. Skip the training directly.")
             sys.exit(0)
@@ -187,7 +186,6 @@ class MSSolver:
             avg_rel_err = epoch_rel_err / num_batches 
             history['loss_train'].append(avg_loss)
             
-            # ⚡ 写入 TensorBoard
             self.exp_logger.log_metric("Loss/train", avg_loss, epoch)
             self.exp_logger.log_metric("Error/rel_l2", avg_rel_err, epoch)
             
@@ -195,7 +193,6 @@ class MSSolver:
             if avg_loss < self.best_loss:
                 self.best_loss = avg_loss
                 if self.config.get('if_save', True):
-                    # ⚡ 使用统一的 CKPT 路径
                     self.best_model_path = self.exp_logger.get_ckpt_path()
                     save_checkpoint(self.model, self.best_model_path)
             
