@@ -235,10 +235,18 @@ class DDESolver:
         
         ckpt_path = self.exp_logger.get_ckpt_path(is_final=True)
         if hasattr(self.model.net, 'module'):
-            torch.save(self.model.net.module.state_dict(), ckpt_path)
+            state_dict = self.model.net.module.state_dict()
         elif hasattr(self.model.net, 'state_dict'):
-            torch.save(self.model.net.state_dict(), ckpt_path)
-            
-        self.logger.info(f"Model checkpoint saved to {ckpt_path}")
+            state_dict = self.model.net.state_dict()
+        else:
+            state_dict = {}
+        if state_dict:
+            torch.save(state_dict, ckpt_path)
+            self.logger.info(f"Model checkpoint saved to {ckpt_path}")
+            npz_path = ckpt_path.replace('.ckpt', '.npz').replace('.pt', '.npz')
+            param_dict_np = {k: v.cpu().numpy() for k, v in state_dict.items()}
+            np.savez(npz_path, **param_dict_np)
+            self.logger.info(f"Exported framework-agnostic weights to {npz_path}")
+
         self.exp_logger.close()
         return metrics

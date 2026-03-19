@@ -198,6 +198,11 @@ class MSSolver:
                 if self.config.get('if_save', True):
                     self.best_model_path = self.exp_logger.get_ckpt_path()
                     save_checkpoint(self.model, self.best_model_path)
+                    npz_path = self.best_model_path.replace('.ckpt', '.npz')
+                    param_dict_np = {}
+                    for param in self.model.get_parameters():
+                        param_dict_np[param.name] = param.asnumpy()
+                    np.savez(npz_path, **param_dict_np)
             
             if epoch % 10 == 0:
                 pass # print(f"Epoch {epoch} | MSE: {avg_loss:.6e} | Rel_L2: {avg_rel_err:.4%}")

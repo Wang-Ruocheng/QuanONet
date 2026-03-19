@@ -47,7 +47,6 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 │
 ├── hardware_deployment/        # Real-device deployment on IBM Quantum
 │   ├── requirements_qiskit.txt # Standalone Qiskit environment dependencies
-│   ├── convert_ckpt.py        # Converts MindSpore .ckpt to .npz for hardware inference
 │   ├── ibm_inference.py        # Transpilation, execution, profiling, and plotting
 │   └── best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz # Pre-trained weights
 │
@@ -195,8 +194,7 @@ This unified script automatically analyzes the physical chip topology, routes op
 
 The repository includes a pre-trained checkpoint (`best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz`) matching the lightweight configuration. To evaluate custom models:
 
-1. Convert the MindSpore `.ckpt` using `convert_ckpt.py`.
-2. Execute with the weight path argument: `python ibm_inference.py --weight_path YOUR_WEIGHT_FILE.npz`.
+1. Execute with the `.npz` weight path argument: `python ibm_inference.py --weight_path YOUR_WEIGHT_FILE.npz`.
 3. The script automatically parses the network dimensions from the filename. If a custom naming convention is used, dimensions must be passed manually (e.g., `--n_qubits 4 --n_branch 5 --n_trunk 5 --n_hidden 1`).
 
 ## Citation
