@@ -4,6 +4,8 @@ This module provides MindSpore-free versions of data generation functions.
 """
 
 import numpy as np
+from scipy.interpolate import RegularGridInterpolator
+from tqdm import tqdm
 import os
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
@@ -188,143 +190,250 @@ def generate_Darcy_Operator_data(num_train, num_test, num_points, num_points_0, 
 
 
 # PDE Systems (simplified versions)
-def solve_darcy_pde_simple(num_cal, length_scale=1.0):
-    """Simplified Darcy PDE solver for 1D case"""
+def solve_darcy_pde(num_cal, length_scale=1.0, K=0.1, f=-1.0, u0_cal=None):
+    """Solve Darcy flow PDE: -∇(K∇u)=f"""
+    from scipy.sparse import diags
+    from scipy.sparse.linalg import spsolve
+    nx, ny = num_cal, num_cal
+    Lx, Ly = 1.0, 1.0
+    dx, dy = Lx/(nx-1), Ly/(ny-1)
+    if u0_cal is None:
+        # Generate initial condition and source term
+        _, u0_cal = generate_random_gaussian_field(4*num_cal, length_scale=length_scale, if_period=True)
+    def boundary_from_1d_func(u0):
+        edge = len(u0)//4
+        left = u0[:edge]
+        right = u0[2*edge:3*edge][::-1]
+        bottom = u0[3*edge:][::-1]
+        top = u0[edge:2*edge]
+        return left, right, bottom, top
+    left, right, bottom, top = boundary_from_1d_func(u0_cal)
+
+    # Construct sparse matrix and right-hand side
+    N = nx * ny
+    main = np.ones(N) * (-2/dx**2 - 2/dy**2)
+    offx = np.ones(N) / dx**2
+    offy = np.ones(N) / dy**2
+    rhs = -np.ones(N) * f / K
+    for i in range(nx):
+        for j in range(ny):
+            idx = i*ny + j
+            if j == 0:
+                main[idx]=1; offx[idx]=0; offy[idx]=0; rhs[idx]=bottom[i]
+            elif j == ny-1:
+                main[idx]=1; offx[idx]=0; offy[idx]=0; rhs[idx]=top[i]
+            elif i == 0:
+                main[idx]=1; offx[idx]=0; offy[idx]=0; rhs[idx]=left[j]
+            elif i == nx-1:
+                main[idx]=1; offx[idx]=0; offy[idx]=0; rhs[idx]=right[j]
+    A = diags([main, offx[:-1], offx[1:], offx[-1], offx[:1], offy[:(N-ny)], offy[ny:], offy[(N-ny):], offy[:ny]], [0, 1, -1, -N+1, N-1, ny, -ny, -N+ny, N-ny], shape=(N, N))
+    u_cal = spsolve(A.tocsr(), rhs).reshape((nx, ny))
+
+    return u_cal, u0_cal
+
+
+def solve_advection_pde(num_cal, length_scale=0.2, c=1.0, u0_cal=None):
+    """
+    Solve advection equation: ∂u/∂t + c∇u = 0
+    """
     x_cal = np.linspace(0, 1, num_cal)
-
-    # Generate random permeability field
-    _, K_field = generate_random_gaussian_field(num_cal, length_scale=length_scale)
-    K_field = 0.1 + 0.9 * (K_field - K_field.min()) / (K_field.max() - K_field.min())  # Scale to [0.1, 1.0]
-
-    # Simple 1D Darcy: -d/dx(K du/dx) = f
-    # For simplicity, assume f = -1, and solve using finite differences
-    f = -np.ones(num_cal)
     dx = x_cal[1] - x_cal[0]
+    
+    t_final = 1.0
+    dt = 0.8 * dx / abs(c) if c != 0 else 0.01
+    num_t = int(t_final / dt)
+    
+    if u0_cal is None:
+        # _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale, if_period=True)
+        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale, if_period=False)
 
-    # Simple finite difference solution (approximate)
-    u_cal = np.cumsum(f * dx**2 / K_field)  # Very simplified
-    u_cal = u_cal - u_cal.mean()  # Center around zero
+    u_cal = np.zeros((num_cal, num_t))
+    u_cal[:, 0] = u0_cal
 
-    # Generate boundary condition representation
-    _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
+    # Use upwind finite difference scheme
+    for j in range(1, num_t):
+        u_prev = u_cal[:, j-1].copy()
+        u_new = np.zeros_like(u_prev)
+        
+        if c > 0:
+            # Positive advection, use backward difference
+            for i in range(num_cal):
+                if i == 0:
+                    # Periodic boundary condition
+                    u_new[i] = u_prev[i] - c * dt / dx * (u_prev[i] - u_prev[-1])
+                else:
+                    u_new[i] = u_prev[i] - c * dt / dx * (u_prev[i] - u_prev[i-1])
+        elif c < 0:
+            # Negative advection, use forward difference
+            for i in range(num_cal):
+                if i == num_cal - 1:
+                    # Periodic boundary condition
+                    u_new[i] = u_prev[i] - c * dt / dx * (u_prev[0] - u_prev[i])
+                else:
+                    u_new[i] = u_prev[i] - c * dt / dx * (u_prev[i+1] - u_prev[i])
+        else:
+            u_new = u_prev
+        
+        u_cal[:, j] = u_new
+    
+    if num_t > num_cal:
+        time_indices = np.linspace(0, num_t-1, num_cal, dtype=int)
+        u_cal_sampled = u_cal[:, time_indices]
+    else:
+        from scipy.interpolate import interp1d
+        t_old = np.linspace(0, 1, num_t)
+        t_new = np.linspace(0, 1, num_cal)
+        u_cal_sampled = np.zeros((num_cal, num_cal))
+        for i in range(num_cal):
+            interp_func = interp1d(t_old, u_cal[i, :], kind='linear', 
+                                  bounds_error=False, fill_value='extrapolate')
+            u_cal_sampled[i, :] = interp_func(t_new)
+    
+    return u_cal_sampled, u0_cal
 
-    return u_cal, u0_cal
 
 
-def solve_advection_pde_simple(num_cal, length_scale=0.2):
-    """Simplified advection PDE solver"""
+def solve_rdiffusion_pde(num_cal, length_scale, D=0.01, k=0.01, u0_cal=None):
+    """Solve rdiffusion PDE ∂u/∂t = α∇²u + k*u² + u0(x)"""
     x_cal = np.linspace(0, 1, num_cal)
     t_cal = np.linspace(0, 1, num_cal)
-
-    # Generate initial condition
-    _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
-
-    # Simple advection: du/dt + a du/dx = 0, with a=1
-    # Analytical solution: u(x,t) = u0(x-t)
-    u_cal = np.zeros((num_cal, num_cal))
-    for i, t in enumerate(t_cal):
-        u_cal[i] = np.interp(x_cal, x_cal - t, u0_cal, left=u0_cal[0], right=u0_cal[-1])
-
-    return u_cal, u0_cal
-
-
-def solve_rdiffusion_pde_simple(num_cal, length_scale=0.2):
-    """Simplified reaction-diffusion PDE solver"""
-    x_cal = np.linspace(0, 1, num_cal)
-    t_cal = np.linspace(0, 1, num_cal)
-
-    # Generate initial condition
-    _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
-
-    # Simple reaction-diffusion: du/dt = D d²u/dx² + k u
-    # For simplicity, use a basic exponential decay with diffusion
-    u_cal = np.zeros((num_cal, num_cal))
-    for i, t in enumerate(t_cal):
-        # Very simplified solution
-        u_cal[i] = u0_cal * np.exp(-0.1 * t) * np.exp(-0.01 * (x_cal - 0.5)**2 / t) if t > 0 else u0_cal
-
-    return u_cal, u0_cal
+    
+    # Calculate time step parameters
+    dx = x_cal[1] - x_cal[0]
+    dt = min(dx**2 / (2 * D), t_cal[1] - t_cal[0])  # Ensure stability
+    num_cal_t = int(1//dt)
+    
+    def rdiffusion_step(u, dx, dt, D, k, u0):
+        u_new = np.zeros_like(u)
+        for i in range(1, len(u) - 1):
+            u_new[i] = u[i] + dt * (D * (u[i+1] - 2*u[i] + u[i-1]) / (dx**2) + k * (u[i]**2) + u0[i])
+        u_new[0] = u_new[-1] = 0  # Boundary conditions
+        return u_new
+    
+    if u0_cal is None:
+        # Generate initial condition and source term
+        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
+    
+    # Time evolution
+    u_cal = np.zeros((num_cal, num_cal_t))
+    for i in range(1, num_cal_t):
+        u_cal[:, i] = rdiffusion_step(u_cal[:, i-1], dx, dt, D, k, u0_cal)
+    
+    # Sample the data to match num_cal
+    u_cal_sampled = u_cal[:, ::max(1, num_cal_t//num_cal)][:, :num_cal]
+    
+    return u_cal_sampled, u0_cal
 
 
-def generate_PDE_Operator_data(operator_type, num_train, num_test,
-                               num_points, num_points_0,
-                               num_cal=100,
+def generate_PDE_Operator_data(operator_type, num_train, num_test, 
+                               num_points,      # 控制输出 u(x,t) 的分辨率 (Trunk/Output)
+                               num_points_0,    # 控制输入 u0(x) 的分辨率 (Branch Input)
+                               num_cal=100, 
                                length_scale=0.2):
     """
     Generate data for PDE operator problems.
+    Adapted to support decoupled input/output resolutions with 2D interpolation.
     """
-    operator_name = operator_type
-
-    # Data path
-    data_path = f'data/{operator_name}_Operator_data/{operator_name}_Operator_data_{num_cal}_1.npz'
+    
+    # 1. 数据路径策略：复用高分辨率计算数据
+    data_path = f'data/{operator_type}_Operator_data/{operator_type}_Operator_data_{num_cal}_1.npz'
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
-
-    # Try to load existing data
+    
+    # 2. 尝试加载现有的高分辨率源数据
+    u_cals, u0_cals = [], []
     if os.path.exists(data_path):
-        d = np.load(data_path, allow_pickle=True)
-        u_cals = list(d['u_cals']) if 'u_cals' in d else []
-        u0_cals = list(d['u0_cals']) if 'u0_cals' in d else []
-    else:
-        u_cals, u0_cals = [], []
+        try:
+            d = np.load(data_path, allow_pickle=True)
+            u_cals = list(d['u_cals']) if 'u_cals' in d else []
+            u0_cals = list(d['u0_cals']) if 'u0_cals' in d else []
+        except Exception as e:
+            print(f"Warning: Failed to load cached data {data_path}: {e}")
 
-    # Generate missing data
+    # 3. 如果源数据不足，生成新的高分辨率数据
     if len(u_cals) < num_train + num_test:
-        print(f"Generating {operator_name} PDE data (Resolution: {num_cal})")
+        print(f"Generating {operator_type} Data (Calculation Resolution: {num_cal})")
         total_needed = num_train + num_test - len(u_cals)
+        save_interval = 100 
+        
+        for i in tqdm(range(total_needed), desc=f"Generating {operator_type} Data"):
+            try:
+                # 映射到现有的简单求解器函数
+                if operator_type == 'Darcy':
+                    u_cal_new, u0_cal_new = solve_darcy_pde(num_cal, length_scale)
+                elif operator_type == 'Advection':
+                    u_cal_new, u0_cal_new = solve_advection_pde(num_cal, length_scale)
+                elif operator_type == 'RDiffusion':
+                    u_cal_new, u0_cal_new = solve_rdiffusion_pde(num_cal, length_scale)
+                else:
+                    raise ValueError(f"Unknown PDE operator: {operator_type}")
+                
+                if np.isnan(u_cal_new).any():
+                     print("Warning: NaN detected in solver output, skipping sample.")
+                     continue
 
-        for i in range(total_needed):
-            if operator_name == 'Darcy':
-                u_cal, u0_cal = solve_darcy_pde_simple(num_cal, length_scale)
-            elif operator_name == 'Advection':
-                u_cal, u0_cal = solve_advection_pde_simple(num_cal, length_scale)
-            elif operator_name == 'RDiffusion':
-                u_cal, u0_cal = solve_rdiffusion_pde_simple(num_cal, length_scale)
-            else:
-                raise ValueError(f"Unknown PDE operator: {operator_name}")
-
-            u_cals.append(u_cal)
-            u0_cals.append(u0_cal)
-
-        # Save data
-        np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
-
-    # For PDEs, we need to handle 2D data properly
-    # For simplicity, flatten or take slices
+                u_cals.append(u_cal_new)
+                u0_cals.append(u0_cal_new)
+            except Exception as e:
+                print(f"Error solving PDE: {e}")
+                continue
+            
+            # 定期保存 (防崩溃备份)
+            if (i + 1) % save_interval == 0 or i == total_needed - 1:
+                np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
+    
+    # === 4. 插值 / 降采样逻辑 (核心修改) ===
+    print(f"Interpolating data:")
+    print(f"  - Input u0: from source len to {num_points_0}")
+    print(f"  - Output u: from source {num_cal}x{num_cal} to {num_points}x{num_points}")
+    
+    # 目标网格 - Output / Trunk (基于 num_points)
+    x_target = np.linspace(0, 1, num_points)
+    t_target = np.linspace(0, 1, num_points)
+    
+    # 目标网格 - Input / Branch (基于 num_points_0)
+    x_target_0 = np.linspace(0, 1, num_points_0)
+    
     us, u0s = [], []
-
+    
     for u_cal, u0_cal in zip(u_cals, u0_cals):
-        if u_cal.ndim == 2:  # 2D PDE solution
-            # Take the final time step or a representative slice
-            u_final = u_cal[-1] if num_points == 1 else u_cal
-            if num_points > 1 and u_cal.shape[0] != num_points:
-                # Interpolate in time dimension
-                t_orig = np.linspace(0, 1, u_cal.shape[0])
-                t_target = np.linspace(0, 1, num_points)
-                u_interp = np.zeros((num_points, u_cal.shape[1]))
-                for j in range(u_cal.shape[1]):
-                    u_interp[:, j] = np.interp(t_target, t_orig, u_cal[:, j])
-                u_final = u_interp
-        else:  # 1D solution
-            u_final = u_cal
-
-        # Handle u0 (input)
-        if u0_cal.ndim == 1 and num_points_0 != len(u0_cal):
-            # Interpolate u0 to target resolution
-            x_orig = np.linspace(0, 1, len(u0_cal))
-            x_target_0 = np.linspace(0, 1, num_points_0)
-            u0_final = np.interp(x_target_0, x_orig, u0_cal)
+        # --- 处理 u0 (Branch Input) 使用 num_points_0 ---
+        if u0_cal.ndim == 1:
+            u0_source_grid = np.linspace(0, 1, len(u0_cal))
+            u0 = np.interp(x_target_0, u0_source_grid, u0_cal)
         else:
-            u0_final = u0_cal
-
-        us.append(u_final.flatten() if u_final.ndim > 1 else u_final)
-        u0s.append(u0_final)
-
-    # Randomly split into training and testing sets
-    train_index = np.random.choice(num_train + num_test, num_train, replace=False)
-    test_index = np.array([i for i in range(num_train + num_test) if i not in train_index])
-
-    return np.array(u0s)[train_index].astype(np.float32), np.array(us)[train_index].astype(np.float32), np.array(u0s)[test_index].astype(np.float32), np.array(us)[test_index].astype(np.float32), np.linspace(0, 1, num_points).astype(np.float32)
-
+            u0 = u0_cal 
+        
+        # --- 处理 u (Output Solution) 使用 num_points ---
+        if u_cal.ndim == 2:
+            curr_x_dim, curr_t_dim = u_cal.shape
+            x_src_curr = np.linspace(0, 1, curr_x_dim)
+            t_src_curr = np.linspace(0, 1, curr_t_dim)
+            
+            interp_func = RegularGridInterpolator((x_src_curr, t_src_curr), u_cal, 
+                                                method='linear', bounds_error=False, fill_value=None)
+            
+            xg, tg = np.meshgrid(x_target, t_target, indexing='ij')
+            u = interp_func((xg, tg))
+        else:
+            # 1D Solution Fallback
+            u = np.interp(x_target, np.linspace(0, 1, len(u_cal)), u_cal)
+            
+        us.append(u)
+        u0s.append(u0)
+    
+    # 5. 分割训练集和测试集
+    available_samples = len(us)
+    indices = np.random.permutation(available_samples)
+    train_index = indices[:num_train]
+    test_index = indices[num_train:num_train + num_test]
+    
+    # 返回 Numpy Array，保留在 data_processing 中的兼容性
+    return (np.array(u0s)[train_index].astype(np.float32), 
+            np.array(us)[train_index].astype(np.float32), 
+            np.array(u0s)[test_index].astype(np.float32), 
+            np.array(us)[test_index].astype(np.float32), 
+            x_target.astype(np.float32), 
+            t_target.astype(np.float32))
 
 def generate_Antideriv_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
     return generate_ODE_Operator_data('Antideriv', num_train, num_test, num_points, num_points_0, length_scale, num_cal)

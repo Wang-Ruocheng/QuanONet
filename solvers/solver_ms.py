@@ -34,7 +34,6 @@ class MSSolver:
         self.operator_type = config['operator_type']
         self.model_type = config['model_type']
         
-        # 1. ⚡ 初始化超级日志记录器 (ExperimentLogger)
         prefix = config.get('prefix') or "outputs"
         self.exp_logger = ExperimentLogger(config, base_output_dir=prefix)
         self.run_id = self.exp_logger.exp_name
@@ -85,6 +84,7 @@ class MSSolver:
             self.test_input = self.data['test_input']
         self.train_output = self.data['train_output']
         self.test_output = self.data['test_output']
+        print(f"Data shapes - Train Input: {self.train_input[0].shape if isinstance(self.train_input, tuple) else self.train_input.shape}, Train Output: {self.train_output.shape}")
 
     def _create_model(self):
         self.logger.info("Creating Quantum Model...")
@@ -248,7 +248,6 @@ class MSSolver:
         metrics['rel_l2'] = rel_error 
         self.logger.info(f"Metrics: {metrics}")
         
-        # ⚡ 使用 ExperimentLogger 保存指标
         self.exp_logger.save_metrics(metrics, history)
         self.exp_logger.close()
         
