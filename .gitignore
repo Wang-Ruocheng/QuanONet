@@ -16,6 +16,8 @@ dairy/
 *.ckpt
 *.pth
 *.pt
+test.py
+visualization.ipynb
 
 # === 3. 忽略 Python 缓存和系统文件 ===
 __pycache__/

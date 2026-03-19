@@ -106,51 +106,46 @@ def ODE_fncode(generate_data, num_train, num_test, num_points, train_sample_num,
     return train_input, train_indices, train_output, test_input, test_indices, test_output
 
 
-def sample_2D_Operator_data(u0, u, x, t, sample_num):
-    """Sample data for 2D operator problems (Strictly aligned with original logic)."""
-    num = u.shape[0]
-    
-    # 扩展 u0 作为 branch input
-    branch_input = np.repeat(u0, sample_num, axis=0)
-    
-    # 构建正确的 2D 时空坐标网格 (X, T) -> 严格复刻原脚本的 repeat 和 tile 逻辑
+def PDE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
+    """
+    Encode PDE operator data for DeepONet training.
+    Structured identically to ODE_encode.
+    """
+    # Generate data - call with appropriate parameters
+    try:
+        # Try calling with operator_type first
+        u0_train, u_train, u0_test, u_test, x, t = generate_data(num_train, num_test, num_points, num_points_0)
+    except TypeError:
+        # Fall back to original signature with num_cal
+        u0_train, u_train, u0_test, u_test, x, t = generate_data(num_train, num_test, num_points, num_points_0, num_cal=num_cal)
+
+    # For PDEs, trunk input is spatial-temporal coordinates (X, T)
     x_repeat = np.repeat(x, len(t)).reshape(-1, 1)
     t_tile = np.tile(t, len(x)).reshape(-1, 1)
-    grid_coords = np.concatenate((x_repeat, t_tile), axis=1) # Shape: (len(x)*len(t), 2)
-    
-    trunk_input_list = []
-    output_list = []
+    grid_coords = np.concatenate((x_repeat, t_tile), axis=1)  # (num_points^2, 2)
     total_points = len(x) * len(t)
-    
-    for i in range(num):
-        # 随机采样索引
-        indices = np.random.choice(total_points, sample_num, replace=False)
-        
-        # 提取对应的坐标和真解
-        trunk_input_list.append(grid_coords[indices])
-        output_list.append(u[i].reshape(-1, 1)[indices])
-        
-    trunk_input = np.concatenate(trunk_input_list, axis=0)
-    output = np.concatenate(output_list, axis=0)
-    
-    return branch_input, trunk_input, output
 
+    # Sample spatial-temporal points for training and testing
+    # Shape: (num_samples, sample_num)
+    train_indices = np.array([np.random.choice(total_points, train_sample_num, replace=False) for _ in range(num_train)])
+    test_indices = np.array([np.random.choice(total_points, test_sample_num, replace=False) for _ in range(num_test)])
 
-def PDE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
-    """Encode PDE data for training (Corrected version)."""
-    
-    # 1. 完整接收 6 个返回值，绝不丢弃 t！
-    try:
-        train_u0, train_u, test_u0, test_u, x, t = generate_data(num_train, num_test, num_points, num_points_0)
-    except TypeError:
-        train_u0, train_u, test_u0, test_u, x, t = generate_data(num_train, num_test, num_points, num_points_0, num_cal=num_cal)
-        
-    # 2. 调用正确的 2D 采样函数
-    train_branch, train_trunk, train_out = sample_2D_Operator_data(
-        train_u0, train_u, x, t, train_sample_num
-    )
-    test_branch, test_trunk, test_out = sample_2D_Operator_data(
-        test_u0, test_u, x, t, test_sample_num
-    )
-    
-    return train_branch, train_trunk, train_out, test_branch, test_trunk, test_out
+    # Branch input: u0 values repeated for each sample point
+    # Shape: (num_samples * sample_num, num_points_0)
+    train_branch_input = np.repeat(u0_train, train_sample_num, axis=0)
+    test_branch_input = np.repeat(u0_test, test_sample_num, axis=0)
+
+    # Trunk input: spatial-temporal coordinates at sampled points
+    # Shape: (num_samples * sample_num, 2)
+    train_trunk_input = grid_coords[train_indices.flatten()]
+    test_trunk_input = grid_coords[test_indices.flatten()]
+
+    # Output: u values at sampled points
+    # Flatten the spatial-temporal dimensions of u to match grid_coords indexing
+    u_train_flat = u_train.reshape(num_train, -1)
+    u_test_flat = u_test.reshape(num_test, -1)
+
+    train_output = u_train_flat[np.arange(num_train)[:, None], train_indices].reshape(-1, 1)
+    test_output = u_test_flat[np.arange(num_test)[:, None], test_indices].reshape(-1, 1)
+
+    return train_branch_input, train_trunk_input, train_output, test_branch_input, test_trunk_input, test_output

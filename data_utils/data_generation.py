@@ -176,6 +176,16 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
 
     return np.array(u0s)[train_index].astype(np.float32), np.array(us)[train_index].astype(np.float32), np.array(u0s)[test_index].astype(np.float32), np.array(us)[test_index].astype(np.float32), x_target.astype(np.float32)
 
+def generate_Antideriv_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
+    return generate_ODE_Operator_data('Antideriv', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
+
+
+def generate_Homogeneous_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
+    return generate_ODE_Operator_data('Homogeneous', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
+
+
+def generate_Nonlinear_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
+    return generate_ODE_Operator_data('Nonlinear', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
 
 def generate_RDiffusion_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100):
     return generate_PDE_Operator_data('RDiffusion', num_train, num_test, num_points, num_points_0, num_cal, length_scale)
@@ -230,7 +240,6 @@ def solve_darcy_pde(num_cal, length_scale=1.0, K=0.1, f=-1.0, u0_cal=None):
     u_cal = spsolve(A.tocsr(), rhs).reshape((nx, ny))
 
     return u_cal, u0_cal
-
 
 def solve_advection_pde(num_cal, length_scale=0.2, c=1.0, u0_cal=None):
     """
@@ -291,8 +300,6 @@ def solve_advection_pde(num_cal, length_scale=0.2, c=1.0, u0_cal=None):
     
     return u_cal_sampled, u0_cal
 
-
-
 def solve_rdiffusion_pde(num_cal, length_scale, D=0.01, k=0.01, u0_cal=None):
     """Solve rdiffusion PDE ∂u/∂t = α∇²u + k*u² + u0(x)"""
     x_cal = np.linspace(0, 1, num_cal)
@@ -325,22 +332,22 @@ def solve_rdiffusion_pde(num_cal, length_scale, D=0.01, k=0.01, u0_cal=None):
     return u_cal_sampled, u0_cal
 
 
-def generate_PDE_Operator_data(operator_type, num_train, num_test, 
-                               num_points,      # 控制输出 u(x,t) 的分辨率 (Trunk/Output)
-                               num_points_0,    # 控制输入 u0(x) 的分辨率 (Branch Input)
-                               num_cal=100, 
-                               length_scale=0.2):
+def generate_PDE_Operator_data(operator_type, num_train, num_test,
+                               num_points,      # Controls output u(x,t) resolution (Trunk/Output)
+                               num_points_0,    # Controls input u0(x) resolution (Branch Input)
+                               length_scale=0.2,
+                               num_cal=100):
     """
-    Generate data for PDE operator problems.
-    Adapted to support decoupled input/output resolutions with 2D interpolation.
+    Generate data for PDE operator problems with decoupled input/output resolutions.
+    Structured identically to generate_ODE_Operator_data.
     """
-    
-    # 1. 数据路径策略：复用高分辨率计算数据
-    data_path = f'data/{operator_type}_Operator_data/{operator_type}_Operator_data_{num_cal}_1.npz'
+    operator_name = operator_type
+
+    # 1. Data path and loading strategy
+    data_path = f'data/{operator_name}_Operator_data/{operator_name}_Operator_data_{num_cal}_1.npz'
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
-    
-    # 2. 尝试加载现有的高分辨率源数据
-    u_cals, u0_cals = [], []
+
+    # Try to load existing data
     if os.path.exists(data_path):
         try:
             d = np.load(data_path, allow_pickle=True)
@@ -348,100 +355,86 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
             u0_cals = list(d['u0_cals']) if 'u0_cals' in d else []
         except Exception as e:
             print(f"Warning: Failed to load cached data {data_path}: {e}")
+            u_cals, u0_cals = [], []
+    else:
+        u_cals, u0_cals = [], []
 
-    # 3. 如果源数据不足，生成新的高分辨率数据
+    # 2. Generate missing data
     if len(u_cals) < num_train + num_test:
-        print(f"Generating {operator_type} Data (Calculation Resolution: {num_cal})")
+        print(f"Generating {operator_name} Data (Calculation Resolution: {num_cal})")
         total_needed = num_train + num_test - len(u_cals)
-        save_interval = 100 
-        
-        for i in tqdm(range(total_needed), desc=f"Generating {operator_type} Data"):
+        save_interval = 100
+
+        for i in tqdm(range(total_needed), desc=f"Generating {operator_name} Data"):
             try:
-                # 映射到现有的简单求解器函数
-                if operator_type == 'Darcy':
-                    u_cal_new, u0_cal_new = solve_darcy_pde(num_cal, length_scale)
-                elif operator_type == 'Advection':
-                    u_cal_new, u0_cal_new = solve_advection_pde(num_cal, length_scale)
-                elif operator_type == 'RDiffusion':
-                    u_cal_new, u0_cal_new = solve_rdiffusion_pde(num_cal, length_scale)
+                if operator_name == 'Darcy':
+                    u_cal_new, u0_cal_new = solve_darcy_pde(num_cal, length_scale=length_scale)
+                elif operator_name == 'Advection':
+                    u_cal_new, u0_cal_new = solve_advection_pde(num_cal, length_scale=length_scale)
+                elif operator_name == 'RDiffusion':
+                    u_cal_new, u0_cal_new = solve_rdiffusion_pde(num_cal, length_scale=length_scale)
                 else:
-                    raise ValueError(f"Unknown PDE operator: {operator_type}")
-                
+                    raise ValueError(f"Unknown PDE operator: {operator_name}")
+
                 if np.isnan(u_cal_new).any():
-                     print("Warning: NaN detected in solver output, skipping sample.")
-                     continue
+                    print("Warning: NaN detected in solver output, skipping sample.")
+                    continue
 
                 u_cals.append(u_cal_new)
                 u0_cals.append(u0_cal_new)
             except Exception as e:
                 print(f"Error solving PDE: {e}")
                 continue
-            
-            # 定期保存 (防崩溃备份)
+
+            # Save data periodically
             if (i + 1) % save_interval == 0 or i == total_needed - 1:
                 np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
-    
-    # === 4. 插值 / 降采样逻辑 (核心修改) ===
+
+    # 3. Dual-resolution interpolation
     print(f"Interpolating data:")
-    print(f"  - Input u0: from source len to {num_points_0}")
-    print(f"  - Output u: from source {num_cal}x{num_cal} to {num_points}x{num_points}")
-    
-    # 目标网格 - Output / Trunk (基于 num_points)
+    print(f"  - Input u0: from calculation resolution to {num_points_0}")
+    print(f"  - Output u: from calculation resolution to {num_points}x{num_points}")
+
+    # Target grid - Output / Trunk (based on num_points)
     x_target = np.linspace(0, 1, num_points)
     t_target = np.linspace(0, 1, num_points)
-    
-    # 目标网格 - Input / Branch (基于 num_points_0)
+
+    # Target grid - Input / Branch (based on num_points_0)
     x_target_0 = np.linspace(0, 1, num_points_0)
-    
+
     us, u0s = [], []
-    
+
     for u_cal, u0_cal in zip(u_cals, u0_cals):
-        # --- 处理 u0 (Branch Input) 使用 num_points_0 ---
+        # Interpolate u0 (input) to target resolution
         if u0_cal.ndim == 1:
-            u0_source_grid = np.linspace(0, 1, len(u0_cal))
-            u0 = np.interp(x_target_0, u0_source_grid, u0_cal)
+            x_source_0 = np.linspace(0, 1, len(u0_cal))
+            u0_new = np.interp(x_target_0, x_source_0, u0_cal)
         else:
-            u0 = u0_cal 
-        
-        # --- 处理 u (Output Solution) 使用 num_points ---
+            u0_new = u0_cal
+
+        # Interpolate u (output) to target resolution
         if u_cal.ndim == 2:
             curr_x_dim, curr_t_dim = u_cal.shape
             x_src_curr = np.linspace(0, 1, curr_x_dim)
             t_src_curr = np.linspace(0, 1, curr_t_dim)
-            
-            interp_func = RegularGridInterpolator((x_src_curr, t_src_curr), u_cal, 
-                                                method='linear', bounds_error=False, fill_value=None)
-            
+
+            interp_func = RegularGridInterpolator((x_src_curr, t_src_curr), u_cal,
+                                                  method='linear', bounds_error=False, fill_value=None)
             xg, tg = np.meshgrid(x_target, t_target, indexing='ij')
-            u = interp_func((xg, tg))
+            u_new = interp_func((xg, tg))
         else:
-            # 1D Solution Fallback
-            u = np.interp(x_target, np.linspace(0, 1, len(u_cal)), u_cal)
-            
-        us.append(u)
-        u0s.append(u0)
-    
-    # 5. 分割训练集和测试集
-    available_samples = len(us)
-    indices = np.random.permutation(available_samples)
-    train_index = indices[:num_train]
-    test_index = indices[num_train:num_train + num_test]
-    
-    # 返回 Numpy Array，保留在 data_processing 中的兼容性
+            u_new = np.interp(x_target, np.linspace(0, 1, len(u_cal)), u_cal)
+
+        us.append(u_new)
+        u0s.append(u0_new)
+
+    # Randomly split into training and testing sets (Same logic as ODE)
+    train_index = np.random.choice(num_train + num_test, num_train, replace=False)
+    test_index = np.array([i for i in range(num_train + num_test) if i not in train_index])
+
     return (np.array(u0s)[train_index].astype(np.float32), 
             np.array(us)[train_index].astype(np.float32), 
             np.array(u0s)[test_index].astype(np.float32), 
             np.array(us)[test_index].astype(np.float32), 
             x_target.astype(np.float32), 
             t_target.astype(np.float32))
-
-def generate_Antideriv_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
-    return generate_ODE_Operator_data('Antideriv', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
-
-
-def generate_Homogeneous_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
-    return generate_ODE_Operator_data('Homogeneous', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
-
-
-def generate_Nonlinear_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
-    return generate_ODE_Operator_data('Nonlinear', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
