@@ -4,7 +4,7 @@ data/
 *.csv
 # 忽略所有的 npz 文件（通常是生成的数据或缓存）
 *.npz
-!hardware_deployment/*.npz
+!hardware_deployment/best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz
 
 # === 2. 忽略训练产物 (日志、权重、结果) ===
 logs/
