@@ -50,6 +50,14 @@ for OP in "${OPERATORS[@]}"; do
         TEST_SAMPLE=100
         PTS=100
         PTS_0=100
+    elif [ "$OP" == "Darcy" ]; then
+        PROB_TYPE="PDE"
+        # Special case: Darcy
+        EPOCHS=1000
+        TRAIN_SAMPLE=100
+        TEST_SAMPLE=500
+        PTS=25
+        PTS_0=100
     else
         PROB_TYPE="PDE"
         EPOCHS=100
