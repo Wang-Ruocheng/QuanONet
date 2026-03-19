@@ -84,7 +84,6 @@ class MSSolver:
             self.test_input = self.data['test_input']
         self.train_output = self.data['train_output']
         self.test_output = self.data['test_output']
-        print(f"Data shapes - Train Input: {self.train_input[0].shape if isinstance(self.train_input, tuple) else self.train_input.shape}, Train Output: {self.train_output.shape}")
 
     def _create_model(self):
         self.logger.info("Creating Quantum Model...")
