@@ -36,7 +36,6 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 │   └── solver_dde.py        # Classical solver (DeepXDE/PyTorch backend)
 │
 ├── data_utils/            # Data pipelines and generation
-│   ├── PDE_SYSTEMS.py       # Definitions of physical operators (Antideriv, Darcy, etc.)
 │   ├── data_generation.py   # Dataset generation scripts
 │   ├── data_manager.py      # Data loading, formatting, and batching
 │   └── random_func.py       # Gaussian Random Field (GRF) generators
