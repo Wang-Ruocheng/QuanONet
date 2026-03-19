@@ -13,7 +13,6 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 ```text
 .
 ├── main.py                # Unified Entry Point (Auto-backend selection)
-├── convert_ckpt.py        # Converts MindSpore .ckpt to .npz for hardware inference
 ├── requirements.txt       # Project dependencies
 ├── README.md              # Project documentation
 │
@@ -48,6 +47,7 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 │
 ├── hardware_deployment/        # Real-device deployment on IBM Quantum
 │   ├── requirements_qiskit.txt # Standalone Qiskit environment dependencies
+│   ├── convert_ckpt.py        # Converts MindSpore .ckpt to .npz for hardware inference
 │   ├── ibm_inference.py        # Transpilation, execution, profiling, and plotting
 │   └── best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0.npz # Pre-trained weights
 │
