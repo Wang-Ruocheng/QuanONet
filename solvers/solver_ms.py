@@ -100,7 +100,10 @@ class MSSolver:
         else:
             ham = ham_diag_to_operator(self.config['ham_diag'], self.config['num_qubits'])
             
-        self.logger.info(f"Hamiltonian Matrix:\n{ham.hamiltonian.matrix()}")
+        if hasattr(ham, 'hamiltonian'):
+            self.logger.info(f"Hamiltonian Formula:\n{ham.hamiltonian}")
+        else:
+            self.logger.info(f"Hamiltonian:\n{ham}")
         
         if isinstance(self.train_input, tuple):
             branch_in = self.train_input[0].shape[1]
