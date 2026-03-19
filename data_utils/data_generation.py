@@ -429,12 +429,15 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
 
 
 def generate_RDiffusion_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100):
-    return generate_PDE_Operator_data('RDiffusion', num_train, num_test, num_points, num_points_0, num_cal, length_scale)
+    return generate_PDE_Operator_data('RDiffusion', num_train, num_test, num_points, num_points_0, 
+                                      length_scale=length_scale, num_cal=num_cal)
 
 
 def generate_Advection_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100):
-    return generate_PDE_Operator_data('Advection', num_train, num_test, num_points, num_points_0, num_cal, length_scale)
+    return generate_PDE_Operator_data('Advection', num_train, num_test, num_points, num_points_0, 
+                                      length_scale=length_scale, num_cal=num_cal)
 
 
 def generate_Darcy_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100):
-    return generate_PDE_Operator_data('Darcy', num_train, num_test, num_points, num_points_0, num_cal, length_scale)
+    return generate_PDE_Operator_data('Darcy', num_train, num_test, num_points, num_points_0, 
+                                      length_scale=length_scale, num_cal=num_cal)
