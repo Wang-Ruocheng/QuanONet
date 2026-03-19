@@ -9,6 +9,7 @@ data/
 # === 2. 忽略训练产物 (日志、权重、结果) ===
 logs/
 checkpoints/
+Table4_Reproduction/
 outputs/
 dairy/
 *.log
