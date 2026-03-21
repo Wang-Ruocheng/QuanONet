@@ -109,7 +109,7 @@ python main.py \
 
 ## Reproducing Paper Results
 
-For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the pre-trained weights (MindSpore `.ckpt`) from the `pretrained_weights/` directory and renders contour plots comparing our model's predictions against the ground truth.
+For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the PDE pre-trained weights (MindSpore `.ckpt`) from the `pretrained_weights/` directory and renders contour plots comparing our model's predictions against the ground truth.
 
 The `scripts/` directory contains automated bash scripts to reproduce the primary experimental results reported in the manuscript.
 
