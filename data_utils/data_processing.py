@@ -22,22 +22,24 @@ def ODE_encode(generate_data, num_train, num_test, num_points, num_points_0, tra
     x_trunk = x.reshape(-1, 1)  # (num_points, 1)
 
     # Sample spatial points for training and testing
-    train_indices = np.random.choice(num_points, size=num_train * train_sample_num, replace=True)
-    test_indices = np.random.choice(num_points, size=num_test * test_sample_num, replace=True)
+    train_indices = np.array([np.random.choice(num_points, train_sample_num, replace=False) for _ in range(num_train)])
+    test_indices = np.array([np.random.choice(num_points, test_sample_num, replace=False) for _ in range(num_test)])
+
+    # Branch input: u0 values repeated for each sample point
+    u_train_flat = u_train.reshape(num_train, -1)
+    u_test_flat = u_test.reshape(num_test, -1)
+
+    train_output = u_train_flat[np.arange(num_train)[:, None], train_indices].reshape(-1, 1)
+    test_output = u_test_flat[np.arange(num_test)[:, None], test_indices].reshape(-1, 1)
+
+    # Trunk input: spatial coordinates at sampled points
+    train_trunk_input = x_trunk[train_indices.flatten()]
+    test_trunk_input = x_trunk[test_indices.flatten()]
 
     # Branch input: u0 values repeated for each sample point
     # Shape: (num_samples * sample_num, num_points)
     train_branch_input = np.repeat(u0_train, train_sample_num, axis=0)  # (num_train * train_sample_num, num_points)
     test_branch_input = np.repeat(u0_test, test_sample_num, axis=0)     # (num_test * test_sample_num, num_points)
-
-    # Trunk input: spatial coordinates at sampled points
-    # Shape: (num_samples * sample_num, 1)
-    train_trunk_input = x_trunk[train_indices]  # (num_train * train_sample_num, 1)
-    test_trunk_input = x_trunk[test_indices]    # (num_test * test_sample_num, 1)
-
-    # Output: u values at sampled points
-    train_output = u_train[np.repeat(np.arange(num_train), train_sample_num), train_indices].reshape(-1, 1)
-    test_output = u_test[np.repeat(np.arange(num_test), test_sample_num), test_indices].reshape(-1, 1)
 
     return train_branch_input, train_trunk_input, train_output, test_branch_input, test_trunk_input, test_output
 
@@ -49,7 +51,7 @@ def ODE_fncode(generate_data, num_train, num_test, num_points, train_sample_num,
     # 1. Generate raw data
     # train_v (Input u0) shape: [Batch, 1000] (usually from num_points_0)
     # train_u (Output u) shape: [Batch, 64] (usually from num_points)
-    train_v, train_u, test_v, test_u, _ = generate_data(num_train, num_test)
+    train_v, train_u, test_v, test_u, _ = generate_data(num_train, num_test, num_points, num_points)
     
     # 2. Auto-align Resolution (Critical for FNO)
     # FNO requires the input function v(x) and the grid x to have the same resolution.
@@ -104,7 +106,6 @@ def ODE_fncode(generate_data, num_train, num_test, num_points, train_sample_num,
     test_input, test_indices, test_output = sample_1D_Operator_fndata(test_v, test_u, x, test_sample_num)
     
     return train_input, train_indices, train_output, test_input, test_indices, test_output
-
 
 def PDE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
     """

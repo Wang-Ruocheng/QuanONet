@@ -31,14 +31,13 @@ def RBF(X1, X2, gp_params):
     return output_scale * np.exp(-0.5 * r2 / (length_scale**2))
 
 
-def generate_random_gaussian_field(m, length_scale=0.2, if_period=False):
+def generate_random_gaussian_field(m, length_scale=0.2):
     """
     Generate random Gaussian field using Gaussian process.
 
     Args:
         m: Number of output points
         length_scale: Length scale parameter for the RBF kernel
-        if_period: Whether to make the field periodic
 
     Returns:
         u_fn: Interpolation function
@@ -53,10 +52,6 @@ def generate_random_gaussian_field(m, length_scale=0.2, if_period=False):
     L = np.linalg.cholesky(K + jitter * np.eye(N))
     key_train = np.random.randn(N)
     gp_sample = np.dot(L, key_train)
-
-    if if_period:
-        # Make periodic by averaging with reversed version
-        gp_sample = (gp_sample + gp_sample[::-1]) / 2
 
     u_fn = lambda x: np.interp(x, X.flatten(), gp_sample)
     x = np.linspace(0, 1, m)
@@ -197,7 +192,7 @@ def solve_darcy_pde(num_cal, length_scale=1.0, K=0.1, f=-1.0, u0_cal=None):
     dx, dy = Lx/(nx-1), Ly/(ny-1)
     if u0_cal is None:
         # Generate initial condition and source term
-        _, u0_cal = generate_random_gaussian_field(4*num_cal, length_scale=length_scale, if_period=True)
+        _, u0_cal = generate_random_gaussian_field(4*num_cal, length_scale=length_scale)
     def boundary_from_1d_func(u0):
         edge = len(u0)//4
         left = u0[:edge]
@@ -241,8 +236,7 @@ def solve_advection_pde(num_cal, length_scale=0.2, c=1.0, u0_cal=None):
     num_t = int(t_final / dt)
     
     if u0_cal is None:
-        # _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale, if_period=True)
-        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale, if_period=False)
+        _, u0_cal = generate_random_gaussian_field(num_cal, length_scale=length_scale)
 
     u_cal = np.zeros((num_cal, num_t))
     u_cal[:, 0] = u0_cal

@@ -84,7 +84,7 @@ class MSSolver:
             self.test_input = self.data['test_input']
         self.train_output = self.data['train_output']
         self.test_output = self.data['test_output']
-
+        print(f"Data shapes - train_branch_input_shape: {self.data.get('train_branch_input', 'N/A').shape if 'train_branch_input' in self.data else 'N/A'}, train_trunk_input_shape: {self.data.get('train_trunk_input', 'N/A').shape if 'train_trunk_input' in self.data else 'N/A'}, train_output_shape: {self.train_output.shape}, test_branch_input_shape: {self.data.get('test_branch_input', 'N/A').shape if 'test_branch_input' in self.data else 'N/A'}, test_trunk_input_shape: {self.data.get('test_trunk_input', 'N/A').shape if 'test_trunk_input' in self.data else 'N/A'}, test_output_shape: {self.test_output.shape}")
     def _create_model(self):
         self.logger.info("Creating Quantum Model...")
         ham_bound = self.config.get('ham_bound')
