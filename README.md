@@ -26,9 +26,9 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 │
 ├── visualization.ipynb    # Jupyter notebook for quick PDE results visualization
 ├── pretrained_weights/    # Pre-trained checkpoints (.ckpt)
-│   ├── pretrained_weights/RDiffusion/RDiffusion_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
-│   ├── pretrained_weights/Advection/Advection_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
-│   └── pretrained_weights/Darcy/Darcy_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x25_Seed0/best_model.ckpt
+│   ├── RDiffusion/RDiffusion_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
+│   ├── Advection/Advection_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
+│   └── Darcy/Darcy_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x25_Seed0/best_model.ckpt
 │
 ├── core/                  # Core model architectures
 │   ├── models.py            # Unified model wrapper
@@ -109,7 +109,7 @@ python main.py \
 
 ## Reproducing Paper Results
 
-For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the pre-trained weights (MindSpore `.ckpt`) from the `pretrained_weights/` directory and renders contour plots comparing our model's predictions against the ground truth. 
+For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the pre-trained weights (MindSpore `.ckpt`) from the `pretrained_weights/` directory and renders contour plots comparing our model's predictions against the ground truth.
 
 The `scripts/` directory contains automated bash scripts to reproduce the primary experimental results reported in the manuscript.
 
