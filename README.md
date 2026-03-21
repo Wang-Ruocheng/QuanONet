@@ -24,6 +24,12 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 │   ├── reproduce_table8.sh  # Circuit Architecture Ablation
 │   └── reproduce_sec54.sh   # Hamiltonian Design Ablation
 │
+├── visualization.ipynb    # Jupyter notebook for quick PDE results visualization
+├── pretrained_weights/    # Pre-trained checkpoints (.ckpt)
+│   ├── pretrained_weights/RDiffusion/RDiffusion_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
+│   ├── pretrained_weights/Advection/Advection_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
+│   └── pretrained_weights/Darcy/Darcy_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x25_Seed0/best_model.ckpt
+│
 ├── core/                  # Core model architectures
 │   ├── models.py            # Unified model wrapper
 │   ├── quantum_circuits.py  # QuanONet & HEAQNN circuits (MindSpore)
@@ -48,8 +54,7 @@ The repository utilizes a unified solver architecture that handles both Quantum 
 ├── hardware_deployment/        # Real-device deployment on IBM Quantum
 │   ├── requirements_qiskit.txt # Standalone Qiskit environment dependencies
 │   ├── ibm_inference.py        # Transpilation, execution, profiling, and plotting
-│   └── best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0
-│      └── best_model.npz # Pre-trained weights
+│   └── Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz # Pre-trained checkpoints (.npz)
 │
 ├── configs/               # Configuration presets
 └── image/                 # Architectural diagrams
@@ -103,6 +108,8 @@ python main.py \
 ```
 
 ## Reproducing Paper Results
+
+For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the pre-trained weights (MindSpore `.ckpt`) from the `pretrained_weights/` directory and renders contour plots comparing our model's predictions against the ground truth. 
 
 The `scripts/` directory contains automated bash scripts to reproduce the primary experimental results reported in the manuscript.
 
@@ -193,7 +200,7 @@ This unified script automatically analyzes the physical chip topology, routes op
 
 **Using Custom Weights:**
 
-The repository includes a pre-trained checkpoint (`best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz`) matching the lightweight configuration. To evaluate custom models:
+The repository includes a pre-trained checkpoint (`Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz`) matching the lightweight configuration. To evaluate custom models:
 
 1. Execute with the `.npz` weight path argument: `python ibm_inference.py --weight_path YOUR_WEIGHT_FILE.npz`.
 2. The script automatically parses the network dimensions from the filename. If a custom naming convention is used, dimensions must be passed manually (e.g., `--n_qubits 4 --n_branch 5 --n_trunk 5 --n_hidden 1`).
