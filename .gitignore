@@ -4,7 +4,7 @@ data/
 *.csv
 # 忽略所有的 npz 文件（通常是生成的数据或缓存）
 *.npz
-!hardware_deployment/best_Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz
+!hardware_deployment/Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz
 !pretrained_weights/Advection/Advection_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
 !pretrained_weights/Darcy/Darcy_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x25_Seed0/best_model.ckpt
 !pretrained_weights/RDiffusion/RDiffusion_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
@@ -21,7 +21,6 @@ dairy/
 *.pth
 *.pt
 test.py
-!visualization.ipynb
 
 # === 3. 忽略 Python 缓存和系统文件 ===
 __pycache__/
