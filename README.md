@@ -4,11 +4,9 @@
 
 ## Introduction
 
-QuanONet is a pure quantum neural operator framework designed for the Noisy Intermediate-Scale Quantum (NISQ) era to solve partial differential equations (PDEs). Unlike hybrid architectures that rely on classical post-processing, QuanONet performs end-to-end learning within the quantum Hilbert space.
+QuanONet is a pure quantum neural operator framework designed for the Noisy Intermediate-Scale Quantum (NISQ) era to solve partial differential equations (PDEs). 
 
 ## Repository Structure
-
-The repository utilizes a unified solver architecture that handles both Quantum (MindSpore) and Classical (PyTorch/DeepXDE) backends:
 
 ```text
 .
@@ -97,19 +95,17 @@ python main.py \
 
 **2. Train Classical Baseline (DeepONet)**
 
-*Note on Asymmetric Parameterization:* To rigorously evaluate parameter efficiency, the classical baselines in our experiments are intentionally parameterized to ~10,000 parameters, granting them nearly an order of magnitude advantage over the compact TF-QuanONet (~1,200 parameters).
-
 ```bash
 python main.py \
   --operator Antideriv \
   --model_type DeepONet \
   --net_size 3 100 3 100 \
-  --num_epochs 2000
+  --num_epochs 1000
 ```
 
 ## Reproducing Paper Results
 
-For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the PDE pre-trained weights (MindSpore `.ckpt`) from the `pretrained_weights/` directory and renders contour plots comparing our model's predictions against the ground truth.
+For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the PDE pre-trained weights (MindSpore `.ckpt`) from the `pretrained_weights/` directory.
 
 The `scripts/` directory contains automated bash scripts to reproduce the primary experimental results reported in the manuscript.
 
@@ -224,7 +220,7 @@ For the preliminary conference version establishing the foundational QuanONet ar
 @inproceedings{wang2025quanonet,
   title={QuanONet: Quantum Neural Operator with Application to Differential Equation},
   author={Wang, Ruocheng and Xia, Zhuo and Yan, Ge and Yan, Junchi},
-  booktitle={International Conference on Machine Learning},
+  booktitle={Forty-second International Conference on Machine Learning},
   year={2025}
 }
 ```
