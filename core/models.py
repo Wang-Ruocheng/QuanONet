@@ -80,16 +80,16 @@ class QuanONet(nn.Cell):
 class HEAQNN(nn.Cell):
     """Hardware Efficient Ansatz Quantum Neural Network with optional trainable frequency support."""
     
-    def __init__(self, num_qubits, branch_input_size, trunk_input_size, net_size, 
+    def __init__(self, num_qubits, input_size, net_size, 
                  ham, scale_coeff=1, if_trainable_freq=False):
         super(HEAQNN, self).__init__()
         (self.depth, self.linear_depth) = net_size
         
         self.if_trainable_freq = if_trainable_freq
-        self.total_input_size = branch_input_size + trunk_input_size
+        self.input_size = input_size
         
         HEAQNN_circuit = HEAQNNwork_build(
-            num_qubits, self.total_input_size, self.depth, self.linear_depth
+            num_qubits, self.input_size, self.depth, self.linear_depth
         )
         self.HEAQNN = circuit2network(HEAQNN_circuit, ham)
         
@@ -101,14 +101,10 @@ class HEAQNN(nn.Cell):
             )
         else:
             # Using fixed scaling layers
-            self.CoeffLayer = CoeffLayer(self.total_input_size, scale_coeff)
+            self.CoeffLayer = CoeffLayer(self.input_size, scale_coeff)
             self.RepeatLayer = RepeatLayer(self.depth * num_qubits)
     
     def construct(self, input):
-        branch_input = input[0]
-        trunk_input = input[1]
-        input = mnp.concatenate((branch_input, trunk_input), axis=1)
-        
         if self.if_trainable_freq:
             input = self.LinearLayer(input)
         else:
@@ -122,33 +118,30 @@ class HEAQNN(nn.Cell):
 class FNN(nn.Cell):
     """Feedforward Neural Network for comparison."""
     
-    def __init__(self, branch_input_size, trunk_input_size, output_size, net_size, 
+    def __init__(self, input_size, output_size, net_size, 
                  activation=nn.Tanh()):
         super(FNN, self).__init__()
         (self.hidden_layer_depth, self.hidden_layer_width) = net_size
         
         self.FNN = FNNLayer(
-            branch_input_size + trunk_input_size, output_size, 
+            input_size, output_size, 
             self.hidden_layer_width, self.hidden_layer_depth, activation
         )
     
     def construct(self, input):
-        branch_input = input[0]
-        trunk_input = input[1]
-        input = mnp.concatenate((branch_input, trunk_input), axis=1)
         return self.FNN(input)
 
 
 class DeepONet(nn.Cell):
     """
-    Deep Operator Network with optional Periodic Embedding on Trunk Input.
+    MindSpore implementation of Deep Operator Network.
+    Note: Preserved for future use.
     """
     def __init__(self, branch_input_size, trunk_input_size, net_size, 
-                 activation=nn.Tanh(), domain_length=1.0):
+                 activation=nn.Tanh()):
         super(DeepONet, self).__init__()
         
         # Unpack network size configuration
-        # Assume net_size = (branch_depth, branch_width, trunk_depth, trunk_width)
         (self.branch_depth, self.branch_width, 
          self.trunk_depth, self.trunk_width) = net_size
 
@@ -158,30 +151,21 @@ class DeepONet(nn.Cell):
         )
         
         # Trunk Net (handles coordinates)
-        # Note: The trunk_input_size here must match the output dimension of the embedding layer
-        if self.enable_periodic:
-            self.trunk_net = FNNLayer(
-                trunk_input_size+1, self.trunk_width, 
-                self.trunk_width, self.trunk_depth + 1, activation
-            )
-        else:
-            self.trunk_net = FNNLayer(
-                trunk_input_size, self.trunk_width, 
-                self.trunk_width, self.trunk_depth + 1, activation
-            )
+        self.trunk_net = FNNLayer(
+            trunk_input_size, self.trunk_width, 
+            self.trunk_width, self.trunk_depth + 1, activation
+        )
 
         self.sum_layer = SumLayer()
         self.bias = ms.Parameter(ms.Tensor(0.0, dtype=ms.float32), name="bias")
     
     def construct(self, input_tuple):
-        # Input is usually a tuple: (branch_input, trunk_input)
         branch_input = input_tuple[0]
         trunk_input = input_tuple[1]
             
-        # Standard DeepONet process
         branch_output = self.branch_net(branch_input)
         trunk_output = self.trunk_net(trunk_input)
         
         output = branch_output * trunk_output
-        output = self.sum_layer(output).unsqueeze(1) + self.bias
+        output = self.sum_layer(output).expand_dims(1) + self.bias
         return output

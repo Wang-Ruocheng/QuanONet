@@ -60,12 +60,11 @@ def main():
 
     if args.gpu is not None:
         # 【Scenario 1】User specified GPU
-        print(f"🔧 [Manual] User specified GPU: {args.gpu}")
+        gpu_id = int(args.gpu) 
+        print(f"🔧 [Manual] User specified GPU: {gpu_id}")
         
-        # For PyTorch, we set CUDA_VISIBLE_DEVICES to the specified GPU index
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
-        
-        config['gpu'] = 0  
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+        config['gpu'] = gpu_id  
         config['device_target'] = "GPU"
 
     else:
@@ -75,12 +74,12 @@ def main():
             try:
                 import torch
                 if torch.cuda.is_available():
-                    print("🚀 [Auto] PyTorch Backend -> Found CUDA, defaulting to GPU 0")
+                    print("[Auto] PyTorch Backend -> Found CUDA, defaulting to GPU 0")
                     # Default to GPU 0 if multiple GPUs are present, or you can implement more complex logic here
                     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
                     config['gpu'] = 0
                 else:
-                    print("🐢 [Auto] PyTorch Backend -> No CUDA, using CPU")
+                    print("[Auto] PyTorch Backend -> No CUDA, using CPU")
                     config['gpu'] = None
             except ImportError:
                 config['gpu'] = None

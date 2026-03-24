@@ -16,7 +16,7 @@ from .data_generation import (
     generate_ODE_Operator_data,
     generate_PDE_Operator_data
 )
-from .data_processing import ODE_encode, PDE_encode, ODE_fncode
+from .data_processing import ODE_encode, PDE_encode, ODE_fncode, PDE_fncode
 
 # Map operator names to their generator functions
 GENERATOR_MAP = {
@@ -124,8 +124,6 @@ class DataManager:
         # Helper to call generator with standardized args
         # Note: We bind the static args here so the Encoders just call gen_func(nt, nte)
         def gen_func_wrapper(nt, nte, *args, **kwargs):
-                    # *args 会吞掉传入的 num_points 和 num_points_0
-                    # 我们直接使用 self.num_points 以保证配置的一致性
                     return generator(
                         nt, nte, 
                         self.num_points, 
@@ -138,19 +136,16 @@ class DataManager:
         
         if self.model_type == 'FNO':
             # === FNO Specific Path ===
-            # FNO requires grid-structured data. We use ODE_fncode from data_processing.py
-            # Note: ODE_fncode expects a generator that returns (v_train, u_train, v_test, u_test, x)
-            # Your generate_* functions return exactly this 5-tuple.
+            # FNO requires grid-structured data. We use fncode from data_processing.py
             
             # FNO enforces sample_num == num_points usually
-            train_sample = self.num_points
-            test_sample = self.num_points
-            
-            train_in, _, train_out, test_in, _, test_out = ODE_fncode(
+
+            is_pde = self.operator_type in ['RDiffusion', 'Advection', 'Darcy']
+            encoder = PDE_fncode if is_pde else ODE_fncode
+            train_in, _, train_out, test_in, _, test_out = encoder(
                 gen_func_wrapper, 
                 c['num_train'], c['num_test'], 
-                self.num_points, 
-                train_sample, test_sample
+                self.num_points
             )
             
             return {
@@ -183,7 +178,7 @@ class DataManager:
                 'test_branch_input': test_branch,
                 'test_trunk_input': test_trunk,
                 'test_output': test_out,
-                # Also save combined input for FNN convenience
+                # Also save combined input for FNN and HEAQNN convenience
                 'train_input': np.concatenate([train_branch, train_trunk], axis=1),
                 'test_input': np.concatenate([test_branch, test_trunk], axis=1)
             }

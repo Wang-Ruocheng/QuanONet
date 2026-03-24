@@ -46,9 +46,10 @@ class MSSolver:
         # Context Setup
         device_target = "GPU" if config.get('gpu') is not None else "CPU"
         mode = ms.PYNATIVE_MODE 
+        gpu_val = config.get('gpu')
+        if gpu_val is not None:
+             ms.context.set_context(device_id=int(gpu_val))
         ms.context.set_context(mode=mode, device_target=device_target)
-        if config.get('gpu') is not None:
-             ms.context.set_context(device_id=config['gpu'])
 
         self.logger.info(f"Initialized MSSolver (Quantum) for {self.model_type}")
         self.logger.info(f"Context: {device_target}, Mode: PyNative")
@@ -69,19 +70,15 @@ class MSSolver:
 
     def _convert_data_to_ms(self):
         """Converts numpy data from DataManager to MindSpore Tensors."""
-        self.logger.info("Converting data to MindSpore Tensors...")
-        d = self.data_dict_np
-        self.data = {}
-        for k, v in d.items():
-            if isinstance(v, np.ndarray):
-                self.data[k] = ms.Tensor(v, ms.float32)
-        
-        if 'train_branch_input' in self.data:
-            self.train_input = (self.data['train_branch_input'], self.data['train_trunk_input'])
-            self.test_input = (self.data['test_branch_input'], self.data['test_trunk_input'])
-        else:
+        self.logger.info("Routing data for MindSpore models...")
+        self.data = self.data_dict_np 
+                
+        if self.model_type in ['HEAQNN', 'FNN']:
             self.train_input = self.data['train_input']
             self.test_input = self.data['test_input']
+        else:
+            self.train_input = (self.data['train_branch_input'], self.data['train_trunk_input'])
+            self.test_input = (self.data['test_branch_input'], self.data['test_trunk_input'])
         self.train_output = self.data['train_output']
         self.test_output = self.data['test_output']
 
@@ -104,27 +101,26 @@ class MSSolver:
             self.logger.info(f"Hamiltonian Formula:\n{ham.hamiltonian}")
         else:
             self.logger.info(f"Hamiltonian:\n{ham}")
-        
-        if isinstance(self.train_input, tuple):
-            branch_in = self.train_input[0].shape[1]
-            trunk_in = self.train_input[1].shape[1]
-        else:
-            branch_in = self.config['branch_input_size']
-            trunk_in = self.config['trunk_input_size']
 
         net_size = tuple(self.config.get('net_size', [20, 2, 10, 2]))
         if_trainable_freq = str(self.config.get('if_trainable_freq', 'true')).lower() == 'true'
 
         if self.model_type == 'QuanONet':
+            branch_in = self.data['train_branch_input'].shape[1]
+            trunk_in = self.data['train_trunk_input'].shape[1]
             model = QuanONet(self.config['num_qubits'], branch_in, trunk_in, net_size, ham, 
                              self.config.get('scale_coeff', 0.01), if_trainable_freq)
         elif self.model_type == 'HEAQNN':
-            model = HEAQNN(self.config['num_qubits'], branch_in, trunk_in, net_size, ham,
+            input_size = self.data['train_input'].shape[1]
+            model = HEAQNN(self.config['num_qubits'], input_size, net_size, ham,
                            self.config.get('scale_coeff', 0.01), if_trainable_freq)
         elif self.model_type == 'DeepONet': 
+            branch_in = self.data['train_branch_input'].shape[1]
+            trunk_in = self.data['train_trunk_input'].shape[1]
             model = DeepONet(branch_in, trunk_in, net_size)
         elif self.model_type == 'FNN': 
-            model = FNN(branch_in, trunk_in, 1, net_size)
+            input_size = self.data['train_input'].shape[1]
+            model = FNN(input_size, 1, net_size)
         else:
             raise ValueError(f"Unknown MS model: {self.model_type}")
             
@@ -142,7 +138,18 @@ class MSSolver:
         train_net.set_train()
         
         epochs = self.config['num_epochs']
-        batch_size = self.config['batch_size']
+        total_samples = len(self.train_output)
+        if self.model_type == 'FNO':
+            total_samples = self.train_output.shape[0]
+        else:
+            total_samples = self.config['num_train'] * self.config.get('train_sample_num', 10)
+
+        current_bs = self.config.get('batch_size', 100)
+        if total_samples < current_bs:
+            self.logger.warning(f"⚠️ Batch size {current_bs} > total samples {total_samples}. Reducing to {total_samples}.")
+            self.config['batch_size'] = total_samples
+        
+        batch_size = self.config.get('batch_size', 100)
         
         if isinstance(self.train_input, tuple):
             num_samples = self.train_input[0].shape[0]
@@ -167,13 +174,14 @@ class MSSolver:
             
             for i in range(num_batches):
                 idx = indices[i * batch_size : (i+1) * batch_size]
-                idx_ms = ms.Tensor(idx, ms.int32)
                 
                 if isinstance(self.train_input, tuple):
-                    batch_in = (self.train_input[0][idx_ms], self.train_input[1][idx_ms])
+                    batch_in = (ms.Tensor(self.train_input[0][idx], ms.float32), 
+                                ms.Tensor(self.train_input[1][idx], ms.float32))
                 else:
-                    batch_in = self.train_input[idx_ms]
-                batch_out = self.train_output[idx_ms]
+                    batch_in = ms.Tensor(self.train_input[idx], ms.float32)
+                
+                batch_out = ms.Tensor(self.train_output[idx], ms.float32)
                 
                 loss = train_net(batch_in, batch_out)
                 loss_val = float(loss.asnumpy())
@@ -215,6 +223,10 @@ class MSSolver:
             param_dict = load_checkpoint(self.best_model_path)
             load_param_into_net(self.model, param_dict)
             self.logger.info(f"Loaded best model from {self.best_model_path}")
+        elif self.config.get('ckpt_path') and os.path.exists(self.config['ckpt_path']):
+            param_dict = load_checkpoint(self.config['ckpt_path'])
+            load_param_into_net(self.model, param_dict)
+            self.logger.info(f"Loaded evaluation model from {self.config['ckpt_path']}")
             
         self.model.set_train(False)
         
@@ -232,15 +244,17 @@ class MSSolver:
             end = min((i + 1) * batch_size, num_samples)
             
             if isinstance(self.test_input, tuple):
-                batch_in = (self.test_input[0][start:end], self.test_input[1][start:end])
+                batch_in = (ms.Tensor(self.test_input[0][start:end], ms.float32), 
+                            ms.Tensor(self.test_input[1][start:end], ms.float32))
             else:
-                batch_in = self.test_input[start:end]
+                batch_in = ms.Tensor(self.test_input[start:end], ms.float32)
             
             batch_pred = self.model(batch_in)
             preds.append(batch_pred.asnumpy()) 
             
         y_pred_np = np.concatenate(preds, axis=0)
-        y_true_np = self.test_output.asnumpy()
+        
+        y_true_np = self.test_output 
 
         l2_diff = np.linalg.norm(y_pred_np - y_true_np)
         l2_true = np.linalg.norm(y_true_np)

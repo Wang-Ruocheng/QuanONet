@@ -149,8 +149,10 @@ class DDESolver:
             depth = user_cfg[2] if len(user_cfg) > 2 else 3
             fc_hidden = user_cfg[3] if len(user_cfg) > 3 else 32 
 
-            self.logger.info(f"FNO Config: modes={modes}, width={width}, depth={depth}, fc_hidden={fc_hidden}")
-            net = FNO1d(modes=modes, width=width, layers=depth, fc_hidden=fc_hidden)
+            in_channels = X_train.shape[-1]
+
+            self.logger.info(f"FNO Config: modes={modes}, width={width}, depth={depth}, fc_hidden={fc_hidden}, in_channels={in_channels}")
+            net = FNO1d(modes=modes, width=width, layers=depth, fc_hidden=fc_hidden, in_channels=in_channels)
 
         elif self.model_type == 'FNN':
             X_train = self.data_dict['train_input']
@@ -185,6 +187,17 @@ class DDESolver:
             
         lr = self.config.get('learning_rate', 0.0001)
         epochs = self.config.get('num_epochs', 1000)
+        total_samples = len(self.data_dict['train_output'])
+        if self.model_type == 'FNO':
+            total_samples = self.data_dict['train_output'].shape[0]
+        else:
+            total_samples = self.config['num_train'] * self.config.get('train_sample_num', 10)
+
+        current_bs = self.config.get('batch_size', 100)
+        if total_samples < current_bs:
+            self.logger.warning(f"⚠️ Batch size {current_bs} > total samples {total_samples}. Reducing to {total_samples}.")
+            self.config['batch_size'] = total_samples
+        
         batch_size = self.config.get('batch_size', 100)
         
         num_samples = self.data_dict['train_output'].shape[0]

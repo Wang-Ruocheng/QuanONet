@@ -1,10 +1,10 @@
-"""
-Data utilities for QuanONet
-"""
 
-# Only import data processing functions to avoid MindSpore dependency
-from .data_processing import ODE_encode, PDE_encode
+
+"""
+Data utilities
+"""
+from .data_processing import ODE_encode, PDE_encode, ODE_fncode, PDE_fncode
 
 __all__ = [
-    'ODE_encode', 'PDE_encode'
+    'ODE_encode', 'PDE_encode', 'ODE_fncode', 'PDE_fncode'
 ]

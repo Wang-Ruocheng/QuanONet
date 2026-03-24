@@ -36,28 +36,27 @@ class SpectralConv1d(nn.Module):
         return x
 
 class FNO1d(nn.Module):
-    def __init__(self, modes, width, layers=1, fc_hidden=32):
+    def __init__(self, modes, width, layers=1, fc_hidden=32, in_channels=2):
         super(FNO1d, self).__init__()
 
         self.modes1 = modes
         self.width = width
         self.layers = layers
         
-        # 1. Lifting: 2 -> 8
-        self.fc0 = nn.Linear(2, self.width) 
+        # 1. Initial projection
+        self.fc0 = nn.Linear(in_channels, self.width) 
 
         # 2. Fourier Layers
         self.convs = nn.ModuleList([SpectralConv1d(self.width, self.width, self.modes1) for _ in range(layers)])
         self.ws = nn.ModuleList([nn.Conv1d(self.width, self.width, 1) for _ in range(layers)])
-
-        # 3. Projection: 8 -> 32 -> 1
+        # 3. Projection
         self.fc1 = nn.Linear(self.width, fc_hidden) 
         self.fc2 = nn.Linear(fc_hidden, 1)
 
         self.regularizer = None
 
     def forward(self, x):
-        # Input: (Batch, Sensors, 2)
+        # Input: (Batch, Sensors, in_channels)
         x = self.fc0(x)
         x = x.permute(0, 2, 1) # -> (Batch, Width, Sensors)
 

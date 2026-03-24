@@ -6,7 +6,7 @@ This module provides MindSpore-free versions of data processing functions.
 import numpy as np
 from scipy import interpolate
 
-def ODE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal):
+def ODE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
     """
     Encode ODE operator data for DeepONet training.
     """
@@ -43,69 +43,42 @@ def ODE_encode(generate_data, num_train, num_test, num_points, num_points_0, tra
 
     return train_branch_input, train_trunk_input, train_output, test_branch_input, test_trunk_input, test_output
 
-def ODE_fncode(generate_data, num_train, num_test, num_points, train_sample_num, test_sample_num):
+def ODE_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
     """
     Specialized data encoding for FNO.
-    Includes auto-interpolation to align input resolution with target grid resolution.
+    Vectorized version: strictly assumes full-grid evaluation (no subsampling).
     """
-    # 1. Generate raw data
-    # train_v (Input u0) shape: [Batch, 1000] (usually from num_points_0)
-    # train_u (Output u) shape: [Batch, 64] (usually from num_points)
-    train_v, train_u, test_v, test_u, _ = generate_data(num_train, num_test, num_points, num_points)
+    try:
+        train_v, train_u, test_v, test_u, x = generate_data(num_train, num_test, num_points, num_points)
+    except TypeError:
+        train_v, train_u, test_v, test_u, _ = generate_data(num_train, num_test, num_points, num_points, num_cal=num_cal)
     
-    # 2. Auto-align Resolution (Critical for FNO)
-    # FNO requires the input function v(x) and the grid x to have the same resolution.
     current_dim = train_v.shape[1]
-    
     if current_dim != num_points:
         print(f"FNO Alignment: Interpolating input from {current_dim} to {num_points}")
         x_old = np.linspace(0, 1, current_dim)
         x_new = np.linspace(0, 1, num_points)
-        
-        # Use scipy for batch interpolation
         f_train = interpolate.interp1d(x_old, train_v, axis=1, kind='linear')
-        train_v = f_train(x_new) # Reshape -> [Batch, num_points]
-        
+        train_v = f_train(x_new) 
         f_test = interpolate.interp1d(x_old, test_v, axis=1, kind='linear')
         test_v = f_test(x_new)
 
-    # 3. Create Grid
-    x = np.linspace(0, 1, num_points).astype(np.float32)
+    x_grid = np.linspace(0, 1, num_points).astype(np.float32)
     
-    def sample_1D_Operator_fndata(v, u, x, sample_num):
-        num = u.shape[0]
-        num_sensors = u.shape[1]
-        indices = np.zeros((0, sample_num))
-        output = np.zeros((0, sample_num))
-        
-        x = x.reshape(1, -1)
-        x = np.repeat(x, num, axis=0)
-        x = np.expand_dims(x, axis=2)
-        v = np.expand_dims(v, axis=2)
-        
-        # Concatenate: Input = [Function_Value, Coordinate] -> (Batch, Points, 2)
-        input = np.concatenate((v, x), axis=2)
-        
-        for i in range(num):
-            if num_sensors == sample_num:
-                indice = np.arange(num_sensors).reshape(1, -1)
-                output_new = u[i].reshape(1, -1)
-            else:
-                stride = num_sensors // sample_num
-                indice = np.arange(0, num_sensors, stride)[:sample_num].reshape(1, -1)
-                output_new = u[i, indice[0]].reshape(1, -1)
-                
-            indices = np.concatenate((indices, indice), axis=0)
-            output = np.concatenate((output, output_new), axis=0)
-            
-        output = np.expand_dims(output, axis=2)
-        return input.astype(np.float32), indices.astype(np.int64), output.astype(np.float32)
+    x_train_exp = np.tile(x_grid, (num_train, 1))[:, :, np.newaxis]
+    x_test_exp  = np.tile(x_grid, (num_test, 1))[:, :, np.newaxis]
+    
+    train_v_exp = train_v[:, :, np.newaxis]
+    test_v_exp  = test_v[:, :, np.newaxis]
+    
+    train_input = np.concatenate((train_v_exp, x_train_exp), axis=2)
+    test_input  = np.concatenate((test_v_exp, x_test_exp), axis=2)
+    
+    train_output = train_u[:, :, np.newaxis]
+    test_output  = test_u[:, :, np.newaxis]
 
-    # Ensure sample_num matches resolution for FNO
-    train_input, train_indices, train_output = sample_1D_Operator_fndata(train_v, train_u, x, train_sample_num)
-    test_input, test_indices, test_output = sample_1D_Operator_fndata(test_v, test_u, x, test_sample_num)
-    
-    return train_input, train_indices, train_output, test_input, test_indices, test_output
+    return train_input.astype(np.float32), None, train_output.astype(np.float32), \
+           test_input.astype(np.float32), None, test_output.astype(np.float32)
 
 def PDE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
     """
@@ -150,3 +123,44 @@ def PDE_encode(generate_data, num_train, num_test, num_points, num_points_0, tra
     test_output = u_test_flat[np.arange(num_test)[:, None], test_indices].reshape(-1, 1)
 
     return train_branch_input, train_trunk_input, train_output, test_branch_input, test_trunk_input, test_output
+
+
+def PDE_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
+    """
+    Specialized data encoding for FNO on 2D PDEs.
+    Flattens the 2D spatial-temporal grid to match FNO1d expected structure.
+    """
+    try:
+        # Try calling with operator_type first
+        train_v, train_u, test_v, test_u, x, t = generate_data(num_train, num_test, num_points, num_points)
+    except TypeError:
+        # Fall back to original signature with num_cal
+        train_v, train_u, test_v, test_u, x, t = generate_data(num_train, num_test, num_points, num_points, num_cal=num_cal)
+
+    batch_train = train_v.shape[0]
+    batch_test = test_v.shape[0]
+
+    X, T = np.meshgrid(x, t, indexing='ij') 
+    x_flat = X.flatten()
+    t_flat = T.flatten() 
+    total_points = num_points * num_points
+
+    train_v_2d = np.repeat(train_v[:, :, np.newaxis], num_points, axis=2)
+    test_v_2d = np.repeat(test_v[:, :, np.newaxis], num_points, axis=2)
+    
+    train_v_flat = train_v_2d.reshape(batch_train, total_points)
+    test_v_flat = test_v_2d.reshape(batch_test, total_points)
+
+    x_exp_train = np.tile(x_flat, (batch_train, 1))
+    t_exp_train = np.tile(t_flat, (batch_train, 1))
+    train_input = np.stack((train_v_flat, x_exp_train, t_exp_train), axis=2)
+
+    x_exp_test = np.tile(x_flat, (batch_test, 1))
+    t_exp_test = np.tile(t_flat, (batch_test, 1))
+    test_input = np.stack((test_v_flat, x_exp_test, t_exp_test), axis=2)
+
+    train_output = train_u.reshape(batch_train, total_points, 1)
+    test_output = test_u.reshape(batch_test, total_points, 1)
+
+    return train_input.astype(np.float32), None, train_output.astype(np.float32), \
+           test_input.astype(np.float32), None, test_output.astype(np.float32)
