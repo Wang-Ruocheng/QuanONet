@@ -213,7 +213,16 @@ class MSSolver:
                     np.savez(npz_path, **param_dict_np)
             
             if epoch % 10 == 0:
-                pass # print(f"Epoch {epoch} | MSE: {avg_loss:.6e} | Rel_L2: {avg_rel_err:.4%}")
+                print(f"Epoch {epoch} | MSE: {avg_loss:.6e} | Rel_L2: {avg_rel_err:.4%}")
+
+            if self.config.get('if_save', True):
+                final_model_path = self.exp_logger.get_ckpt_path(is_final=True)
+                save_checkpoint(self.model, final_model_path)
+                
+                npz_path = final_model_path.replace('.ckpt', '.npz')
+                param_dict_np = {param.name: param.asnumpy() for param in self.model.get_parameters()}
+                np.savez(npz_path, **param_dict_np)
+                self.logger.info(f"Saved FINAL model to {final_model_path}")   
                 
         return history
 

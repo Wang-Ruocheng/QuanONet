@@ -14,6 +14,28 @@ from utils.logger import ExperimentLogger, setup_logger, StreamToLogger
 from utils.metrics import compute_metrics
 from utils.common import set_random_seed
 
+class BestModelCheckpoint(dde.callbacks.Callback):
+    """Custom DeepXDE callback to save the best model checkpoint based on training loss."""
+    def __init__(self, solver):
+        super().__init__()
+        self.solver = solver
+        self.best_loss = float('inf')
+        self.best_ckpt_path = self.solver.exp_logger.get_ckpt_path(is_final=False).replace('.ckpt', '.pt')
+        self.best_npz_path = self.best_ckpt_path.replace('.pt', '.npz')
+
+    def on_epoch_end(self):
+        current_loss = sum(self.model.train_state.loss_train)
+        if current_loss < self.best_loss:
+            self.best_loss = current_loss
+            
+            net = self.model.net
+            state_dict = net.module.state_dict() if hasattr(net, 'module') else net.state_dict()
+            
+            torch.save(state_dict, self.best_ckpt_path)
+            param_dict_np = {k: v.cpu().numpy() for k, v in state_dict.items()}
+            np.savez(self.best_npz_path, **param_dict_np)
+
+
 # ==========================================
 # Helper Class: DeepXDE Dataset Wrapper
 # ==========================================
@@ -211,7 +233,12 @@ class DDESolver:
                             lr=lr, 
                             metrics=["l2 relative error"]
                         )
-        losshistory, train_state = self.model.train(iterations=total_iterations, batch_size=batch_size)
+        best_saver = BestModelCheckpoint(self) 
+        losshistory, train_state = self.model.train(
+            iterations=total_iterations, 
+            batch_size=batch_size, 
+            callbacks=[best_saver]
+        )
         
         history = {
             'loss_train': [float(x) for x in losshistory.loss_train],
@@ -229,7 +256,21 @@ class DDESolver:
     def evaluate(self, history=None):
         """Evaluate and Save."""
         self.logger.info("Evaluating model...")
-        
+        ckpt_path_final = self.exp_logger.get_ckpt_path(is_final=True).replace('.ckpt', '.pt')
+        net = self.model.net
+        state_dict_final = net.module.state_dict() if hasattr(net, 'module') else net.state_dict()
+        torch.save(state_dict_final, ckpt_path_final)
+
+        best_ckpt_path = self.exp_logger.get_ckpt_path(is_final=False).replace('.ckpt', '.pt')
+        if os.path.exists(best_ckpt_path):
+            state_dict_best = torch.load(best_ckpt_path, map_location=torch.device('cpu'))
+            if hasattr(net, 'module'):
+                net.module.load_state_dict(state_dict_best)
+            else:
+                net.load_state_dict(state_dict_best)
+            self.logger.info(f"Loaded BEST model for evaluation from {best_ckpt_path}")
+            
+        net.eval()
         X_test, y_true = self.model.data.test()
         y_pred = self.model.predict(X_test)
         
