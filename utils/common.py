@@ -91,7 +91,7 @@ def load_config(args):
             'learning_rate': 0.0001,
             'num_points': 100,     # Output resolution
             'num_points_0': 100,  # Input resolution
-            'train_sample_num': 100,
+            'train_sample_num': 10,
             'test_sample_num': 100
         }
     

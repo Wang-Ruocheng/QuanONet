@@ -35,9 +35,9 @@ class SpectralConv1d(nn.Module):
         x = torch.fft.irfft(out_ft, n=x.size(-1))
         return x
 
-class FNO1d(nn.Module):
+class FNO(nn.Module):
     def __init__(self, modes, width, layers=1, fc_hidden=32, in_channels=2):
-        super(FNO1d, self).__init__()
+        super(FNO, self).__init__()
 
         self.modes1 = modes
         self.width = width

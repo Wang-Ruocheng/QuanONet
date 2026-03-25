@@ -163,7 +163,7 @@ class DDESolver:
             X_test  = self.data_dict['test_input'].astype(np.float32)
             y_test  = self.data_dict['test_output'].astype(np.float32)
 
-            from core.dde_models import FNO1d
+            from core.dde_models import FNO
             
             user_cfg = self.config.get('net_size', [])
             modes = user_cfg[0] if len(user_cfg) > 0 else 15
@@ -174,7 +174,7 @@ class DDESolver:
             in_channels = X_train.shape[-1]
 
             self.logger.info(f"FNO Config: modes={modes}, width={width}, depth={depth}, fc_hidden={fc_hidden}, in_channels={in_channels}")
-            net = FNO1d(modes=modes, width=width, layers=depth, fc_hidden=fc_hidden, in_channels=in_channels)
+            net = FNO(modes=modes, width=width, layers=depth, fc_hidden=fc_hidden, in_channels=in_channels)
 
         elif self.model_type == 'FNN':
             X_train = self.data_dict['train_input']
