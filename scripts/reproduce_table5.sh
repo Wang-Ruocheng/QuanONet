@@ -83,7 +83,7 @@ for OP in "${OPERATORS[@]}"; do
             # Size=15 14 3 32 (modes, width, depth, fc_hidden)
             NET_SIZE="15 14 3 32"
             MODEL_DESC="FNO"
-            CURRENT_BATCH_SIZE=10
+            CURRENT_BATCH_SIZE=1
         fi
 
         for SEED in "${SEEDS[@]}"; do
