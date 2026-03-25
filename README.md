@@ -4,7 +4,7 @@
 
 ## Introduction
 
-QuanONet is a pure quantum neural operator framework designed for the Noisy Intermediate-Scale Quantum (NISQ) era to solve partial differential equations (PDEs). 
+QuanONet is a pure quantum neural operator framework designed for the Noisy Intermediate-Scale Quantum (NISQ) era to solve partial differential equations (PDEs).
 
 ## Repository Structure
 
@@ -49,13 +49,10 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 │   ├── metrics.py           # Evaluation metrics computation (L2, MSE)
 │   └── backend.py           # Hardware backend management
 │
-├── hardware_deployment/        # Real-device deployment on IBM Quantum
-│   ├── requirements_qiskit.txt # Standalone Qiskit environment dependencies
-│   ├── ibm_inference.py        # Transpilation, execution, profiling, and plotting
-│   └── Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz # Pre-trained checkpoints (.npz)
-│
-├── configs/               # Configuration presets
-└── image/                 # Architectural diagrams
+└── hardware_deployment/        # Real-device deployment on IBM Quantum
+    ├── requirements_qiskit.txt # Standalone Qiskit environment dependencies
+    ├── ibm_inference.py        # Transpilation, execution, profiling, and plotting
+    └── Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz # Pre-trained checkpoints (.npz)
 ```
 
 ## Installation
