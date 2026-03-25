@@ -128,19 +128,24 @@ The `main.py` script accepts the following primary configurations:
 | **Argument**               | **Description**                                                                                 | **Default**              |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------ |
 | `--operator`                   | Problem type:`Antideriv`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | **Required**             |
+| `--model_type` | Neural operator type:`QuanONet`, `HEAQNN`,`DeepONet`, `FNN`, `FNO`. | **Required** |
 | `--num_train` / `--num_test` | Number of function samples for training/testing.                                                      | `1000` / `1000`            |
 | `--train_sample_num`           | Points sampled per function for training.                                                             | `10`                         |
 | `--test_sample_num`            | Points sampled per function for testing.                                                              | `100`                        |
 | `--num_points`                 | Output resolution (Trunk/Target grid size).                                                           | `100`                        |
 | `--num_points_0`               | Input resolution (Branch/Source function size).                                                       | `100` (PDE) / `1000` (ODE) |
 | `--num_cal`                    | High-Fidelity resolution for Ground Truth data generation.                                            | `1000` (ODE) / `100` (PDE) |
+| `--num_epoch` | Model training rounds. | `1000` |
+| `--learning_rate` | Model training learning rate. | `0.0001` |
 
 ### 2. Model Architecture (`--net_size`)
 
 | **Model**    | **Format**                                                                          | **Example**                 |
 | ------------------ | ----------------------------------------------------------------------------------------- | --------------------------------- |
 | **QuanONet** | `[b_depth, b_ansatz, t_depth, t_ansatz]`                                                | `20 2 10 2`                     |
-| **DeepONet** | `[b_depth, b_width, t_depth, t_width]` *Optional 5th arg for output dim:* `[... p]` | `3 100 3 100` `3 100 3 50 10` |
+| **HEAQNN** | `[depth, ansatz]` | `32 2` |
+| **DeepONet** | `[b_depth, b_width, t_depth, t_width]` *Optional 5th arg for output dim:* `[... p]` | `3 10 3 10` `3 20 3 30 10` |
+| **FNN** | `[depth, width]` | `2 20` |
 | **FNO**      | `[modes, width, layers, fc_hidden]`                                                     | `16 32 3 32`                    |
 
 ### 3. Quantum Specifics
