@@ -22,7 +22,7 @@ networkx==3.2.1
 numpy==1.25.2
 packaging==26.0
 pillow==11.3.0
-protobuf==6.33.5
+protobuf==3.20.3
 psutil==7.2.2
 pyaml==25.7.0
 Pygments==2.19.2
