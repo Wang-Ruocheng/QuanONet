@@ -53,7 +53,7 @@ for OP in "${OPERATORS[@]}"; do
     elif [ "$OP" == "Darcy" ]; then
         PROB_TYPE="PDE"
         # Special case: Darcy
-        EPOCHS=1000
+        EPOCHS=100
         TRAIN_SAMPLE=100
         TEST_SAMPLE=500
         PTS=25

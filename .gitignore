@@ -21,6 +21,8 @@ dairy/
 *.pth
 *.pt
 test.py
+test/
+test.ipynb
 
 # === 3. 忽略 Python 缓存和系统文件 ===
 __pycache__/
