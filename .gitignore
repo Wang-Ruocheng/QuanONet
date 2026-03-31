@@ -22,6 +22,7 @@ dairy/
 *.pt
 test.py
 test/
+real/
 test.ipynb
 
 # === 3. 忽略 Python 缓存和系统文件 ===
