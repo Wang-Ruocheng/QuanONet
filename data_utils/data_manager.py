@@ -108,7 +108,7 @@ class DataManager:
             base += "_FNO"
         else:
             # For DeepONet/FNN, sample_nums matter
-            base += f"_{c.get('train_sample_num', 10)}_{c.get('test_sample_num', 10)}"
+            base += f"_{c.get('train_sample_num', 10)}_{c.get('test_sample_num', 100)}"
             
         return f"{base}.npz"
 
@@ -166,7 +166,7 @@ class DataManager:
                 c['num_train'], c['num_test'],
                 self.num_points, self.num_points_0,
                 c.get('train_sample_num', 10),
-                c.get('test_sample_num', 10),
+                c.get('test_sample_num', 100),
                 self.num_cal
             )
             

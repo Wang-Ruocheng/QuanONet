@@ -13,7 +13,7 @@ from scipy.interpolate import interp1d
 # Import local modules (must be in the same directory)
 try:
     from layers import *
-    from quantum_circuits import circuit2network, QuanONet_build, HEAQNNwork_build, TrunkNet_build
+    from quantum_circuits import circuit2network, QuanONet_build, HEAQNNwork_build
 except ImportError:
     # If direct import fails, try relative import
     from .layers import *

@@ -24,6 +24,7 @@ test.py
 test/
 real/
 test.ipynb
+evaluate.py
 
 # === 3. 忽略 Python 缓存和系统文件 ===
 __pycache__/

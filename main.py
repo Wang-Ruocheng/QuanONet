@@ -27,9 +27,39 @@ def main():
     print(f" QuanONet Launcher | Model: {model_type} | Operator: {config['operator_type']}")
     print(f"===========================================================")
 
+    # 3. Set random seed
+    set_random_seed(config.get('seed', 0))
+
+    # 4. Configure GPU / Device
+    if args.gpu is not None:
+        # 【Scenario 1】User specified GPU
+        gpu_id = int(args.gpu)
+        print(f"🔧 [Manual] User specified GPU: {gpu_id}")
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+        config['gpu'] = gpu_id
+        config['device_target'] = "GPU"
+    else:
+        # 【Scenario 2】Auto-detect GPU based on backend
+        if target_backend == 'pytorch':
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    print("[Auto] PyTorch Backend -> Found CUDA, defaulting to GPU 0")
+                    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+                    config['gpu'] = 0
+                else:
+                    print("[Auto] PyTorch Backend -> No CUDA, using CPU")
+                    config['gpu'] = None
+            except ImportError:
+                config['gpu'] = None
+        elif target_backend == 'mindspore':
+            print("🤖 [Auto] MindSpore Backend -> Defaulting to CPU")
+            config['device_target'] = "CPU"
+            config['gpu'] = None
+
     solver = None
 
-    # 3. Dynamic Dispatch
+    # 5. Dynamic Dispatch
     if target_backend == 'mindspore':
         print(f"🌊 Backend: MindSpore (Quantum Mode)")
         try:
@@ -44,7 +74,6 @@ def main():
     elif target_backend == 'pytorch':
         print(f"🔥 Backend: PyTorch (Classical Mode)")
         try:
-            # Enforce DDE Backend
             os.environ["DDE_BACKEND"] = "pytorch"
             from solvers.solver_dde import DDESolver
             solver = DDESolver(config)
@@ -53,46 +82,13 @@ def main():
             import traceback
             traceback.print_exc()
             sys.exit(1)
-            
+
     else:
         print(f"❌ Error: Unknown model type '{model_type}'.")
         sys.exit(1)
 
-    if args.gpu is not None:
-        # 【Scenario 1】User specified GPU
-        gpu_id = int(args.gpu) 
-        print(f"🔧 [Manual] User specified GPU: {gpu_id}")
-        
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
-        config['gpu'] = gpu_id  
-        config['device_target'] = "GPU"
-
-    else:
-        # 【Scenario 2】Auto-detect GPU based on backend
-        if target_backend == 'pytorch':
-            # DDE/PyTorch: Use GPU if available, otherwise CPU
-            try:
-                import torch
-                if torch.cuda.is_available():
-                    print("[Auto] PyTorch Backend -> Found CUDA, defaulting to GPU 0")
-                    # Default to GPU 0 if multiple GPUs are present, or you can implement more complex logic here
-                    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-                    config['gpu'] = 0
-                else:
-                    print("[Auto] PyTorch Backend -> No CUDA, using CPU")
-                    config['gpu'] = None
-            except ImportError:
-                config['gpu'] = None
-
-        elif target_backend == 'mindspore':
-            # MindSpore: Default to CPU
-            print("🤖 [Auto] MindSpore Backend -> Defaulting to CPU")
-            config['device_target'] = "CPU"
-            config['gpu'] = None
-    # 4. Run Pipeline
+    # 6. Run Pipeline
     try:
-        set_random_seed(config.get('seed', 0))
-        
         history = solver.train()
         metrics = solver.evaluate(history)
         

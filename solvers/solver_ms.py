@@ -139,10 +139,6 @@ class MSSolver:
         
         epochs = self.config['num_epochs']
         total_samples = len(self.train_output)
-        if self.model_type == 'FNO':
-            total_samples = self.train_output.shape[0]
-        else:
-            total_samples = self.config['num_train'] * self.config.get('train_sample_num', 10)
 
         current_bs = self.config.get('batch_size', 100)
         if total_samples < current_bs:
@@ -215,14 +211,14 @@ class MSSolver:
             if epoch % 10 == 0:
                 print(f"Epoch {epoch} | MSE: {avg_loss:.6e} | Rel_L2: {avg_rel_err:.4%}")
 
-            if self.config.get('if_save', True):
-                final_model_path = self.exp_logger.get_ckpt_path(is_final=True)
-                save_checkpoint(self.model, final_model_path)
-                
-                npz_path = final_model_path.replace('.ckpt', '.npz')
-                param_dict_np = {param.name: param.asnumpy() for param in self.model.get_parameters()}
-                np.savez(npz_path, **param_dict_np)
-                self.logger.info(f"Saved FINAL model to {final_model_path}")   
+        if self.config.get('if_save', True):
+            final_model_path = self.exp_logger.get_ckpt_path(is_final=True)
+            save_checkpoint(self.model, final_model_path)
+            
+            npz_path = final_model_path.replace('.ckpt', '.npz')
+            param_dict_np = {param.name: param.asnumpy() for param in self.model.get_parameters()}
+            np.savez(npz_path, **param_dict_np)
+            self.logger.info(f"Saved FINAL model to {final_model_path}")
                 
         return history
 

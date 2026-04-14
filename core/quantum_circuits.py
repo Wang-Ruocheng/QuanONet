@@ -6,7 +6,7 @@ Quantum circuit construction for QuanONet.
 import numpy as np
 import itertools
 
-# MindQuantum imports
+# MindQuantum 
 from mindquantum.core.circuit import Circuit
 from mindquantum.core.gates import RX, RY, RZ, CNOT, Z
 from mindquantum.core.operators import QubitOperator, Hamiltonian
@@ -75,7 +75,6 @@ def generate_ham_diag_rank1(num_qubits, seed=None):
     arr[idx[0]] = 1
     return arr * 10 - 5
 
-import numpy as np
 
 def generate_ham_spectrum_uniform(num_qubits, rank, seed=None):
     """
@@ -162,18 +161,6 @@ def params_update(a_num_list, num_para, add_num):
     return a_num_list, num_para
 
 
-def add_parameter(num_list, num_para, num):
-    """Add parameters to list."""
-    for _ in range(num):
-        num_list.append(f'para{num_para}')
-        num_para += 1
-    return num_list, num_para
-
-# 1. Ensure import DepolarizingChannel (available in all versions)
-from mindquantum.core.circuit import Circuit
-from mindquantum.core.gates import RY, RZ, RX 
-# Note: Removed ChannelAdder import
-
 def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size, 
                    if_print_circuit=False):
     """Build quantum circuit for QuanONet."""
@@ -209,37 +196,6 @@ def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size,
     circuit = trunk + branch
 
     if num_qubits * branch_depth < branch_input_size or num_qubits * trunk_depth < trunk_input_size:
-        print("The number of encoder params is not enough for the input size.")
-
-    if if_print_circuit:
-        circuit.summary()
-    
-    return circuit
-
-
-def TrunkNet_build(num_qubits, trunk_input_size, net_size, 
-                   if_print_circuit=False):
-    """Build quantum circuit for QuanONet."""
-    circuit = Circuit()
-    (trunk_depth, trunk_linear_depth) = net_size
-    a_num_list = []
-    trunk = Circuit()
-    num_para = 0
-
-    # Build trunk network
-    for j in range(trunk_depth):
-        e_num_list = [f"nu_l{j}" for _ in range(num_qubits)]
-        trunk += Encode_layer(num_qubits, num_qubits, e_num_list)
-        for _ in range(trunk_linear_depth):
-            a_num_list, num_para = params_update(a_num_list, num_para, 3*num_qubits)
-            trunk += Ansatz_layer(num_qubits, a_num_list[-3*num_qubits:-2*num_qubits], RY)
-            trunk += Ansatz_layer(num_qubits, a_num_list[-2*num_qubits:-num_qubits], RZ)
-            trunk += Ansatz_layer(num_qubits, a_num_list[-num_qubits:], RY)
-            trunk += Entangle_layer(num_qubits)
-
-    circuit = trunk
-
-    if num_qubits * trunk_depth < trunk_input_size:
         print("The number of encoder params is not enough for the input size.")
 
     if if_print_circuit:

@@ -241,8 +241,8 @@ class DDESolver:
         )
         
         history = {
-            'loss_train': [float(x) for x in losshistory.loss_train],
-            'loss_test': [float(x) for x in losshistory.loss_test],
+            'loss_train': [float(sum(x)) if isinstance(x, (list, tuple)) else float(x) for x in losshistory.loss_train],
+            'loss_test': [float(sum(x)) if isinstance(x, (list, tuple)) else float(x) for x in losshistory.loss_test],
             'steps': [int(x) for x in losshistory.steps]
         }
 
