@@ -26,7 +26,10 @@ real/
 test.ipynb
 evaluate.py
 
-# === 3. 忽略 Python 缓存和系统文件 ===
+# === 3. 忽略结果 PDF ===
+hardware_inference_comparison_RDiffusion*.pdf
+
+# === 4. 忽略 Python 缓存和系统文件 ===
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
