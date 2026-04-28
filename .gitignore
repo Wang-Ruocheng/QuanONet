@@ -5,9 +5,6 @@ data/
 # 忽略所有的 npz 文件（通常是生成的数据或缓存）
 *.npz
 !hardware_deployment/Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz
-!pretrained_weights/Advection/Advection_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
-!pretrained_weights/Darcy/Darcy_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x25_Seed0/best_model.ckpt
-!pretrained_weights/RDiffusion/RDiffusion_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
 
 # === 2. 忽略训练产物 (日志、权重、结果) ===
 logs/
@@ -20,6 +17,10 @@ dairy/
 *.ckpt
 *.pth
 *.pt
+# 保留预训练权重
+!pretrained_weights/Advection/Advection_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
+!pretrained_weights/Darcy/Darcy_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x25_Seed0/best_model.ckpt
+!pretrained_weights/RDiffusion/RDiffusion_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
 test.py
 test/
 real/
