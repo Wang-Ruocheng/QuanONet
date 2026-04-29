@@ -101,7 +101,18 @@ def get_experiment_id(config):
                 ham_str = "-".join(map(str, ham))
                 exp_id += f"_Ham{ham_str}"    
                 
-    # 4. Data volume and random seed
+    # 4. Backend suffix (only when non-default, to prevent directory collisions)
+    qb = config.get('quantum_backend', 'mindquantum') or 'mindquantum'
+    if model in ['QuanONet', 'HEAQNN'] and qb != 'mindquantum':
+        backend_abbr = {'torchquantum': 'TQ', 'qiskit': 'Qiskit'}.get(qb, qb)
+        exp_id += f"_{backend_abbr}"
+
+    cb = config.get('classical_backend', 'pytorch') or 'pytorch'
+    if model not in ['QuanONet', 'HEAQNN'] and cb != 'pytorch':
+        backend_abbr = {'mindspore': 'MS'}.get(cb, cb)
+        exp_id += f"_{backend_abbr}"
+
+    # 5. Data volume and random seed
     exp_id += f"_{nt}x{np_}_Seed{seed}"
     
     return exp_id

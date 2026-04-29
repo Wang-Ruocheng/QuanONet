@@ -10,62 +10,85 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 
 ```text
 .
-├── main.py                # Unified Entry Point (Auto-backend selection)
+├── main.py                # Unified Entry Point (auto-backend selection)
 ├── requirements.txt       # Project dependencies
 ├── README.md              # Project documentation
+├── test_backends.py       # Backend integration test script
 │
 ├── scripts/               # Automated reproduction bash scripts
-│   ├── reproduce_table4.sh  # General Benchmarks (ODE & PDE)
-│   ├── reproduce_table5.sh  # Asymmetric Parameterization (vs. FNO)
-│   ├── reproduce_table7.sh  # Implicit Frame Capacity Search
-│   ├── reproduce_fig9_scaling.sh # High-Dimensional Scaling Limit
-│   ├── reproduce_table8.sh  # Circuit Architecture Ablation
-│   └── reproduce_sec54.sh   # Hamiltonian Design Ablation
+│   ├── reproduce_table4.sh
+│   ├── reproduce_table5.sh
+│   ├── reproduce_table7.sh
+│   ├── reproduce_fig9_scaling.sh
+│   ├── reproduce_table8.sh
+│   └── reproduce_sec54.sh
 │
-├── visualization.ipynb    # Jupyter notebook for quick PDE results visualization
+├── visualization.ipynb    # Jupyter notebook for PDE results visualization
 ├── pretrained_weights/    # Pre-trained checkpoints (.ckpt)
-│   ├── RDiffusion/RDiffusion_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
-│   ├── Advection/Advection_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt
-│   └── Darcy/Darcy_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x25_Seed0/best_model.ckpt
 │
 ├── core/                  # Core model architectures
-│   ├── models.py            # Unified model wrapper
-│   ├── quantum_circuits.py  # QuanONet & HEAQNN circuits (MindSpore)
-│   ├── dde_models.py        # Classical baselines (DeepONet, FNO, FNN)
-│   └── layers.py            # Custom neural network layers
+│   ├── models.py               # MindSpore QuanONet / HEAQNN / FNN / DeepONet
+│   ├── models_pt.py            # PyTorch QuanONetPT / HEAQNNPT (TQ or Qiskit)
+│   ├── quantum_circuits.py     # HEA circuits — MindQuantum backend
+│   ├── quantum_circuits_tq.py  # HEA circuits — TorchQuantum backend
+│   ├── quantum_circuits_qiskit.py # HEA circuits — Qiskit EstimatorQNN backend
+│   ├── dde_models.py           # PyTorch FNO (used by DeepXDE solver)
+│   ├── ms_fno.py               # MindSpore FNO
+│   └── layers.py               # Custom MindSpore layers
 │
 ├── solvers/               # Training & Evaluation solvers
-│   ├── solver_ms.py         # Quantum solver (MindSpore backend)
-│   └── solver_dde.py        # Classical solver (DeepXDE/PyTorch backend)
+│   ├── solver_ms.py         # MindSpore solver (QuanONet/HEAQNN/FNN/DeepONet/FNO)
+│   ├── solver_pt.py         # PyTorch solver (QuanONet/HEAQNN via TQ or Qiskit)
+│   └── solver_dde.py        # DeepXDE/PyTorch solver (DeepONet/FNN/FNO)
 │
 ├── data_utils/            # Data pipelines and generation
-│   ├── data_generation.py   # Dataset generation scripts
-│   ├── data_manager.py      # Data loading, formatting, and batching
-│   └── random_func.py       # Gaussian Random Field (GRF) generators
+│   ├── data_generation.py
+│   ├── data_manager.py
+│   └── random_func.py
 │
 ├── utils/                 # Utilities and helpers
-│   ├── common.py            # Argument parsing (hyperparameters)
-│   ├── logger.py            # Unified logging, tracking, and JSON saving
-│   ├── metrics.py           # Evaluation metrics computation (L2, MSE)
-│   └── backend.py           # Hardware backend management
+│   ├── common.py            # Argument parsing (all hyperparameters)
+│   ├── backend.py           # Backend routing (5-way dispatch)
+│   ├── logger.py            # Logging and JSON metrics
+│   └── metrics.py           # L2 / MSE evaluation
 │
 └── hardware_deployment/        # Real-device deployment on IBM Quantum
-    ├── requirements_qiskit.txt # Standalone Qiskit environment dependencies
-    ├── ibm_inference.py        # Transpilation, execution, profiling, and plotting
-    └── Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz # Pre-trained checkpoints (.npz)
+    ├── requirements_qiskit.txt
+    ├── ibm_inference.py
+    └── Antideriv/.../best_model.npz
 ```
 
 ## Installation
 
-The framework requires MindSpore (for Quantum models) and PyTorch + DeepXDE (for Classical baselines).
+The framework supports three quantum simulation backends and two classical backends. All can coexist in a single environment.
 
-We recommend creating and managing your Python virtual environment with [uv](https://github.com/astral-sh/uv):
+**Tested environment:** Python 3.9, conda.
 
 ```bash
-uv venv --python 3.11
-source .venv/bin/activate
-uv pip install -r requirements.txt
+conda create -n quanode python=3.9
+conda activate quanode
+pip install -r requirements.txt
 ```
+
+> **TorchQuantum compatibility note:** `torchquantum==0.1.8` has import-time incompatibilities with qiskit 1.x. Apply the following one-time patches after installation:
+>
+> ```python
+> # torchquantum/plugin/__init__.py  — wrap import in try/except
+> # torchquantum/plugin/qiskit/__init__.py  — wrap imports in try/except
+> # torchquantum/util/utils.py  — wrap qiskit_ibm_runtime import in try/except
+> ```
+>
+> These patches disable only the optional IBM-Q connectivity plugin; local statevector simulation is unaffected. See `test_backends.py` for a ready-to-run verification.
+
+### Backend Matrix
+
+| Backend flag | Library required | Notes |
+|---|---|---|
+| `--quantum_backend mindquantum` (default) | `mindspore`, `mindquantum` | Original QuanONet backend |
+| `--quantum_backend torchquantum` | `torchquantum` | PyTorch-native statevector sim |
+| `--quantum_backend qiskit` | `qiskit`, `qiskit-machine-learning` | EstimatorQNN + TorchConnector |
+| `--classical_backend pytorch` (default) | `torch`, `DeepXDE` | DeepONet / FNN / FNO |
+| `--classical_backend mindspore` | `mindspore` | MindSpore FNO / FNN / DeepONet |
 
 ## Usage and Execution
 
@@ -73,13 +96,11 @@ All model training and evaluation are executed through the unified `main.py` ent
 
 **Data Generation:** Training and evaluation datasets based on Gaussian Random Fields (GRF) do not require manual download. The framework utilizes an on-the-fly data generation pipeline. Upon the first execution of a specific task, the system automatically generates, solves, and caches the corresponding `.npz` files.
 
-**Device Allocation:** The framework automatically routes quantum models (QuanONet/HEAQNN) to the CPU to optimize resource allocation, while classical baselines (DeepONet/FNN/FNO) are routed to the GPU. To manually override this behavior, append `--gpu <ID>`.
+**Device Allocation:** The framework automatically routes quantum models (QuanONet/HEAQNN) to the CPU to optimize resource allocation, while classical baselines (DeepONet/FNN/FNO) are routed to the GPU when available. To manually override, append `--gpu <ID>`.
 
 ### Example Commands
 
-**1. Train TF-QuanONet**
-
-Execute the quantum model on the Antiderivative ODE problem utilizing the Trainable Frequency strategy:
+**1. Train TF-QuanONet (original MindQuantum backend)**
 
 ```bash
 python main.py \
@@ -90,7 +111,42 @@ python main.py \
   --num_epochs 1000
 ```
 
-**2. Train Classical Baseline (DeepONet)**
+**2. Train TF-QuanONet with TorchQuantum backend**
+
+```bash
+python main.py \
+  --operator Antideriv \
+  --model_type QuanONet \
+  --quantum_backend torchquantum \
+  --if_trainable_freq true \
+  --num_qubits 5 \
+  --num_epochs 1000
+```
+
+**3. Train TF-QuanONet with Qiskit backend**
+
+```bash
+python main.py \
+  --operator Antideriv \
+  --model_type QuanONet \
+  --quantum_backend qiskit \
+  --if_trainable_freq true \
+  --num_qubits 3 \
+  --num_epochs 200
+```
+
+**4. Train FNO with MindSpore backend**
+
+```bash
+python main.py \
+  --operator Darcy \
+  --model_type FNO \
+  --classical_backend mindspore \
+  --net_size 16 32 3 32 \
+  --num_epochs 1000
+```
+
+**5. Train Classical Baseline (DeepONet, PyTorch)**
 
 ```bash
 python main.py \
@@ -98,6 +154,12 @@ python main.py \
   --model_type DeepONet \
   --net_size 3 100 3 100 \
   --num_epochs 1000
+```
+
+**6. Verify all backends**
+
+```bash
+python test_backends.py
 ```
 
 ## Reproducing Paper Results
@@ -152,12 +214,22 @@ The `main.py` script accepts the following primary configurations:
 
 | **Argument**      | **Description**                                                 | **Default** |
 | ----------------------- | --------------------------------------------------------------------- | ----------------- |
-| `--num_qubits`        | Defines latent dimension$p=2^n$.                                    | `5`             |
+| `--num_qubits`        | Defines latent dimension $p=2^n$.                                    | `5`             |
 | `--if_trainable_freq` | Enable Trainable Frequency (TF) strategy (`true`/`false`).        | `false`         |
 | `--scale_coeff`       | Scaling coefficient for encoding.                                     | `0.01`          |
 | `--ham_bound`         | Hamiltonian eigenvalue range.                                         | `[-5, 5]`       |
 | `--ham_pauli`         | Pauli basis for the Hamiltonian (`X`, `Y`, or `Z`).             | `Z`             |
 | `--ham_diag`          | Manually specify exact eigenvalues. Overrides bounds and Pauli basis. | `None`          |
+
+### 4. Backend Selection
+
+| **Argument**           | **Choices**                              | **Default**      |
+| ---------------------- | ---------------------------------------- | ---------------- |
+| `--quantum_backend`    | `mindquantum`, `torchquantum`, `qiskit`  | `mindquantum`    |
+| `--classical_backend`  | `pytorch`, `mindspore`                   | `pytorch`        |
+
+The `--quantum_backend` flag applies to `QuanONet` and `HEAQNN` models.
+The `--classical_backend` flag applies to `DeepONet`, `FNN`, and `FNO` models.
 
 ## Real-Device Deployment (IBM Quantum)
 

@@ -260,6 +260,9 @@ class DDESolver:
         net = self.model.net
         state_dict_final = net.module.state_dict() if hasattr(net, 'module') else net.state_dict()
         torch.save(state_dict_final, ckpt_path_final)
+        np.savez(ckpt_path_final.replace('.pt', '.npz'),
+                 **{k: v.cpu().numpy() for k, v in state_dict_final.items()})
+        self.logger.info(f"Saved final model to {ckpt_path_final}")
 
         best_ckpt_path = self.exp_logger.get_ckpt_path(is_final=False).replace('.ckpt', '.pt')
         if os.path.exists(best_ckpt_path):
@@ -269,38 +272,23 @@ class DDESolver:
             else:
                 net.load_state_dict(state_dict_best)
             self.logger.info(f"Loaded BEST model for evaluation from {best_ckpt_path}")
-            
+
         net.eval()
         X_test, y_true = self.model.data.test()
         y_pred = self.model.predict(X_test)
-        
+
         l2_diff = np.linalg.norm(y_pred - y_true)
         l2_true = np.linalg.norm(y_true)
         rel_error = l2_diff / (l2_true + 1e-8)
-        
+
         self.logger.info(f"⚡ Test Relative L2 Error: {rel_error:.6f} ({rel_error:.2%})")
-        
+
         metrics = compute_metrics(y_true, y_pred)
-        metrics['rel_l2'] = float(rel_error) 
-        
+        metrics['rel_l2'] = float(rel_error)
+
         self.logger.info(f"Final Metrics: {metrics}")
 
         self.exp_logger.save_metrics(metrics, history)
-        
-        ckpt_path = self.exp_logger.get_ckpt_path(is_final=True)
-        if hasattr(self.model.net, 'module'):
-            state_dict = self.model.net.module.state_dict()
-        elif hasattr(self.model.net, 'state_dict'):
-            state_dict = self.model.net.state_dict()
-        else:
-            state_dict = {}
-        if state_dict:
-            torch.save(state_dict, ckpt_path)
-            self.logger.info(f"Model checkpoint saved to {ckpt_path}")
-            npz_path = ckpt_path.replace('.ckpt', '.npz').replace('.pt', '.npz')
-            param_dict_np = {k: v.cpu().numpy() for k, v in state_dict.items()}
-            np.savez(npz_path, **param_dict_np)
-            self.logger.info(f"Exported framework-agnostic weights to {npz_path}")
 
         self.exp_logger.close()
         return metrics

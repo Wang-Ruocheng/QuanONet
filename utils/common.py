@@ -18,6 +18,8 @@ _ARGPARSE_DEFAULTS = {
     'if_trainable_freq': 'true',
     'ham_bound': [-5, 5],
     'ham_pauli': 'Z',
+    'quantum_backend': 'mindquantum',
+    'classical_backend': 'pytorch',
 }
 
 def get_base_parser():
@@ -80,6 +82,16 @@ def get_base_parser():
                         help='Pauli observable basis for the Hamiltonian (default: Z).')
     parser.add_argument('--ham_diag', type=float, nargs='+', default=None,
                         help='Manually specify the exact Hamiltonian eigenvalues (e.g., --ham_diag -5 5 5 5). If set, this strictly overrides --ham_bound and --ham_pauli.')
+
+    # ==========================================
+    # 6. Backend Selection
+    # ==========================================
+    parser.add_argument('--quantum_backend', type=str, default=None,
+                        choices=['mindquantum', 'torchquantum', 'qiskit'],
+                        help='Quantum simulation backend (default: mindquantum)')
+    parser.add_argument('--classical_backend', type=str, default=None,
+                        choices=['pytorch', 'mindspore'],
+                        help='Classical model backend (default: pytorch)')
     return parser
 
 def load_config(args):
@@ -124,6 +136,8 @@ def load_config(args):
         'if_trainable_freq': 'true',
         'ham_bound': [-5, 5],
         'ham_pauli': 'Z',
+        'quantum_backend': 'mindquantum',
+        'classical_backend': 'pytorch',
     }
     for key, default_val in defaults.items():
         if key not in config:

@@ -71,16 +71,21 @@ class MSSolver:
     def _convert_data_to_ms(self):
         """Converts numpy data from DataManager to MindSpore Tensors."""
         self.logger.info("Routing data for MindSpore models...")
-        self.data = self.data_dict_np 
-                
+        self.data = self.data_dict_np
+
         if self.model_type in ['HEAQNN', 'FNN']:
             self.train_input = self.data['train_input']
-            self.test_input = self.data['test_input']
+            self.test_input  = self.data['test_input']
+        elif self.model_type == 'FNO':
+            # DataManager provides 'train_input' as (N, n_pts, in_ch) for FNO,
+            # matching the same format used by DDESolver.
+            self.train_input = self.data['train_input'].astype(np.float32)
+            self.test_input  = self.data['test_input'].astype(np.float32)
         else:
             self.train_input = (self.data['train_branch_input'], self.data['train_trunk_input'])
-            self.test_input = (self.data['test_branch_input'], self.data['test_trunk_input'])
+            self.test_input  = (self.data['test_branch_input'], self.data['test_trunk_input'])
         self.train_output = self.data['train_output']
-        self.test_output = self.data['test_output']
+        self.test_output  = self.data['test_output']
 
     def _create_model(self):
         self.logger.info("Creating Quantum Model...")
@@ -118,9 +123,22 @@ class MSSolver:
             branch_in = self.data['train_branch_input'].shape[1]
             trunk_in = self.data['train_trunk_input'].shape[1]
             model = DeepONet(branch_in, trunk_in, net_size)
-        elif self.model_type == 'FNN': 
+        elif self.model_type == 'FNN':
             input_size = self.data['train_input'].shape[1]
             model = FNN(input_size, 1, net_size)
+        elif self.model_type == 'FNO':
+            from core.ms_fno import FNO_MS
+            # net_size for FNO is interpreted as [modes, width, depth, fc_hidden]
+            cfg = list(self.config.get('net_size', []))
+            modes     = int(cfg[0]) if len(cfg) > 0 else 15
+            width     = int(cfg[1]) if len(cfg) > 1 else 14
+            depth     = int(cfg[2]) if len(cfg) > 2 else 3
+            fc_hidden = int(cfg[3]) if len(cfg) > 3 else 32
+            in_ch = self.train_input.shape[-1]  # 2 (position + function value)
+            self.logger.info(f"FNO_MS Config: modes={modes}, width={width}, "
+                             f"depth={depth}, fc_hidden={fc_hidden}, in_channels={in_ch}")
+            model = FNO_MS(modes=modes, width=width, layers=depth,
+                           fc_hidden=fc_hidden, in_channels=in_ch)
         else:
             raise ValueError(f"Unknown MS model: {self.model_type}")
             
@@ -172,11 +190,11 @@ class MSSolver:
                 idx = indices[i * batch_size : (i+1) * batch_size]
                 
                 if isinstance(self.train_input, tuple):
-                    batch_in = (ms.Tensor(self.train_input[0][idx], ms.float32), 
+                    batch_in = (ms.Tensor(self.train_input[0][idx], ms.float32),
                                 ms.Tensor(self.train_input[1][idx], ms.float32))
                 else:
                     batch_in = ms.Tensor(self.train_input[idx], ms.float32)
-                
+
                 batch_out = ms.Tensor(self.train_output[idx], ms.float32)
                 
                 loss = train_net(batch_in, batch_out)
