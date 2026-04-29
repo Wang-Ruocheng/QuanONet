@@ -55,14 +55,12 @@ jobs:
               print("torchquantum not found, skipping")
               exit(0)
 
-          # All qiskit 0.x import patterns removed/moved in qiskit 1.x
+          # Wrap ALL qiskit/qiskit_ibm_runtime imports in torchquantum files.
+          # torchquantum 0.1.8 targets qiskit 0.x; we installed qiskit 1.x.
+          # We don't use TQ's qiskit plugin at all, so silencing every qiskit
+          # import inside TQ is safe and future-proof.
           BROKEN = re.compile(
-              r'^([ \t]*)'
-              r'(from qiskit import (?:Aer|execute)[^\n]*'
-              r'|from qiskit\.providers\.aer[^\n]*'
-              r'|from qiskit\.providers\.ibmq[^\n]*'
-              r'|from qiskit_ibm_runtime[^\n]*'
-              r'|import qiskit_ibm_runtime[^\n]*)',
+              r'^([ \t]*)((?:from|import) qiskit[^\n]*|from qiskit_ibm_runtime[^\n]*|import qiskit_ibm_runtime[^\n]*)',
               re.MULTILINE
           )
 
