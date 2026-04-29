@@ -130,11 +130,22 @@ if __name__ == '__main__':
     import sys, os
     sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-    NPZ = 'pretrained_weights/LWR_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0_best_model.npz'
-    DATA = 'data/LWR/LWR_1000_1000_100_100_100_1000.npz'
+    # Antideriv hardware-deployment model (Q2, Net5-1-5-1, branch_in=10)
+    NPZ  = ('hardware_deployment/Antideriv/'
+            'Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz')
+    DATA = 'data/Antideriv/Antideriv_1000_1000_100_10_10_100.npz'
 
     print("Loading PyTorch model from MindSpore weights...")
-    model_pt = load_quanonet_pt(NPZ, quantum_backend='torchquantum')
+    model_pt = load_quanonet_pt(
+        NPZ,
+        quantum_backend='torchquantum',
+        branch_input_size=10,
+        trunk_input_size=1,
+        net_size=(5, 1, 5, 1),
+        num_qubits=2,
+        scale_coeff=0.001,
+        ham_bound=(-5.0, 5.0),
+    )
     n_params = sum(p.numel() for p in model_pt.parameters())
     print(f"PyTorch model: {n_params} parameters")
 
