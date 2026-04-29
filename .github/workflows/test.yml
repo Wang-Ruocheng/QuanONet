@@ -55,10 +55,21 @@ jobs:
               print("torchquantum not found, skipping")
               exit(0)
 
-          # Wrap ALL qiskit/qiskit_ibm_runtime imports in torchquantum files.
-          # torchquantum 0.1.8 targets qiskit 0.x; we installed qiskit 1.x.
-          # We don't use TQ's qiskit plugin at all, so silencing every qiskit
-          # import inside TQ is safe and future-proof.
+          # Fix 1: Replace torchquantum/plugin/qiskit/__init__.py with a stub.
+          # The entire plugin targets qiskit 0.x (Aer, execute, qiskit.test.mock,
+          # OneQubitEulerDecomposer, etc.) — all removed or moved in qiskit 1.x.
+          # We never use TQ's qiskit plugin; only QISKIT_INCOMPATIBLE_FUNC_NAMES
+          # is referenced externally (by layer/layers/module_from_ops.py).
+          p_qiskit_init = os.path.join(tq_root, "plugin/qiskit/__init__.py")
+          if os.path.exists(p_qiskit_init):
+              open(p_qiskit_init, "w").write(
+                  "# Stub: qiskit 0.x plugin disabled for qiskit 1.x compatibility\n"
+                  "QISKIT_INCOMPATIBLE_FUNC_NAMES = []\n"
+              )
+              print("Stubbed: torchquantum/plugin/qiskit/__init__.py")
+
+          # Fix 2: Wrap remaining direct qiskit 0.x imports outside the plugin dir
+          # (e.g. qiskit.providers.aer in util/utils.py).
           BROKEN = re.compile(
               r'^([ \t]*)((?:from|import) qiskit[^\n]*|from qiskit_ibm_runtime[^\n]*|import qiskit_ibm_runtime[^\n]*)',
               re.MULTILINE
@@ -69,9 +80,12 @@ jobs:
               return f"{ind}try:\n{ind}    {stmt}\n{ind}except Exception:\n{ind}    pass"
 
           patched = 0
+          plugin_qiskit_dir = os.path.join(tq_root, "plugin", "qiskit")
           for dirpath, _, filenames in os.walk(tq_root):
+              if dirpath.startswith(plugin_qiskit_dir):
+                  continue  # already stubbed above
               for fn in filenames:
-                  if not fn.endswith('.py'):
+                  if not fn.endswith(".py"):
                       continue
                   fp = os.path.join(dirpath, fn)
                   try:
@@ -80,11 +94,11 @@ jobs:
                       continue
                   new_txt = BROKEN.sub(wrap, txt)
                   if new_txt != txt:
-                      open(fp, 'w').write(new_txt)
+                      open(fp, "w").write(new_txt)
                       patched += 1
                       print(f"Patched: {fp.replace(site_pkg + os.sep, '')}")
 
-          print(f"Done — {patched} files patched")
+          print(f"Done — {patched} additional files patched")
           EOF
 
       - name: Verify torchquantum import
