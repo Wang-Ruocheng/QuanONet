@@ -110,19 +110,6 @@ jobs:
           print(f"Done — {patched} additional files patched")
           EOF
 
-      - name: Verify torchquantum import
-        run: |
-          python - <<'EOF'
-          try:
-              import torchquantum as tq
-              print(f"torchquantum {tq.__version__} imported OK")
-          except Exception as e:
-              import traceback
-              print(f"torchquantum import FAILED: {e}")
-              traceback.print_exc()
-              raise
-          EOF
-
       - name: Run backend tests (TorchQuantum + Qiskit + routing)
         run: |
           python test_backends.py
