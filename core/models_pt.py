@@ -13,24 +13,34 @@ import torch
 import torch.nn as nn
 
 
-class _RepeatLinear(nn.Module):
+class _TiledElementWise(nn.Module):
     """
-    Trainable frequency layer: y = Linear(x).repeat_interleave(repeat_factor, dim=1)
+    Trainable frequency layer that exactly mirrors MindSpore
+    CombinedNet(RepeatLayer(out_size), LinearLayer(out_size, init_scale)):
+      1. Tile x along dim-1: (batch, in) → (batch, out)  [same as RepeatLayer]
+      2. Element-wise: y = x_tiled * weights + bias       [same as LinearLayer]
 
-    Mirrors MindSpore CombinedNet(RepeatLayer(out_size), LinearLayer(out_size, init_scale)).
+    Parameters are directly mappable from MindSpore .npz:
+      branch_LinearLayer.Net2.weights → self.weights
+      branch_LinearLayer.Net2.bias   → self.bias
 
     Args:
         in_features: input dimension
         out_features: total output dimension (= depth * num_qubits)
-        init_scale: initial scale for the linear weight
+        init_scale: initial value for weights (matches MindSpore init)
     """
     def __init__(self, in_features, out_features, init_scale=0.1):
         super().__init__()
-        self.linear = nn.Linear(in_features, out_features, bias=False)
-        nn.init.constant_(self.linear.weight, init_scale)
+        self.in_features = in_features
+        self.out_features = out_features
+        self.repeats = int(np.ceil(out_features / in_features))
+        self.weights = nn.Parameter(torch.full((out_features,), init_scale))
+        self.bias = nn.Parameter(torch.zeros(out_features))
 
     def forward(self, x):
-        return self.linear(x)
+        # Tile: (batch, in_features) → (batch, out_features)
+        tiled = x.repeat(1, self.repeats)[:, :self.out_features]
+        return tiled * self.weights + self.bias
 
 
 class _ScaleRepeat(nn.Module):
@@ -116,10 +126,10 @@ class QuanONetPT(nn.Module):
         self.trunk_enc_size = trunk_depth * num_qubits
 
         if if_trainable_freq:
-            self.branch_freq = _RepeatLinear(branch_input_size,
-                                             self.branch_enc_size, scale_coeff)
-            self.trunk_freq = _RepeatLinear(trunk_input_size,
-                                            self.trunk_enc_size, scale_coeff)
+            self.branch_freq = _TiledElementWise(branch_input_size,
+                                                 self.branch_enc_size, scale_coeff)
+            self.trunk_freq = _TiledElementWise(trunk_input_size,
+                                                self.trunk_enc_size, scale_coeff)
         else:
             self.branch_freq = _ScaleRepeat(branch_input_size,
                                             self.branch_enc_size, scale_coeff)
@@ -176,7 +186,7 @@ class HEAQNNPT(nn.Module):
         self.if_trainable_freq = if_trainable_freq
 
         if if_trainable_freq:
-            self.freq = _RepeatLinear(input_size, enc_size, scale_coeff)
+            self.freq = _TiledElementWise(input_size, enc_size, scale_coeff)
         else:
             self.freq = _ScaleRepeat(input_size, enc_size, scale_coeff)
 

@@ -116,7 +116,7 @@ for OP in "${OPERATORS[@]}"; do
                             --seed "${SEED}" \
                             --prefix "${PREFIX}" \
                             ${GPU_FLAG} \
-                            > /dev/null 2>&1
+                            > /dev/null 2>&1 || exit 1
                     done
                 done
             done
@@ -150,10 +150,10 @@ for OP in "${OPERATORS[@]}"; do
                     --seed "${SEED}" \
                     --prefix "${PREFIX}" \
                     ${GPU_FLAG} \
-                    > /dev/null 2>&1
+                    > /dev/null 2>&1 || exit 1
             done
         fi
     done
 done
 
-echo "✅ All experiments completed. Logs saved in ${LOG_DIR}"
+echo "✅ All experiments completed. Logs saved in ${PREFIX}"

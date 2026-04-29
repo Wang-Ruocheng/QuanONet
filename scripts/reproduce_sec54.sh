@@ -59,7 +59,7 @@ for PAULI in "${PAULI_LIST[@]}"; do
             --num_test ${NUM_TEST} --test_sample_num ${TEST_SAMPLE} \
             --batch_size ${BATCH_SIZE} --learning_rate ${LR} \
             --seed "${SEED}" --prefix "${PREFIX}" ${GPU_FLAG} \
-            > /dev/null 2>&1
+            > /dev/null 2>&1 || exit 1
     done
 done
 
@@ -84,7 +84,7 @@ for BOUND in {1..10}; do
             --num_test ${NUM_TEST} --test_sample_num ${TEST_SAMPLE} \
             --batch_size ${BATCH_SIZE} --learning_rate ${LR} \
             --seed "${SEED}" --prefix "${PREFIX}" ${GPU_FLAG} \
-            > /dev/null 2>&1
+            > /dev/null 2>&1 || exit 1
     done
 done
 
@@ -123,7 +123,7 @@ for DIAG in "${DIAG_LIST[@]}"; do
             --num_test ${NUM_TEST} --test_sample_num ${TEST_SAMPLE} \
             --batch_size ${BATCH_SIZE} --learning_rate ${LR} \
             --seed "${SEED}" --prefix "${PREFIX}" ${GPU_FLAG} \
-            > /dev/null 2>&1
+            > /dev/null 2>&1 || exit 1
     done
     ((IDX++))
 done

@@ -8,8 +8,6 @@ import mindspore as ms
 import mindspore.nn as nn
 import mindspore.numpy as mnp
 from mindspore import Parameter
-from scipy.interpolate import interp1d
-
 # Import local modules (must be in the same directory)
 try:
     from layers import *

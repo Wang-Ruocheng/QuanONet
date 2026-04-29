@@ -105,7 +105,7 @@ for OP in "${OPERATORS[@]}"; do
                 --prefix "${PREFIX}" \
                 ${GPU_FLAG} \
                 ${EXTRA_ARGS} \
-                > /dev/null 2>&1
+                > /dev/null 2>&1 || exit 1
         done
     done
 done

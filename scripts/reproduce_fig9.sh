@@ -101,7 +101,7 @@ for P in "${DIM_P_LIST[@]}"; do
                     --seed "${SEED}" \
                     --prefix "${PREFIX}" \
                     ${GPU_FLAG} \
-                    > /dev/null 2>&1
+                    > /dev/null 2>&1 || exit 1
             done
         done
     done
@@ -149,7 +149,7 @@ for P in "${DIM_P_LIST[@]}"; do
                     --seed "${SEED}" \
                     --prefix "${PREFIX}" \
                     ${GPU_FLAG} \
-                    > /dev/null 2>&1
+                    > /dev/null 2>&1 || exit 1
             done
         done
     done

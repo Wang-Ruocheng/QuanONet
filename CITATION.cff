@@ -1,0 +1,47 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "QuanONet: Quantum Neural Operators with Adaptive Frequency Strategy"
+type: software
+repository-code: "https://github.com/Wang-Ruocheng/QuanONet"
+license: MIT
+
+authors:
+  - family-names: Wang
+    given-names: Ruocheng
+  - family-names: Xia
+    given-names: Zhuo
+  - family-names: Zhong
+    given-names: Xiaoqiu
+  - family-names: Yan
+    given-names: Junchi
+
+preferred-citation:
+  type: article
+  title: "Quantum Neural Operators: Implicit Quadratic Frame and Expressivity Advantages with Adaptive Frequency Strategy"
+  authors:
+    - family-names: Wang
+      given-names: Ruocheng
+    - family-names: Xia
+      given-names: Zhuo
+    - family-names: Zhong
+      given-names: Xiaoqiu
+    - family-names: Yan
+      given-names: Junchi
+  journal: "Nature Machine Intelligence"
+  year: 2026
+  notes: "Under Review"
+
+references:
+  - type: conference-paper
+    title: "QuanONet: Quantum Neural Operator with Application to Differential Equation"
+    authors:
+      - family-names: Wang
+        given-names: Ruocheng
+      - family-names: Xia
+        given-names: Zhuo
+      - family-names: Yan
+        given-names: Ge
+      - family-names: Yan
+        given-names: Junchi
+    collection-title: "Forty-second International Conference on Machine Learning"
+    year: 2025

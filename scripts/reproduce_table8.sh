@@ -95,7 +95,7 @@ for N_Q in "${QUBIT_CASES[@]}"; do
                     --seed "${SEED}" \
                     --prefix "${PREFIX}" \
                     ${GPU_FLAG} \
-                    > /dev/null 2>&1
+                    > /dev/null 2>&1 || exit 1
             done
         done
     done
