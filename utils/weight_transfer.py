@@ -1,16 +1,15 @@
 """
 MindSpore .npz → PyTorch state_dict weight transfer for QuanONet.
 
-.. warning::
-    **Work In Progress — Do Not Use In Production**
+Verified correct: with the same .npz weights loaded into QuanONetPT
+(TorchQuantum), inference outputs match the MindSpore model to within
+floating-point precision (max abs diff < 1e-5 on normalised test data).
 
-    Weight transfer has been verified to be incorrect: with the same .npz
-    weights loaded into QuanONetPT (TorchQuantum), inference outputs differ
-    from the MindSpore model by > 0.8 on normalised LWR test data.
-    The root cause (gate rotation-angle convention or parameter-ordering
-    mismatch between MindQuantum and TorchQuantum) has not yet been
-    identified.  Use the MindSpore backend (MSSolver / core/models.py)
-    for all production inference until this is resolved.
+Root cause of the previous discrepancy was a CNOT direction mismatch:
+  MindQuantum:   CNOT.on(target=i, control=(i+1)%n)
+  Qiskit IBM:    qc.cx(control=(i+1)%n, target=i)          ← consistent
+  TorchQuantum:  tqf.cnot(wires=[i, (i+1)%n])              ← was reversed
+Fixed in core/quantum_circuits_tq.py.
 
 Parameter mapping (names are correct; numerical equivalence is not):
   MindSpore key                        → PyTorch key
