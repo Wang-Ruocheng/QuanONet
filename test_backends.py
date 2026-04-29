@@ -181,12 +181,17 @@ if __name__ == "__main__":
         import traceback; traceback.print_exc()
         results['qiskit'] = False
 
-    try:
-        results['ms_fno'] = test_ms_fno()
-    except Exception as e:
-        print(f"  {FAIL} MindSpore FNO: {e}")
-        import traceback; traceback.print_exc()
-        results['ms_fno'] = False
+    import importlib.util
+    if importlib.util.find_spec('mindspore') is None:
+        print("\n=== MindSpore FNO Backend ===")
+        print("  [SKIP] MindSpore not installed — skipping")
+    else:
+        try:
+            results['ms_fno'] = test_ms_fno()
+        except Exception as e:
+            print(f"  {FAIL} MindSpore FNO: {e}")
+            import traceback; traceback.print_exc()
+            results['ms_fno'] = False
 
     print("\n========== Summary ==========")
     for k, v in results.items():
