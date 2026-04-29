@@ -28,9 +28,11 @@ protobuf==3.20.3
 # Note: torchquantum 0.1.8 requires the patches described in README for qiskit 1.x compatibility
 torchquantum==0.1.8
 
-# Qiskit (Quantum backend: qiskit)
+# Qiskit (Quantum backend: qiskit + IBM hardware deployment)
 qiskit==1.4.5
 qiskit-machine-learning==0.8.4
+qiskit-ibm-runtime>=0.45.0
+qiskit-aer>=0.14.0
 
 # Common dependencies
 dill==0.4.1
