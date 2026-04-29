@@ -85,7 +85,9 @@ def _fill_hea_circuit(qc, input_params, weight_params, n_qubits, block_configs):
                 qc.rz(weight_params[ans_idx], i); ans_idx += 1
                 qc.ry(weight_params[ans_idx], i); ans_idx += 1
             for i in range(n_qubits):
-                qc.cx(i, (i + 1) % n_qubits)
+                # MindQuantum: CNOT.on(target=i, control=(i+1)%n)
+                # TorchQuantum: tqf.cnot(wires=[(i+1)%n, i])  ← same direction
+                qc.cx((i + 1) % n_qubits, i)
 
 
 def _build_hamiltonian_op(n_qubits, lower_bound=-5.0, upper_bound=5.0, ham_diag=None):
@@ -163,7 +165,7 @@ def _make_torch_connector(n_qubits, block_configs, ham_op, initial_weights=None)
 
 
 def build_quanonet_qiskit(num_qubits, branch_input_size, trunk_input_size, net_size,
-                          ham_bound=(-5.0, 5.0), ham_diag=None):
+                          ham_bound=(-5.0, 5.0), ham_diag=None, initial_weights=None):
     """
     Build a Qiskit-based QuanONet quantum layer.
 
@@ -190,11 +192,12 @@ def build_quanonet_qiskit(num_qubits, branch_input_size, trunk_input_size, net_s
     )
 
     ham_op = _build_hamiltonian_op(num_qubits, ham_bound[0], ham_bound[1], ham_diag)
-    return _make_torch_connector(num_qubits, block_configs, ham_op)
+    return _make_torch_connector(num_qubits, block_configs, ham_op,
+                                 initial_weights=initial_weights)
 
 
 def build_heaqnn_qiskit(num_qubits, input_size, net_size,
-                        ham_bound=(-5.0, 5.0), ham_diag=None):
+                        ham_bound=(-5.0, 5.0), ham_diag=None, initial_weights=None):
     """
     Build a Qiskit-based HEAQNN quantum layer.
 
@@ -212,4 +215,5 @@ def build_heaqnn_qiskit(num_qubits, input_size, net_size,
     linear_depth = net_size[1]
     block_configs = [(num_qubits, linear_depth)] * depth
     ham_op = _build_hamiltonian_op(num_qubits, ham_bound[0], ham_bound[1], ham_diag)
-    return _make_torch_connector(num_qubits, block_configs, ham_op)
+    return _make_torch_connector(num_qubits, block_configs, ham_op,
+                                 initial_weights=initial_weights)
