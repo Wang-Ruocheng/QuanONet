@@ -151,12 +151,19 @@ def test_routing():
         ('FNO',      'mindquantum', 'pytorch',   'pytorch'),
         ('FNO',      'mindquantum', 'mindspore', 'mindspore_classical'),
     ]
+    failed = False
     for model_type, qb, cb, expected in cases:
-        result = backend.check_compatibility(model_type, qb, cb)
-        status = PASS if result == expected else FAIL
-        print(f"  {status}  {model_type} | qb={qb} | cb={cb} → {result}")
-    print(f"  {PASS} Backend routing")
-    return True
+        try:
+            result = backend.check_compatibility(model_type, qb, cb)
+            status = PASS if result == expected else FAIL
+            if result != expected:
+                failed = True
+            print(f"  {status}  {model_type} | qb={qb} | cb={cb} → {result}")
+        except ImportError:
+            print(f"  [SKIP] {model_type} | qb={qb} | cb={cb} (backend not installed)")
+    if not failed:
+        print(f"  {PASS} Backend routing")
+    return not failed
 
 
 # ─────────────────────────────────────────────
