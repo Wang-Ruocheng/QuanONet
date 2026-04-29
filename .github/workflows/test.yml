@@ -29,12 +29,19 @@ jobs:
         # MindSpore requires Linux x86 with specific GLIBC and is multi-GB;
         # CI only validates the PyTorch-based backends (TorchQuantum, Qiskit)
         # and the backend routing logic.
+        #
+        # torchquantum==0.1.8 declares qiskit<1.0.0 as a dependency, but our
+        # code only uses tq.QuantumDevice / tqf.rx/ry/rz/cnot — no qiskit at all.
+        # Installing with --no-deps avoids the conflict with qiskit 1.x used by
+        # qiskit-machine-learning.  Essential runtime deps (opt-einsum, etc.) are
+        # installed explicitly below.
         run: |
           pip install --upgrade pip
-          pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install torchquantum==0.1.8
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install torchquantum==0.1.8 --no-deps
+          pip install opt-einsum pylatexenc torchpack
           pip install qiskit==1.4.5 qiskit-machine-learning==0.8.4
-          pip install numpy==1.26.4 scipy matplotlib
+          pip install numpy scipy matplotlib
 
       - name: Apply TorchQuantum patches for Qiskit 1.x compatibility
         run: |
@@ -43,11 +50,13 @@ jobs:
 
           site_pkg = site.getsitepackages()[0]
 
-          # patch 1: torchquantum/plugin/__init__.py
+          # patch 1: torchquantum/plugin/__init__.py — wrap entire file in try/except
+          # so stale qiskit-0.x imports don't crash on import (we installed --no-deps,
+          # but TQ may still reference qiskit internally).
           p1 = os.path.join(site_pkg, "torchquantum/plugin/__init__.py")
           if os.path.exists(p1):
               txt = open(p1).read()
-              if "try:" not in txt:
+              if not txt.startswith("try:"):
                   open(p1, "w").write("try:\n    " +
                       txt.replace("\n", "\n    ") + "\nexcept Exception:\n    pass\n")
 
