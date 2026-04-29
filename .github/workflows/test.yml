@@ -39,7 +39,7 @@ jobs:
           pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install torchquantum==0.1.8 --no-deps
-          pip install opt-einsum pylatexenc torchpack
+          pip install opt-einsum pylatexenc torchpack pathos tqdm dill torchdiffeq
           pip install qiskit==1.4.5 qiskit-machine-learning==0.8.4
           pip install numpy scipy matplotlib
 
@@ -72,6 +72,19 @@ jobs:
               open(p2, "w").write(txt)
 
           print("Patches applied")
+          EOF
+
+      - name: Verify torchquantum import
+        run: |
+          python - <<'EOF'
+          try:
+              import torchquantum as tq
+              print(f"torchquantum {tq.__version__} imported OK")
+          except Exception as e:
+              import traceback
+              print(f"torchquantum import FAILED: {e}")
+              traceback.print_exc()
+              raise
           EOF
 
       - name: Run backend tests (TorchQuantum + Qiskit + routing)
