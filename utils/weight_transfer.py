@@ -131,7 +131,7 @@ if __name__ == '__main__':
     sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
     # Antideriv hardware-deployment model (Q2, Net5-1-5-1, branch_in=10)
-    NPZ  = ('hardware_deployment/Antideriv/'
+    NPZ  = ('pretrained_weights/Antideriv/'
             'Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz')
     DATA = 'data/Antideriv/Antideriv_1000_1000_100_10_10_100.npz'
 

@@ -13,7 +13,7 @@ from qiskit_ibm_runtime import QiskitRuntimeService, EstimatorV2 as Estimator
 import warnings
 warnings.filterwarnings("ignore")
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from infer import _parse_path, evaluate
 from core.quantum_circuits_tq import _ham_params
 
@@ -120,7 +120,7 @@ def main():
     parser = argparse.ArgumentParser(description="QuanONet Hardware Inference Script")
     parser.add_argument('--job_id', type=str, default=None, help="Fetch results from an existing IBM Quantum Job ID.")
     parser.add_argument('--weight_path', type=str,
-                        default="Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz",
+                        default="pretrained_weights/Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz",
                         help="Path to the pre-trained weights (.npz).")
     parser.add_argument('--simulator_only', action='store_true',
                         help="Force ideal simulation only, bypassing real hardware even if token is set.")

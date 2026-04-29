@@ -10,10 +10,11 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 
 ```text
 .
-├── main.py                # Unified Entry Point (auto-backend selection)
-├── requirements.txt       # Project dependencies
-├── README.md              # Project documentation
+├── main.py                # Unified entry point (auto-backend selection)
+├── infer.py               # Standalone inference — Python API and CLI
+├── ibm_inference.py       # Real-device deployment on IBM Quantum hardware
 ├── test_backends.py       # Backend integration test script
+├── requirements.txt       # Project dependencies
 │
 ├── scripts/               # Automated reproduction bash scripts
 │   ├── reproduce_table4.sh
@@ -24,7 +25,13 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 │   └── reproduce_sec54.sh
 │
 ├── visualization.ipynb    # Jupyter notebook for PDE results visualization
-├── pretrained_weights/    # Pre-trained checkpoints (.ckpt)
+│
+├── pretrained_weights/    # Pre-trained checkpoints
+│   ├── Advection/         # MindSpore .ckpt — Net40-2-20-2, Q5
+│   ├── Darcy/             # MindSpore .ckpt — Net40-2-20-2, Q5
+│   ├── RDiffusion/        # MindSpore .ckpt — Net40-2-20-2, Q5
+│   │                      #             .npz — Net2-2-2-2,  Q5 (hardware)
+│   └── Antideriv/         # NumPy   .npz  — Net5-1-5-1,  Q2 (hardware)
 │
 ├── core/                  # Core model architectures
 │   ├── models.py               # MindSpore QuanONet / HEAQNN / FNN / DeepONet
@@ -36,7 +43,7 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 │   ├── ms_fno.py               # MindSpore FNO
 │   └── layers.py               # Custom MindSpore layers
 │
-├── solvers/               # Training & Evaluation solvers
+├── solvers/               # Training & evaluation solvers
 │   ├── solver_ms.py         # MindSpore solver (QuanONet/HEAQNN/FNN/DeepONet/FNO)
 │   ├── solver_pt.py         # PyTorch solver (QuanONet/HEAQNN via TQ or Qiskit)
 │   └── solver_dde.py        # DeepXDE/PyTorch solver (DeepONet/FNN/FNO)
@@ -46,16 +53,12 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 │   ├── data_manager.py
 │   └── random_func.py
 │
-├── utils/                 # Utilities and helpers
-│   ├── common.py            # Argument parsing (all hyperparameters)
-│   ├── backend.py           # Backend routing (5-way dispatch)
-│   ├── logger.py            # Logging and JSON metrics
-│   └── metrics.py           # L2 / MSE evaluation
-│
-└── hardware_deployment/        # Real-device deployment on IBM Quantum
-    ├── requirements_qiskit.txt
-    ├── ibm_inference.py
-    └── Antideriv/.../best_model.npz
+└── utils/                 # Utilities and helpers
+    ├── common.py            # Argument parsing (all hyperparameters)
+    ├── backend.py           # Backend routing (5-way dispatch)
+    ├── weight_transfer.py   # MindSpore .npz → PyTorch state_dict conversion
+    ├── logger.py            # Logging and JSON metrics
+    └── metrics.py           # L2 / MSE evaluation
 ```
 
 ## Installation
@@ -162,9 +165,40 @@ python main.py \
 python test_backends.py
 ```
 
+## Inference on Pre-trained Weights
+
+`infer.py` provides a unified inference interface for both MindSpore (`.ckpt`) and PyTorch (`.npz`) checkpoints. Model hyper-parameters are automatically parsed from the checkpoint directory name.
+
+**CLI:**
+
+```bash
+# Evaluate on a data file and print metrics
+python infer.py \
+  --ckpt pretrained_weights/RDiffusion/RDiffusion_QuanONet_Net40-2-20-2_Q5_TF_S0.1_1000x100_Seed0/best_model.ckpt \
+  --data data/RDiffusion/RDiffusion_100_100_100_100_100_100.npz
+
+# Run on raw arrays and save predictions
+python infer.py --ckpt best_model.ckpt \
+                --branch branch.npy --trunk trunk.npy \
+                --output preds.npy
+```
+
+**Python API:**
+
+```python
+from infer import load_model, predict, evaluate
+
+model, cfg = load_model(
+    'pretrained_weights/RDiffusion/.../best_model.ckpt',
+    branch_in=100, trunk_in=2,
+)
+preds   = predict(model, branch_input, trunk_input, cfg=cfg)
+metrics = evaluate(preds, y_true)   # {'rel_l2', 'mse', 'mae'}
+```
+
 ## Reproducing Paper Results
 
-For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the PDE pre-trained weights (MindSpore `.ckpt`) from the `pretrained_weights/` directory.
+For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.ipynb`. It automatically loads the PDE pre-trained weights from the `pretrained_weights/` directory.
 
 The `scripts/` directory contains automated bash scripts to reproduce the primary experimental results reported in the manuscript.
 
@@ -233,47 +267,49 @@ The `--classical_backend` flag applies to `DeepONet`, `FNN`, and `FNO` models.
 
 ## Real-Device Deployment (IBM Quantum)
 
-The `hardware_deployment/` directory isolates the deployment and evaluation of QuanONet on real superconducting quantum processors (e.g., `ibm_fez`) utilizing a standalone Qiskit environment to prevent dependency conflicts.
+`ibm_inference.py` deploys and evaluates QuanONet on real superconducting quantum processors (e.g., `ibm_fez`). It automatically analyzes the physical chip topology, routes optimal qubits based on calibration data, and transpiles the circuit for hardware execution.
 
-**Setup:**
+**Setup:** No separate environment is required. Set your IBM Quantum token as an environment variable:
 
 ```bash
-pip install -r requirements_qiskit.txt
 export QISKIT_IBM_TOKEN="your_token_here"
 ```
 
-**Execution (`ibm_inference.py`):**
+**Mode 1: Ideal Simulation (local, no token needed)**
 
-This unified script automatically analyzes the physical chip topology, routes optimal qubits based on calibration data, transpiles the circuit, and executes inference. It supports evaluating both linear (`x`) and trigonometric (`cos\pi x`) initial conditions via the `--input_func` argument.
+```bash
+python ibm_inference.py --simulator_only --input_func cos
+```
 
-- **Mode 1: Ideal Simulation (Local)**
+**Mode 2: Real Hardware Execution**
 
-  Verify logical depth without a server connection.
+Automatically profiles the least busy QPU and submits a new job:
 
-  ```bash
-  python ibm_inference.py --simulator_only --input_func linear
-  ```
-- **Mode 2: Real Hardware Execution**
+```bash
+python ibm_inference.py --input_func cos
+```
 
-  Automatically profiles the least busy QPU and submits a new physical execution job.
+**Mode 3: Fetch Existing Results**
 
-  ```bash
-  python ibm_inference.py --input_func cos
-  ```
-- **Mode 3: Fetch Existing Results**
+Retrieve a completed job without re-queuing:
 
-  Bypass queue times by fetching completed job data directly.
-
-  ```bash
-  python ibm_inference.py --job_id <YOUR_JOB_ID_HERE>
-  ```
+```bash
+python ibm_inference.py --job_id <YOUR_JOB_ID>
+```
 
 **Using Custom Weights:**
 
-The repository includes a pre-trained checkpoint (`Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz`) matching the lightweight configuration. To evaluate custom models:
+The default checkpoint is `pretrained_weights/Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz`. To evaluate a different model:
 
-1. Execute with the `.npz` weight path argument: `python ibm_inference.py --weight_path YOUR_WEIGHT_FILE.npz`.
-2. The script automatically parses the network dimensions from the filename. If a custom naming convention is used, dimensions must be passed manually (e.g., `--n_qubits 4 --n_branch 5 --n_trunk 5 --n_hidden 1`).
+```bash
+python ibm_inference.py --weight_path pretrained_weights/RDiffusion/.../best_model.npz
+```
+
+Architecture dimensions are auto-parsed from the filename. Override manually if needed:
+
+```bash
+python ibm_inference.py --weight_path custom.npz --n_qubits 4 --n_branch 5 --n_trunk 5 --n_hidden 1
+```
 
 ## Citation
 

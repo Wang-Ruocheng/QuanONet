@@ -4,7 +4,7 @@ data/
 *.csv
 # 忽略所有的 npz 文件（通常是生成的数据或缓存）
 *.npz
-!hardware_deployment/Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz
+!pretrained_weights/Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz
 
 # === 2. 忽略训练产物 (日志、权重、结果) ===
 logs/
@@ -28,7 +28,7 @@ test.ipynb
 evaluate.py
 
 # === 3. 忽略结果 PDF ===
-hardware_inference_comparison_RDiffusion*.pdf
+hardware_inference_comparison*.pdf
 
 # === 4. 忽略 Python 缓存和系统文件 ===
 __pycache__/
@@ -38,3 +38,6 @@ __pycache__/
 .idea/
 .vscode/
 .sii/
+
+# === 5. 忽略已清空的 hardware_deployment 目录残留 ===
+hardware_deployment/
