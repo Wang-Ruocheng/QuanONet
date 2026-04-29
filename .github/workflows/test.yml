@@ -60,12 +60,19 @@ jobs:
                   open(p1, "w").write("try:\n    " +
                       txt.replace("\n", "\n    ") + "\nexcept Exception:\n    pass\n")
 
-          # patch 2: torchquantum/util/utils.py — wrap qiskit_ibm_runtime import
+          # patch 2: torchquantum/util/utils.py — wrap qiskit 0.x imports removed in 1.x
           p2 = os.path.join(site_pkg, "torchquantum/util/utils.py")
           if os.path.exists(p2):
               txt = open(p2).read()
+              # qiskit_ibm_runtime was removed in qiskit 1.x
               txt = re.sub(
                   r"(from qiskit_ibm_runtime.*)",
+                  r"try:\n    \1\nexcept Exception:\n    pass",
+                  txt
+              )
+              # qiskit.providers.aer moved to separate qiskit-aer package in qiskit 1.x
+              txt = re.sub(
+                  r"(from qiskit\.providers\.aer.*)",
                   r"try:\n    \1\nexcept Exception:\n    pass",
                   txt
               )
