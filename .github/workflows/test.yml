@@ -49,36 +49,44 @@ jobs:
           import site, os, re
 
           site_pkg = site.getsitepackages()[0]
+          tq_root = os.path.join(site_pkg, "torchquantum")
 
-          # patch 1: torchquantum/plugin/__init__.py — wrap entire file in try/except
-          # so stale qiskit-0.x imports don't crash on import (we installed --no-deps,
-          # but TQ may still reference qiskit internally).
-          p1 = os.path.join(site_pkg, "torchquantum/plugin/__init__.py")
-          if os.path.exists(p1):
-              txt = open(p1).read()
-              if not txt.startswith("try:"):
-                  open(p1, "w").write("try:\n    " +
-                      txt.replace("\n", "\n    ") + "\nexcept Exception:\n    pass\n")
+          if not os.path.isdir(tq_root):
+              print("torchquantum not found, skipping")
+              exit(0)
 
-          # patch 2: torchquantum/util/utils.py — wrap qiskit 0.x imports removed in 1.x
-          p2 = os.path.join(site_pkg, "torchquantum/util/utils.py")
-          if os.path.exists(p2):
-              txt = open(p2).read()
-              # qiskit_ibm_runtime was removed in qiskit 1.x
-              txt = re.sub(
-                  r"(from qiskit_ibm_runtime.*)",
-                  r"try:\n    \1\nexcept Exception:\n    pass",
-                  txt
-              )
-              # qiskit.providers.aer moved to separate qiskit-aer package in qiskit 1.x
-              txt = re.sub(
-                  r"(from qiskit\.providers\.aer.*)",
-                  r"try:\n    \1\nexcept Exception:\n    pass",
-                  txt
-              )
-              open(p2, "w").write(txt)
+          # All qiskit 0.x import patterns removed/moved in qiskit 1.x
+          BROKEN = re.compile(
+              r'^([ \t]*)'
+              r'(from qiskit import (?:Aer|execute)[^\n]*'
+              r'|from qiskit\.providers\.aer[^\n]*'
+              r'|from qiskit\.providers\.ibmq[^\n]*'
+              r'|from qiskit_ibm_runtime[^\n]*'
+              r'|import qiskit_ibm_runtime[^\n]*)',
+              re.MULTILINE
+          )
 
-          print("Patches applied")
+          def wrap(m):
+              ind, stmt = m.group(1), m.group(2)
+              return f"{ind}try:\n{ind}    {stmt}\n{ind}except Exception:\n{ind}    pass"
+
+          patched = 0
+          for dirpath, _, filenames in os.walk(tq_root):
+              for fn in filenames:
+                  if not fn.endswith('.py'):
+                      continue
+                  fp = os.path.join(dirpath, fn)
+                  try:
+                      txt = open(fp).read()
+                  except Exception:
+                      continue
+                  new_txt = BROKEN.sub(wrap, txt)
+                  if new_txt != txt:
+                      open(fp, 'w').write(new_txt)
+                      patched += 1
+                      print(f"Patched: {fp.replace(site_pkg + os.sep, '')}")
+
+          print(f"Done — {patched} files patched")
           EOF
 
       - name: Verify torchquantum import
