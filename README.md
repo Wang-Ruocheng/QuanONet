@@ -14,6 +14,7 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 ├── infer.py               # Standalone inference — Python API and CLI
 ├── ibm_inference.py       # Real-device deployment on IBM Quantum hardware
 ├── test_backends.py       # Backend integration test script
+├── compare_backends.py    # Cross-backend consistency check (all models × all backends)
 ├── requirements.txt       # Project dependencies
 │
 ├── scripts/               # Automated reproduction bash scripts
@@ -39,6 +40,7 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 │   ├── quantum_circuits.py     # HEA circuits — MindQuantum backend
 │   ├── quantum_circuits_tq.py  # HEA circuits — TorchQuantum backend
 │   ├── quantum_circuits_qiskit.py # HEA circuits — Qiskit EstimatorQNN backend
+│   ├── quantum_circuits_pl.py  # HEA circuits — PennyLane backend
 │   ├── dde_models.py           # PyTorch FNO (used by DeepXDE solver)
 │   ├── ms_fno.py               # MindSpore FNO
 │   └── layers.py               # Custom MindSpore layers
@@ -82,6 +84,8 @@ pip install -r requirements.txt
 > ```
 >
 > These patches disable only the optional IBM-Q connectivity plugin; local statevector simulation is unaffected. See `test_backends.py` for a ready-to-run verification.
+
+> **PennyLane compatibility note:** `pennylane>=0.38` requires `autoray>=0.6.7,<0.7`. `autoray>=0.7` removes an internal attribute used by PennyLane 0.38, causing an import error. The pin is included in `requirements.txt`.
 
 ### Backend Matrix
 
@@ -139,7 +143,19 @@ python main.py \
   --num_epochs 200
 ```
 
-**4. Train FNO with MindSpore backend**
+**4. Train TF-QuanONet with PennyLane backend**
+
+```bash
+python main.py \
+  --operator Antideriv \
+  --model_type QuanONet \
+  --quantum_backend pennylane \
+  --if_trainable_freq true \
+  --num_qubits 5 \
+  --num_epochs 1000
+```
+
+**5. Train FNO with MindSpore backend**
 
 ```bash
 python main.py \
@@ -150,7 +166,7 @@ python main.py \
   --num_epochs 1000
 ```
 
-**5. Train Classical Baseline (DeepONet, PyTorch)**
+**6. Train Classical Baseline (DeepONet, PyTorch)**
 
 ```bash
 python main.py \
@@ -160,10 +176,18 @@ python main.py \
   --num_epochs 1000
 ```
 
-**6. Verify all backends**
+**7. Verify all backends**
 
 ```bash
 python test_backends.py
+```
+
+**8. Cross-backend consistency check**
+
+Verifies that all 5 backends (mindquantum, torchquantum, qiskit, pennylane, mindspore-classical) produce identical outputs for the same weights across all model types (QuanONet, HEAQNN, FNN, DeepONet, FNO):
+
+```bash
+python compare_backends.py
 ```
 
 ## Inference on Pre-trained Weights
@@ -260,7 +284,7 @@ The `main.py` script accepts the following primary configurations:
 
 | **Argument**           | **Choices**                              | **Default**      |
 | ---------------------- | ---------------------------------------- | ---------------- |
-| `--quantum_backend`    | `mindquantum`, `torchquantum`, `qiskit`  | `mindquantum`    |
+| `--quantum_backend`    | `mindquantum`, `torchquantum`, `qiskit`, `pennylane` | `mindquantum`    |
 | `--classical_backend`  | `pytorch`, `mindspore`                   | `pytorch`        |
 
 The `--quantum_backend` flag applies to `QuanONet` and `HEAQNN` models.
