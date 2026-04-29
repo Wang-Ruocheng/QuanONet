@@ -96,7 +96,9 @@ class _TQHEACircuit(nn.Module):
                     tqf.ry(qdev, wires=i,
                            params=w[2, i].unsqueeze(0).expand(batch).unsqueeze(-1))
                 for i in range(self.n_wires):
-                    tqf.cnot(qdev, wires=[i, (i + 1) % self.n_wires])
+                    # MindQuantum: CNOT.on(target=i, control=(i+1)%n)
+                    # Qiskit IBM:  qc.cx(control=(i+1)%n, target=i)
+                    tqf.cnot(qdev, wires=[(i + 1) % self.n_wires, i])
                 ansatz_block += 1
 
         return self._measure(qdev, batch, x.device)
