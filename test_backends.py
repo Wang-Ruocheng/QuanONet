@@ -145,11 +145,12 @@ def test_routing():
     from utils.backend import backend
 
     cases = [
-        ('QuanONet', 'mindquantum', 'pytorch',   'mindspore'),
-        ('QuanONet', 'torchquantum','pytorch',   'pytorch_quantum'),
-        ('QuanONet', 'qiskit',      'pytorch',   'pytorch_quantum'),
-        ('FNO',      'mindquantum', 'pytorch',   'pytorch'),
-        ('FNO',      'mindquantum', 'mindspore', 'mindspore_classical'),
+        ('QuanONet', 'mindquantum',  'pytorch',   'mindspore'),
+        ('QuanONet', 'torchquantum', 'pytorch',   'pytorch_quantum'),
+        ('QuanONet', 'qiskit',       'pytorch',   'pytorch_quantum'),
+        ('QuanONet', 'pennylane',    'pytorch',   'pytorch_quantum'),
+        ('FNO',      'mindquantum',  'pytorch',   'pytorch'),
+        ('FNO',      'mindquantum',  'mindspore', 'mindspore_classical'),
     ]
     failed = False
     for model_type, qb, cb, expected in cases:
@@ -164,6 +165,51 @@ def test_routing():
     if not failed:
         print(f"  {PASS} Backend routing")
     return not failed
+
+
+# ─────────────────────────────────────────────
+# 5. PennyLane backend
+# ─────────────────────────────────────────────
+def test_pennylane():
+    print("\n=== PennyLane Backend ===")
+    from core.models_pt import QuanONetPT, HEAQNNPT
+
+    n_qubits  = 3
+    net_size  = (2, 1, 2, 1)
+    branch_in = 4
+    trunk_in  = 2
+    batch     = 4          # small batch — PennyLane loops per sample
+
+    model = QuanONetPT(
+        num_qubits=n_qubits,
+        branch_input_size=branch_in,
+        trunk_input_size=trunk_in,
+        net_size=net_size,
+        scale_coeff=0.1,
+        if_trainable_freq=True,
+        quantum_backend='pennylane',
+        ham_bound=(-5.0, 5.0),
+    )
+    b = torch.randn(batch, branch_in)
+    t = torch.randn(batch, trunk_in)
+    out = model(b, t)
+    assert out.shape == (batch, 1), f"Shape mismatch: {out.shape}"
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f"  QuanONetPT(PL): output shape={out.shape}, params={n_params}")
+
+    loss = out.sum()
+    loss.backward()
+    print(f"  Backward pass OK")
+
+    heaqnn = HEAQNNPT(n_qubits, input_size=4, net_size=(2, 1, 0, 0),
+                      quantum_backend='pennylane')
+    x = torch.randn(batch, 4)
+    out2 = heaqnn(x)
+    assert out2.shape == (batch, 1)
+    print(f"  HEAQNNPT(PL): output shape={out2.shape}  {PASS}")
+
+    print(f"  {PASS} PennyLane backend")
+    return True
 
 
 # ─────────────────────────────────────────────
@@ -187,6 +233,18 @@ if __name__ == "__main__":
         print(f"  {FAIL} Qiskit: {e}")
         import traceback; traceback.print_exc()
         results['qiskit'] = False
+
+    import importlib.util
+    if importlib.util.find_spec('pennylane') is None:
+        print("\n=== PennyLane Backend ===")
+        print("  [SKIP] pennylane not installed — skipping")
+    else:
+        try:
+            results['pennylane'] = test_pennylane()
+        except Exception as e:
+            print(f"  {FAIL} PennyLane: {e}")
+            import traceback; traceback.print_exc()
+            results['pennylane'] = False
 
     import importlib.util
     if importlib.util.find_spec('mindspore') is None:

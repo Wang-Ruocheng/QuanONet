@@ -278,7 +278,7 @@ def _parser():
     p.add_argument('--net_size',         type=int, nargs='+', default=None)
     p.add_argument('--scale_coeff',      type=float, default=None)
     p.add_argument('--quantum_backend',  default=None,
-                   choices=['mindquantum', 'torchquantum', 'qiskit'])
+                   choices=['mindquantum', 'torchquantum', 'qiskit', 'pennylane'])
     p.add_argument('--ham_bound',        type=float, nargs=2, default=None)
     return p
 

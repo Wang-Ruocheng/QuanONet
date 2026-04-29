@@ -28,6 +28,10 @@ protobuf==3.20.3
 # Note: torchquantum 0.1.8 requires the patches described in README for qiskit 1.x compatibility
 torchquantum==0.1.8
 
+# PennyLane (Quantum backend: pennylane)
+# Note: pennylane<0.38 has a retworkx/rustworkx version conflict; require >=0.38
+pennylane>=0.38.0
+
 # Qiskit (Quantum backend: qiskit + IBM hardware deployment)
 qiskit==1.4.5
 qiskit-machine-learning==0.8.4

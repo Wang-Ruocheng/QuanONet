@@ -24,6 +24,10 @@ class BackendManager:
     def is_qiskit_ml_available(self):
         return importlib.util.find_spec("qiskit_machine_learning") is not None
 
+    @property
+    def is_pennylane_available(self):
+        return importlib.util.find_spec("pennylane") is not None
+
     def check_compatibility(self, model_type, quantum_backend='mindquantum', classical_backend='pytorch'):
         """
         Determines the required backend based on model type and backend selections.
@@ -69,9 +73,21 @@ class BackendManager:
                         "but it is not installed. Install with: pip install qiskit-machine-learning"
                     )
                 return 'pytorch_quantum'
+            elif quantum_backend == 'pennylane':
+                if not self.is_torch_available:
+                    raise ImportError(
+                        f"Model '{model_type}' with pennylane backend requires PyTorch, "
+                        "but it is not installed."
+                    )
+                if not self.is_pennylane_available:
+                    raise ImportError(
+                        f"Model '{model_type}' with pennylane backend requires pennylane, "
+                        "but it is not installed. Install with: pip install pennylane"
+                    )
+                return 'pytorch_quantum'
             else:
                 raise ValueError(f"Unknown quantum_backend: '{quantum_backend}'. "
-                                 "Choose from: mindquantum, torchquantum, qiskit")
+                                 "Choose from: mindquantum, torchquantum, qiskit, pennylane")
 
         elif model_type in classical_models:
             if classical_backend == 'pytorch':

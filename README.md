@@ -90,6 +90,7 @@ pip install -r requirements.txt
 | `--quantum_backend mindquantum` (default) | `mindspore`, `mindquantum` | Original QuanONet backend |
 | `--quantum_backend torchquantum` | `torchquantum` | PyTorch-native statevector sim |
 | `--quantum_backend qiskit` | `qiskit`, `qiskit-machine-learning` | EstimatorQNN + TorchConnector |
+| `--quantum_backend pennylane` | `pennylane>=0.38` | PennyLane default.qubit, backprop diff |
 | `--classical_backend pytorch` (default) | `torch`, `DeepXDE` | DeepONet / FNN / FNO |
 | `--classical_backend mindspore` | `mindspore` | MindSpore FNO / FNN / DeepONet |
 

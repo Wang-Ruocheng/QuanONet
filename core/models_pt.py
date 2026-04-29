@@ -90,6 +90,14 @@ def _build_quantum_layer(quantum_backend, num_qubits, total_input_size,
         else:
             return build_heaqnn_qiskit(num_qubits, total_input_size, net_size,
                                        ham_bound=ham_bound, ham_diag=ham_diag)
+    elif quantum_backend == 'pennylane':
+        from core.quantum_circuits_pl import build_quanonet_pl, build_heaqnn_pl
+        if branch_input_size is not None:
+            return build_quanonet_pl(num_qubits, branch_input_size, trunk_input_size,
+                                     net_size, ham_bound=ham_bound, ham_diag=ham_diag)
+        else:
+            return build_heaqnn_pl(num_qubits, total_input_size, net_size,
+                                   ham_bound=ham_bound, ham_diag=ham_diag)
     else:
         raise ValueError(f"Unknown quantum_backend for PyTorch models: '{quantum_backend}'")
 

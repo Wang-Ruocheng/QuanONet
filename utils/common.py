@@ -87,7 +87,7 @@ def get_base_parser():
     # 6. Backend Selection
     # ==========================================
     parser.add_argument('--quantum_backend', type=str, default=None,
-                        choices=['mindquantum', 'torchquantum', 'qiskit'],
+                        choices=['mindquantum', 'torchquantum', 'qiskit', 'pennylane'],
                         help='Quantum simulation backend (default: mindquantum)')
     parser.add_argument('--classical_backend', type=str, default=None,
                         choices=['pytorch', 'mindspore'],
