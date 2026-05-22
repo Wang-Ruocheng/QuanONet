@@ -50,7 +50,7 @@ def _skip(tag, reason=""):
 RNG = np.random.default_rng(0)
 
 
-# ── Inline PT classical models (mirror core/models.py FNNLayer / FNN / DeepONet)
+# ── Inline PT classical models (mirror core/models_ms.py FNNLayer / FNN / DeepONet)
 class _FNNLayerPT(nn.Module):
     def __init__(self, in_size, out_size, width, depth):
         super().__init__()
@@ -258,14 +258,14 @@ def test_quanonet_ms_vs_pt():
     # ── MindSpore ─────────────────────────────────────────────────────────────
     import mindspore as ms
     from mindspore.train.serialization import load_param_into_net
-    from core.models import QuanONet
-    from core.quantum_circuits import generate_simple_hamiltonian
+    from core.models_ms import QuanONetMS
+    from core.quantum_circuits_ms import generate_simple_hamiltonian
 
     ms.set_context(mode=ms.PYNATIVE_MODE, device_target='CPU')
     ham = generate_simple_hamiltonian(cfg['num_qubits'],
                                       lower_bound=cfg['ham_bound'][0],
                                       upper_bound=cfg['ham_bound'][1])
-    model_ms = QuanONet(cfg['num_qubits'], cfg['branch_in'], cfg['trunk_in'],
+    model_ms = QuanONetMS(cfg['num_qubits'], cfg['branch_in'], cfg['trunk_in'],
                         cfg['net_size'], ham, scale_coeff=cfg['scale_coeff'],
                         if_trainable_freq=True)
 
@@ -313,8 +313,8 @@ def test_heaqnn_ms_vs_pt():
 
     import mindspore as ms
     from mindspore.train.serialization import load_param_into_net
-    from core.models import HEAQNN
-    from core.quantum_circuits import generate_simple_hamiltonian
+    from core.models_ms import HEAQNNMS
+    from core.quantum_circuits_ms import generate_simple_hamiltonian
     from core.models_pt import HEAQNNPT
 
     ms.set_context(mode=ms.PYNATIVE_MODE, device_target='CPU')
@@ -324,7 +324,7 @@ def test_heaqnn_ms_vs_pt():
     scale, hb    = 0.1, (-5.0, 5.0)
 
     ham = generate_simple_hamiltonian(n_q, lower_bound=hb[0], upper_bound=hb[1])
-    model_ms = HEAQNN(n_q, in_size, (depth, lin_d), ham,
+    model_ms = HEAQNNMS(n_q, in_size, (depth, lin_d), ham,
                       scale_coeff=scale, if_trainable_freq=True)
     model_ms.set_train(False)
 
@@ -363,7 +363,7 @@ def test_fnn_ms_vs_pt():
 
     import mindspore as ms
     from mindspore.train.serialization import load_param_into_net
-    from core.models import FNN
+    from core.models_ms import FNNMS
 
     ms.set_context(mode=ms.PYNATIVE_MODE, device_target='CPU')
 
@@ -374,7 +374,7 @@ def test_fnn_ms_vs_pt():
     model_pt.eval()
     sd_pt = model_pt.state_dict()
 
-    model_ms = FNN(in_size, out_size, net_size)
+    model_ms = FNNMS(in_size, out_size, net_size)
     model_ms.set_train(False)
 
     ms_names = {name for name, _ in model_ms.parameters_and_names()}
@@ -403,7 +403,7 @@ def test_deeponet_ms_vs_pt():
 
     import mindspore as ms
     from mindspore.train.serialization import load_param_into_net
-    from core.models import DeepONet
+    from core.models_ms import DeepONetMS
 
     ms.set_context(mode=ms.PYNATIVE_MODE, device_target='CPU')
 
@@ -415,7 +415,7 @@ def test_deeponet_ms_vs_pt():
     model_pt.eval()
     sd_pt = model_pt.state_dict()
 
-    model_ms = DeepONet(branch_in, trunk_in, net_size)
+    model_ms = DeepONetMS(branch_in, trunk_in, net_size)
     model_ms.set_train(False)
 
     ms_names = {name for name, _ in model_ms.parameters_and_names()}
@@ -446,20 +446,20 @@ def test_fno_ms_vs_pt():
 
     import mindspore as ms
     from mindspore.train.serialization import load_param_into_net
-    from core.dde_models import FNO
-    from core.ms_fno import FNO_MS
+    from core.models_pt import FNOPT
+    from core.models_ms import FNOMS
 
     ms.set_context(mode=ms.PYNATIVE_MODE, device_target='CPU')
 
     modes, width, layers, fc_hidden, in_ch, n_pts = 8, 16, 2, 16, 2, 64
 
     torch.manual_seed(7)
-    model_pt = FNO(modes=modes, width=width, layers=layers,
+    model_pt = FNOPT(modes=modes, width=width, layers=layers,
                    fc_hidden=fc_hidden, in_channels=in_ch)
     model_pt.eval()
     sd_pt = model_pt.state_dict()
 
-    model_ms = FNO_MS(modes=modes, width=width, layers=layers,
+    model_ms = FNOMS(modes=modes, width=width, layers=layers,
                       fc_hidden=fc_hidden, in_channels=in_ch)
     model_ms.set_train(False)
 

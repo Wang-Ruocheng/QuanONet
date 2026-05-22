@@ -7,6 +7,7 @@ import os
 import numpy as np
 import logging
 from .data_generation import (
+    generate_Identity_Operator_data,
     generate_Antideriv_Operator_data,
     generate_Homogeneous_Operator_data,
     generate_Nonlinear_Operator_data,
@@ -20,6 +21,7 @@ from .data_processing import ODE_encode, PDE_encode, ODE_fncode, PDE_fncode
 
 # Map operator names to their generator functions
 GENERATOR_MAP = {
+    'Identity': generate_Identity_Operator_data,
     'Antideriv': generate_Antideriv_Operator_data,
     'Homogeneous': generate_Homogeneous_Operator_data,
     'Nonlinear': generate_Nonlinear_Operator_data,
@@ -32,7 +34,7 @@ GENERATOR_MAP = {
 }
 
 class DataManager:
-    def __init__(self, config, data_dir="data", logger=None):
+    def __init__(self, config, data_dir="data", logger=None, input_sampler=None):
         """
         Args:
             config (dict): Configuration dictionary containing:
@@ -41,11 +43,16 @@ class DataManager:
                 - num_cal (optional)
             data_dir (str): Root directory for data storage.
             logger: Optional logger instance.
+            input_sampler: optional callable ``f(num_cal) -> (u0_fn, u0_cal)``
+                that replaces the default GRF sampler.  When provided, disk
+                caching is bypassed (both at the raw-data level inside the
+                generator and at the processed-data level inside DataManager).
         """
         self.config = config
         self.data_dir = data_dir
         self.logger = logger or logging.getLogger(__name__)
-        
+        self.input_sampler = input_sampler
+
         self.operator_type = config['operator_type']
         self.model_type = config.get('model_type', 'DeepONet')
         
@@ -75,9 +82,9 @@ class DataManager:
         # 1. Determine filenames based on config
         filename = self._get_filename()
         filepath = os.path.join(self.data_dir, self.operator_type, filename)
-        
-        # 2. Try loading cached data
-        if os.path.exists(filepath):
+
+        # 2. Try loading cached data — skipped when a custom input_sampler is set
+        if self.input_sampler is None and os.path.exists(filepath):
             self.logger.info(f"Loading cached data from {filepath}")
             try:
                 data = np.load(filepath)
@@ -85,15 +92,16 @@ class DataManager:
                 return {k: data[k] for k in data.files}
             except Exception as e:
                 self.logger.warning(f"Failed to load cached data: {e}. Regenerating...")
-        
+
         # 3. Generate new data
         self.logger.info(f"Generating new data for {self.operator_type}...")
         data_dict = self._generate_and_process()
-        
-        # 4. Save to cache
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        self.logger.info(f"Saving data to {filepath}")
-        np.savez_compressed(filepath, **data_dict)
+
+        # 4. Save to cache — skipped when a custom input_sampler is set
+        if self.input_sampler is None:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            self.logger.info(f"Saving data to {filepath}")
+            np.savez_compressed(filepath, **data_dict)
         
         return data_dict
 
@@ -125,10 +133,11 @@ class DataManager:
         # Note: We bind the static args here so the Encoders just call gen_func(nt, nte)
         def gen_func_wrapper(nt, nte, *args, **kwargs):
                     return generator(
-                        nt, nte, 
-                        self.num_points, 
-                        self.num_points_0, 
-                        num_cal=self.num_cal
+                        nt, nte,
+                        self.num_points,
+                        self.num_points_0,
+                        num_cal=self.num_cal,
+                        input_sampler=self.input_sampler,
                     )
 
         # B. Encode Data based on Model Type

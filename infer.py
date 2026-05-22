@@ -99,8 +99,8 @@ def _detect_backend(ckpt_path: str, cfg: dict) -> str:
 
 def _build_ms_model(cfg: dict, branch_in: int, trunk_in: int):
     import mindspore as ms
-    from core.models import QuanONet, HEAQNN, FNN, DeepONet
-    from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator
+    from core.models_ms import QuanONetMS, HEAQNNMS, FNNMS, DeepONetMS
+    from core.quantum_circuits_ms import generate_simple_hamiltonian, ham_diag_to_operator
 
     ms.set_context(mode=ms.PYNATIVE_MODE, device_target='CPU')
 
@@ -118,21 +118,21 @@ def _build_ms_model(cfg: dict, branch_in: int, trunk_in: int):
             ham = generate_simple_hamiltonian(n_q, lower_bound=ham_bound[0],
                                               upper_bound=ham_bound[1])
         if mt == 'QuanONet':
-            return QuanONet(n_q, branch_in, trunk_in, net_size, ham, scale, if_tf)
+            return QuanONetMS(n_q, branch_in, trunk_in, net_size, ham, scale, if_tf)
         else:
-            return HEAQNN(n_q, branch_in, net_size, ham, scale, if_tf)
+            return HEAQNNMS(n_q, branch_in, net_size, ham, scale, if_tf)
 
     if mt == 'DeepONet':
-        return DeepONet(branch_in, trunk_in, net_size)
+        return DeepONetMS(branch_in, trunk_in, net_size)
     if mt == 'FNN':
-        return FNN(branch_in, 1, net_size)
+        return FNNMS(branch_in, 1, net_size)
     if mt == 'FNO':
-        from core.ms_fno import FNO_MS
+        from core.models_ms import FNOMS
         ns = list(cfg['net_size'])
         modes, width = int(ns[0]), int(ns[1])
         depth = int(ns[2]) if len(ns) > 2 else 3
         fc_h  = int(ns[3]) if len(ns) > 3 else 32
-        return FNO_MS(modes=modes, width=width, layers=depth,
+        return FNOMS(modes=modes, width=width, layers=depth,
                       fc_hidden=fc_h, in_channels=branch_in)
     raise ValueError(f"Unknown model_type: {mt}")
 

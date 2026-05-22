@@ -22,8 +22,8 @@ from utils.logger import ExperimentLogger, setup_logger, StreamToLogger
 from utils.metrics import compute_metrics
 from utils.utils import count_parameters 
 
-from core.models import QuanONet, HEAQNN, FNN, DeepONet
-from core.quantum_circuits import generate_simple_hamiltonian, ham_diag_to_operator
+from core.models_ms import QuanONetMS, HEAQNNMS, FNNMS, DeepONetMS
+from core.quantum_circuits_ms import generate_simple_hamiltonian, ham_diag_to_operator
 
 class MSSolver:
     def __init__(self, config):
@@ -113,21 +113,21 @@ class MSSolver:
         if self.model_type == 'QuanONet':
             branch_in = self.data['train_branch_input'].shape[1]
             trunk_in = self.data['train_trunk_input'].shape[1]
-            model = QuanONet(self.config['num_qubits'], branch_in, trunk_in, net_size, ham, 
+            model = QuanONetMS(self.config['num_qubits'], branch_in, trunk_in, net_size, ham,
                              self.config.get('scale_coeff', 0.01), if_trainable_freq)
         elif self.model_type == 'HEAQNN':
             input_size = self.data['train_input'].shape[1]
-            model = HEAQNN(self.config['num_qubits'], input_size, net_size, ham,
+            model = HEAQNNMS(self.config['num_qubits'], input_size, net_size, ham,
                            self.config.get('scale_coeff', 0.01), if_trainable_freq)
         elif self.model_type == 'DeepONet': 
             branch_in = self.data['train_branch_input'].shape[1]
             trunk_in = self.data['train_trunk_input'].shape[1]
-            model = DeepONet(branch_in, trunk_in, net_size)
+            model = DeepONetMS(branch_in, trunk_in, net_size)
         elif self.model_type == 'FNN':
             input_size = self.data['train_input'].shape[1]
-            model = FNN(input_size, 1, net_size)
+            model = FNNMS(input_size, 1, net_size)
         elif self.model_type == 'FNO':
-            from core.ms_fno import FNO_MS
+            from core.models_ms import FNOMS
             # net_size for FNO is interpreted as [modes, width, depth, fc_hidden]
             cfg = list(self.config.get('net_size', []))
             modes     = int(cfg[0]) if len(cfg) > 0 else 15
@@ -135,9 +135,9 @@ class MSSolver:
             depth     = int(cfg[2]) if len(cfg) > 2 else 3
             fc_hidden = int(cfg[3]) if len(cfg) > 3 else 32
             in_ch = self.train_input.shape[-1]  # 2 (position + function value)
-            self.logger.info(f"FNO_MS Config: modes={modes}, width={width}, "
+            self.logger.info(f"FNOMS Config: modes={modes}, width={width}, "
                              f"depth={depth}, fc_hidden={fc_hidden}, in_channels={in_ch}")
-            model = FNO_MS(modes=modes, width=width, layers=depth,
+            model = FNOMS(modes=modes, width=width, layers=depth,
                            fc_hidden=fc_hidden, in_channels=in_ch)
         else:
             raise ValueError(f"Unknown MS model: {self.model_type}")

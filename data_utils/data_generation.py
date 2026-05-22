@@ -85,9 +85,24 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
                                num_points,      # Controls output u(x) resolution (Trunk/Output)
                                num_points_0,    # Controls input u0(x) resolution (Branch Input)
                                length_scale=0.2,
-                               num_cal=1000):
+                               num_cal=1000,
+                               input_sampler=None):
     """
     Generate data for ODE operator problems with decoupled input/output resolutions.
+
+    Args:
+        operator_type: one of the keys in ODE_SYSTEMS ('Antideriv', 'Identity', …)
+        num_train / num_test: number of training / test samples
+        num_points: output (trunk) resolution
+        num_points_0: input (branch) resolution
+        length_scale: GRF length scale — ignored when *input_sampler* is provided
+        num_cal: high-resolution computation grid size
+        input_sampler: optional callable ``f(num_cal) -> (u0_fn, u0_cal)``
+            where ``u0_fn(x)`` evaluates u0 at arbitrary x in [0,1] and
+            ``u0_cal`` is a 1-D array of length *num_cal* sampled on
+            ``linspace(0, 1, num_cal)``.  When provided, the GRF sampler is
+            replaced by this function and disk caching is bypassed (since the
+            function identity cannot be encoded in a filename).
     """
     # 1. Determine operator name and function
     if operator_type in ODE_SYSTEMS:
@@ -97,15 +112,15 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
     else:
         raise ValueError(f"Unknown operator type: {operator_type}")
 
-    # 2. Data path and loading strategy
+    # 2. Data path and loading strategy — skipped when a custom sampler is used
     data_path = f'data/{operator_name}_Operator_data/{operator_name}_Operator_data_{num_cal}_1.npz'
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
 
     # Source computation grid
     x_cal = np.linspace(0, 1, num_cal)
 
-    # Try to load existing data
-    if os.path.exists(data_path):
+    # Try to load existing data (only when using the default GRF sampler)
+    if input_sampler is None and os.path.exists(data_path):
         d = np.load(data_path, allow_pickle=True)
         u_cals = list(d['u_cals']) if 'u_cals' in d else []
         u0_cals = list(d['u0_cals']) if 'u0_cals' in d else []
@@ -118,8 +133,11 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
         total_needed = num_train + num_test - len(u_cals)
 
         for i in range(total_needed):
-            # Generate random Gaussian field as u0
-            u0_fn, u0_cal_new = generate_random_gaussian_field(num_cal, length_scale=length_scale)
+            # Sample u0 — use custom sampler or default GRF
+            if input_sampler is not None:
+                u0_fn, u0_cal_new = input_sampler(num_cal)
+            else:
+                u0_fn, u0_cal_new = generate_random_gaussian_field(num_cal, length_scale=length_scale)
 
             # Solve ODE
             if operator_name == 'Identity':
@@ -137,8 +155,9 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
             u_cals.append(u_cal_new)
             u0_cals.append(u0_cal_new)
 
-        # Save data
-        np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
+        # Save data only when using the default GRF sampler
+        if input_sampler is None:
+            np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
 
     # 4. Dual-resolution interpolation
     print(f"Interpolating data:")
@@ -171,16 +190,20 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
 
     return np.array(u0s)[train_index].astype(np.float32), np.array(us)[train_index].astype(np.float32), np.array(u0s)[test_index].astype(np.float32), np.array(us)[test_index].astype(np.float32), x_target.astype(np.float32)
 
-def generate_Antideriv_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
-    return generate_ODE_Operator_data('Antideriv', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
+def generate_Identity_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
+    return generate_ODE_Operator_data('Identity', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
 
 
-def generate_Homogeneous_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
-    return generate_ODE_Operator_data('Homogeneous', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
+def generate_Antideriv_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
+    return generate_ODE_Operator_data('Antideriv', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
 
 
-def generate_Nonlinear_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000):
-    return generate_ODE_Operator_data('Nonlinear', num_train, num_test, num_points, num_points_0, length_scale, num_cal)
+def generate_Homogeneous_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
+    return generate_ODE_Operator_data('Homogeneous', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
+
+
+def generate_Nonlinear_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
+    return generate_ODE_Operator_data('Nonlinear', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
 
 # PDE Systems (simplified versions)
 def solve_darcy_pde(num_cal, length_scale=1.0, K=0.1, f=-1.0, u0_cal=None):
@@ -318,19 +341,27 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
                                num_points,      # Controls output u(x,t) resolution (Trunk/Output)
                                num_points_0,    # Controls input u0(x) resolution (Branch Input)
                                length_scale=0.2,
-                               num_cal=100):
+                               num_cal=100,
+                               input_sampler=None):
     """
     Generate data for PDE operator problems with decoupled input/output resolutions.
     Structured identically to generate_ODE_Operator_data.
+
+    Args:
+        input_sampler: optional callable ``f(num_cal) -> (u0_fn, u0_cal)``
+            Same contract as in generate_ODE_Operator_data.  For PDE operators
+            only ``u0_cal`` (the 1-D array) is used as the boundary / initial /
+            source term; ``u0_fn`` may be ``None``.  Disk caching is bypassed
+            when this argument is provided.
     """
     operator_name = operator_type
 
-    # 1. Data path and loading strategy
+    # 1. Data path and loading strategy — skipped when a custom sampler is used
     data_path = f'data/{operator_name}_Operator_data/{operator_name}_Operator_data_{num_cal}_1.npz'
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
 
-    # Try to load existing data
-    if os.path.exists(data_path):
+    # Try to load existing data (only when using the default sampler)
+    if input_sampler is None and os.path.exists(data_path):
         try:
             d = np.load(data_path, allow_pickle=True)
             u_cals = list(d['u_cals']) if 'u_cals' in d else []
@@ -349,12 +380,20 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
 
         for i in tqdm(range(total_needed), desc=f"Generating {operator_name} Data"):
             try:
+                # Determine u0_cal: custom sampler or delegate to PDE solver internals
+                u0_cal_override = None
+                if input_sampler is not None:
+                    _, u0_cal_override = input_sampler(num_cal)
+
                 if operator_name == 'Darcy':
-                    u_cal_new, u0_cal_new = solve_darcy_pde(num_cal, length_scale=length_scale)
+                    u_cal_new, u0_cal_new = solve_darcy_pde(num_cal, length_scale=length_scale,
+                                                             u0_cal=u0_cal_override)
                 elif operator_name == 'Advection':
-                    u_cal_new, u0_cal_new = solve_advection_pde(num_cal, length_scale=length_scale)
+                    u_cal_new, u0_cal_new = solve_advection_pde(num_cal, length_scale=length_scale,
+                                                                 u0_cal=u0_cal_override)
                 elif operator_name == 'RDiffusion':
-                    u_cal_new, u0_cal_new = solve_rdiffusion_pde(num_cal, length_scale=length_scale)
+                    u_cal_new, u0_cal_new = solve_rdiffusion_pde(num_cal, length_scale=length_scale,
+                                                                  u0_cal=u0_cal_override)
                 else:
                     raise ValueError(f"Unknown PDE operator: {operator_name}")
 
@@ -368,9 +407,10 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
                 print(f"Error solving PDE: {e}")
                 continue
 
-            # Save data periodically
-            if (i + 1) % save_interval == 0 or i == total_needed - 1:
-                np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
+            # Save data periodically (only for the default sampler)
+            if input_sampler is None:
+                if (i + 1) % save_interval == 0 or i == total_needed - 1:
+                    np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
 
     # 3. Dual-resolution interpolation
     print(f"Interpolating data:")
@@ -422,16 +462,16 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
             t_target.astype(np.float32))
 
 
-def generate_RDiffusion_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100):
-    return generate_PDE_Operator_data('RDiffusion', num_train, num_test, num_points, num_points_0, 
-                                      length_scale=length_scale, num_cal=num_cal)
+def generate_RDiffusion_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
+    return generate_PDE_Operator_data('RDiffusion', num_train, num_test, num_points, num_points_0,
+                                      length_scale=length_scale, num_cal=num_cal, input_sampler=input_sampler)
 
 
-def generate_Advection_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100):
-    return generate_PDE_Operator_data('Advection', num_train, num_test, num_points, num_points_0, 
-                                      length_scale=length_scale, num_cal=num_cal)
+def generate_Advection_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
+    return generate_PDE_Operator_data('Advection', num_train, num_test, num_points, num_points_0,
+                                      length_scale=length_scale, num_cal=num_cal, input_sampler=input_sampler)
 
 
-def generate_Darcy_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100):
-    return generate_PDE_Operator_data('Darcy', num_train, num_test, num_points, num_points_0, 
-                                      length_scale=length_scale, num_cal=num_cal)
+def generate_Darcy_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
+    return generate_PDE_Operator_data('Darcy', num_train, num_test, num_points, num_points_0,
+                                      length_scale=length_scale, num_cal=num_cal, input_sampler=input_sampler)

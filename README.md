@@ -35,14 +35,12 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 │   └── Antideriv/         # NumPy   .npz  — Net5-1-5-1,  Q2 (hardware)
 │
 ├── core/                  # Core model architectures
-│   ├── models.py               # MindSpore QuanONet / HEAQNN / FNN / DeepONet
-│   ├── models_pt.py            # PyTorch QuanONetPT / HEAQNNPT (TQ or Qiskit)
-│   ├── quantum_circuits.py     # HEA circuits — MindQuantum backend
+│   ├── models_ms.py            # MindSpore QuanONetMS / HEAQNNMS / FNNMS / DeepONetMS / FNOMS
+│   ├── models_pt.py            # PyTorch QuanONetPT / HEAQNNPT (TQ or Qiskit) / FNOPT
+│   ├── quantum_circuits_ms.py  # HEA circuits — MindQuantum backend
 │   ├── quantum_circuits_tq.py  # HEA circuits — TorchQuantum backend
 │   ├── quantum_circuits_qiskit.py # HEA circuits — Qiskit EstimatorQNN backend
 │   ├── quantum_circuits_pl.py  # HEA circuits — PennyLane backend
-│   ├── dde_models.py           # PyTorch FNO (used by DeepXDE solver)
-│   ├── ms_fno.py               # MindSpore FNO
 │   └── layers.py               # Custom MindSpore layers
 │
 ├── solvers/               # Training & evaluation solvers
@@ -248,7 +246,7 @@ The `main.py` script accepts the following primary configurations:
 
 | **Argument**               | **Description**                                                                                 | **Default**              |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------ |
-| `--operator`                   | Problem type:`Antideriv`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | **Required**             |
+| `--operator`                   | Problem type:`Identity`, `Antideriv`, `Homogeneous`, `Nonlinear`, `RDiffusion`, `Advection`, `Darcy`. | **Required**             |
 | `--model_type` | Neural operator type:`QuanONet`, `HEAQNN`,`DeepONet`, `FNN`, `FNO`. | **Required** |
 | `--num_train` / `--num_test` | Number of function samples for training/testing.                                                      | `1000` / `1000`            |
 | `--train_sample_num`           | Points sampled per function for training.                                                             | `10`                         |

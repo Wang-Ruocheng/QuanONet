@@ -1,16 +1,14 @@
 """
-PyTorch nn.Module variants of QuanONet and HEAQNN.
+PyTorch nn.Module variants of QuanONet/HEAQNN and classical models (FNO).
 
-These mirror the MindSpore models in core/models.py but use PyTorch and
-delegate quantum circuit construction to either TorchQuantum or Qiskit
-backends (quantum_circuits_tq.py / quantum_circuits_qiskit.py).
-
-The trainable-frequency (TF) logic is replicated using nn.Linear and
-nn.Parameter, matching the MindSpore CombinedNet(RepeatLayer, LinearLayer).
+Quantum models:   QuanONetPT, HEAQNNPT — mirror core/models_ms.py using
+                  TorchQuantum / Qiskit / PennyLane backends.
+Classical models: SpectralConv1dPT, FNOPT  — PyTorch Fourier Neural Operator.
 """
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class _TiledElementWise(nn.Module):
@@ -106,7 +104,7 @@ class QuanONetPT(nn.Module):
     """
     PyTorch QuanONet with TorchQuantum or Qiskit quantum backend.
 
-    Mirrors core/models.py QuanONet (MindSpore nn.Cell) in architecture:
+    Mirrors core/models_ms.py QuanONet (MindSpore nn.Cell) in architecture:
       - Trainable-freq mode: branch/trunk inputs go through separate Linear layers
         that map to (batch, depth*num_qubits), then are concatenated and fed to
         the quantum circuit.
@@ -172,7 +170,7 @@ class HEAQNNPT(nn.Module):
     """
     PyTorch HEAQNN with TorchQuantum or Qiskit quantum backend.
 
-    Mirrors core/models.py HEAQNN (MindSpore nn.Cell).
+    Mirrors core/models_ms.py HEAQNN (MindSpore nn.Cell).
 
     Args:
         num_qubits: number of qubits
@@ -215,3 +213,76 @@ class HEAQNNPT(nn.Module):
         enc = self.freq(x)
         out = self.quantum_layer(enc)
         return out + self.bias
+
+
+# ── FNO (PyTorch) ─────────────────────────────────────────────────────────────
+
+class SpectralConv1dPT(nn.Module):
+    """1D Fourier spectral convolution layer (PyTorch). Mirrors SpectralConv1dMS in models_ms.py."""
+
+    def __init__(self, in_channels, out_channels, modes1):
+        super(SpectralConv1dPT, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.modes1 = modes1
+
+        self.scale = 1 / (in_channels * out_channels)
+        self.weights1 = nn.Parameter(
+            self.scale * (torch.rand(in_channels, out_channels, self.modes1,
+                                     dtype=torch.cfloat) - 0.5)
+        )
+
+    def compl_mul1d(self, input, weights):
+        # (batch, in_channel, x), (in_channel, out_channel, x) -> (batch, out_channel, x)
+        return torch.einsum("bix,iox->box", input, weights)
+
+    def forward(self, x):
+        batchsize = x.shape[0]
+        x_ft = torch.fft.rfft(x)
+
+        out_ft = torch.zeros(batchsize, self.out_channels, x.size(-1) // 2 + 1,
+                             device=x.device, dtype=torch.cfloat)
+        out_ft[:, :, :self.modes1] = self.compl_mul1d(x_ft[:, :, :self.modes1], self.weights1)
+
+        return torch.fft.irfft(out_ft, n=x.size(-1))
+
+
+class FNOPT(nn.Module):
+    """
+    Fourier Neural Operator (PyTorch). Mirrors FNOMS in models_ms.py.
+
+    Input format: (batch, n_points, in_channels).
+    """
+
+    def __init__(self, modes, width, layers=1, fc_hidden=32, in_channels=2):
+        super(FNOPT, self).__init__()
+        self.modes1 = modes
+        self.width = width
+        self.layers = layers
+
+        self.fc0 = nn.Linear(in_channels, self.width)
+        self.convs = nn.ModuleList(
+            [SpectralConv1dPT(self.width, self.width, self.modes1) for _ in range(layers)]
+        )
+        self.ws = nn.ModuleList(
+            [nn.Conv1d(self.width, self.width, 1) for _ in range(layers)]
+        )
+        self.fc1 = nn.Linear(self.width, fc_hidden)
+        self.fc2 = nn.Linear(fc_hidden, 1)
+
+        self.regularizer = None
+
+    def forward(self, x):
+        # x: (batch, n_points, in_channels)
+        x = self.fc0(x)
+        x = x.permute(0, 2, 1)   # (batch, width, n_points)
+
+        for i in range(self.layers):
+            x1 = self.convs[i](x)
+            x2 = self.ws[i](x)
+            x = F.relu(x1 + x2)
+
+        x = x.permute(0, 2, 1)   # (batch, n_points, width)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x

@@ -4,19 +4,19 @@ Core modules for QuanONet - core functionalities including model definitions, ne
 
 # Conditional imports to handle different environments
 try:
-    from .models import QuanONet, HEAQNN
+    from .models_ms import QuanONetMS, HEAQNNMS
     from .layers import *
-    from .quantum_circuits import generate_simple_hamiltonian
+    from .quantum_circuits_ms import generate_simple_hamiltonian
     _mindspore_available = True
 except ImportError:
     _mindspore_available = False
-    QuanONet = None
-    HEAQNN = None
+    QuanONetMS = None
+    HEAQNNMS = None
     generate_simple_hamiltonian = None
 
 __all__ = [
-    'FNN', 'DeepONet'
+    'FNNMS', 'DeepONetMS'
 ]
 
 if _mindspore_available:
-    __all__.extend(['QuanONet', 'HEAQNN', 'generate_simple_hamiltonian'])
+    __all__.extend(['QuanONetMS', 'HEAQNNMS', 'generate_simple_hamiltonian'])

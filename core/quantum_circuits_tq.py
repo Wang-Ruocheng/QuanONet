@@ -2,7 +2,7 @@
 TorchQuantum circuit builders for QuanONet/HEAQNN.
 
 Implements Hardware Efficient Ansatz (HEA) circuits mirroring the MindQuantum
-structure in quantum_circuits.py: data re-uploading encoding (RX) + alternating
+structure in quantum_circuits_ms.py: data re-uploading encoding (RX) + alternating
 RY/RZ/RY ansatz sublayers + CNOT ring entanglement.
 """
 import numpy as np
@@ -151,7 +151,7 @@ def build_quanonet_tq(num_qubits, branch_input_size, trunk_input_size, net_size,
     """
     Build a TorchQuantum QuanONet circuit.
 
-    Mirrors QuanONet_build() + circuit2network() from quantum_circuits.py.
+    Mirrors QuanONet_build() + circuit2network() from quantum_circuits_ms.py.
 
     Args:
         num_qubits: number of qubits
@@ -180,7 +180,7 @@ def build_heaqnn_tq(num_qubits, input_size, net_size,
     """
     Build a TorchQuantum HEAQNN circuit.
 
-    Mirrors HEAQNNwork_build() from quantum_circuits.py.
+    Mirrors HEAQNNwork_build() from quantum_circuits_ms.py.
 
     Args:
         num_qubits: number of qubits

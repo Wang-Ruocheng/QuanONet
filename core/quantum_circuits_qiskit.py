@@ -169,7 +169,7 @@ def build_quanonet_qiskit(num_qubits, branch_input_size, trunk_input_size, net_s
     """
     Build a Qiskit-based QuanONet quantum layer.
 
-    Mirrors QuanONet_build() + circuit2network() from quantum_circuits.py,
+    Mirrors QuanONet_build() + circuit2network() from quantum_circuits_ms.py,
     returning a torch.nn.Module via TorchConnector.
 
     Args:
