@@ -8,7 +8,8 @@ from scipy.interpolate import RegularGridInterpolator
 from tqdm import tqdm
 import os
 from scipy.integrate import solve_ivp
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count
+from concurrent.futures import ThreadPoolExecutor
 from scipy.interpolate import interp1d
 import json
 
@@ -157,8 +158,8 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
                     return None, None
 
             n_workers = min(cpu_count(), total_needed)
-            with Pool(processes=n_workers) as pool:
-                results = list(tqdm(pool.imap(_solve_one, samples), total=total_needed))
+            with ThreadPoolExecutor(max_workers=n_workers) as executor:
+                results = list(tqdm(executor.map(_solve_one, samples), total=total_needed))
 
             for u_cal_new, u0_cal_new in results:
                 if u_cal_new is not None:
