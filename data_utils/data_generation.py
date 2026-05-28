@@ -11,6 +11,7 @@ from scipy.integrate import solve_ivp
 from multiprocessing import cpu_count
 from concurrent.futures import ThreadPoolExecutor
 from scipy.interpolate import interp1d
+from filelock import FileLock
 import json
 
 
@@ -121,54 +122,57 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
     # Source computation grid
     x_cal = np.linspace(0, 1, num_cal)
 
-    # Try to load existing data (only when using the default GRF sampler)
-    if input_sampler is None and os.path.exists(data_path):
-        d = np.load(data_path, allow_pickle=True)
-        u_cals = list(d['u_cals']) if 'u_cals' in d else []
-        u0_cals = list(d['u0_cals']) if 'u0_cals' in d else []
-    else:
-        u_cals, u0_cals = [], []
-
-    # 3. Generate missing data
-    if len(u_cals) < num_train + num_test:
-        print(f"Generating {description} (Calculation Resolution: {num_cal})")
-        total_needed = num_train + num_test - len(u_cals)
-
-        # Sample all u0 first
-        samples = []
-        for _ in range(total_needed):
-            if input_sampler is not None:
-                u0_fn, u0_cal_new = input_sampler(num_cal)
-            else:
-                u0_fn, u0_cal_new = generate_random_gaussian_field(num_cal, length_scale=length_scale)
-            samples.append((u0_fn, u0_cal_new))
-
-        if operator_name == 'Identity':
-            for u0_fn, u0_cal_new in samples:
-                u_cals.append(u0_cal_new.copy())
-                u0_cals.append(u0_cal_new)
+    # Load or generate with a file lock to prevent concurrent writes
+    lock = FileLock(data_path + '.lock')
+    with lock:
+        # Try to load existing data (only when using the default GRF sampler)
+        if input_sampler is None and os.path.exists(data_path):
+            d = np.load(data_path, allow_pickle=True)
+            u_cals = list(d['u_cals']) if 'u_cals' in d else []
+            u0_cals = list(d['u0_cals']) if 'u0_cals' in d else []
         else:
-            def _solve_one(args):
-                u0_fn, u0_cal_new = args
-                try:
-                    ode_system = ode_func_generator(u0_fn)
-                    sol = solve_ivp(ode_system, [0, 1], [0], t_eval=x_cal, method='RK45')
-                    return sol.y[0], u0_cal_new
-                except Exception:
-                    return None, None
+            u_cals, u0_cals = [], []
 
-            n_workers = min(cpu_count(), total_needed)
-            with ThreadPoolExecutor(max_workers=n_workers) as executor:
-                results = list(tqdm(executor.map(_solve_one, samples), total=total_needed))
+        # 3. Generate missing data
+        if len(u_cals) < num_train + num_test:
+            print(f"Generating {description} (Calculation Resolution: {num_cal})")
+            total_needed = num_train + num_test - len(u_cals)
 
-            for u_cal_new, u0_cal_new in results:
-                if u_cal_new is not None:
-                    u_cals.append(u_cal_new)
+            # Sample all u0 first
+            samples = []
+            for _ in range(total_needed):
+                if input_sampler is not None:
+                    u0_fn, u0_cal_new = input_sampler(num_cal)
+                else:
+                    u0_fn, u0_cal_new = generate_random_gaussian_field(num_cal, length_scale=length_scale)
+                samples.append((u0_fn, u0_cal_new))
+
+            if operator_name == 'Identity':
+                for u0_fn, u0_cal_new in samples:
+                    u_cals.append(u0_cal_new.copy())
                     u0_cals.append(u0_cal_new)
+            else:
+                def _solve_one(args):
+                    u0_fn, u0_cal_new = args
+                    try:
+                        ode_system = ode_func_generator(u0_fn)
+                        sol = solve_ivp(ode_system, [0, 1], [0], t_eval=x_cal, method='RK45')
+                        return sol.y[0], u0_cal_new
+                    except Exception:
+                        return None, None
 
-        # Save data only when using the default GRF sampler
-        if input_sampler is None:
-            np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
+                n_workers = min(cpu_count(), total_needed)
+                with ThreadPoolExecutor(max_workers=n_workers) as executor:
+                    results = list(tqdm(executor.map(_solve_one, samples), total=total_needed))
+
+                for u_cal_new, u0_cal_new in results:
+                    if u_cal_new is not None:
+                        u_cals.append(u_cal_new)
+                        u0_cals.append(u0_cal_new)
+
+            # Save data only when using the default GRF sampler
+            if input_sampler is None:
+                np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
 
     # 4. Dual-resolution interpolation
     print(f"Interpolating data:")
@@ -371,57 +375,60 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
     data_path = f'data/{operator_name}_Operator_data/{operator_name}_Operator_data_{num_cal}_1.npz'
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
 
-    # Try to load existing data (only when using the default sampler)
-    if input_sampler is None and os.path.exists(data_path):
-        try:
-            d = np.load(data_path, allow_pickle=True)
-            u_cals = list(d['u_cals']) if 'u_cals' in d else []
-            u0_cals = list(d['u0_cals']) if 'u0_cals' in d else []
-        except Exception as e:
-            print(f"Warning: Failed to load cached data {data_path}: {e}")
-            u_cals, u0_cals = [], []
-    else:
-        u_cals, u0_cals = [], []
-
-    # 2. Generate missing data
-    if len(u_cals) < num_train + num_test:
-        print(f"Generating {operator_name} Data (Calculation Resolution: {num_cal})")
-        total_needed = num_train + num_test - len(u_cals)
-        save_interval = 100
-
-        for i in tqdm(range(total_needed), desc=f"Generating {operator_name} Data"):
+    # Load or generate with a file lock to prevent concurrent writes
+    lock = FileLock(data_path + '.lock')
+    with lock:
+        # Try to load existing data (only when using the default sampler)
+        if input_sampler is None and os.path.exists(data_path):
             try:
-                # Determine u0_cal: custom sampler or delegate to PDE solver internals
-                u0_cal_override = None
-                if input_sampler is not None:
-                    _, u0_cal_override = input_sampler(num_cal)
+                d = np.load(data_path, allow_pickle=True)
+                u_cals = list(d['u_cals']) if 'u_cals' in d else []
+                u0_cals = list(d['u0_cals']) if 'u0_cals' in d else []
+            except Exception as e:
+                print(f"Warning: Failed to load cached data {data_path}: {e}")
+                u_cals, u0_cals = [], []
+        else:
+            u_cals, u0_cals = [], []
 
-                if operator_name == 'Darcy':
-                    u_cal_new, u0_cal_new = solve_darcy_pde(num_cal, length_scale=length_scale,
-                                                             u0_cal=u0_cal_override)
-                elif operator_name == 'Advection':
-                    u_cal_new, u0_cal_new = solve_advection_pde(num_cal, length_scale=length_scale,
+        # 2. Generate missing data
+        if len(u_cals) < num_train + num_test:
+            print(f"Generating {operator_name} Data (Calculation Resolution: {num_cal})")
+            total_needed = num_train + num_test - len(u_cals)
+            save_interval = 100
+
+            for i in tqdm(range(total_needed), desc=f"Generating {operator_name} Data"):
+                try:
+                    # Determine u0_cal: custom sampler or delegate to PDE solver internals
+                    u0_cal_override = None
+                    if input_sampler is not None:
+                        _, u0_cal_override = input_sampler(num_cal)
+
+                    if operator_name == 'Darcy':
+                        u_cal_new, u0_cal_new = solve_darcy_pde(num_cal, length_scale=length_scale,
                                                                  u0_cal=u0_cal_override)
-                elif operator_name == 'RDiffusion':
-                    u_cal_new, u0_cal_new = solve_rdiffusion_pde(num_cal, length_scale=length_scale,
-                                                                  u0_cal=u0_cal_override)
-                else:
-                    raise ValueError(f"Unknown PDE operator: {operator_name}")
+                    elif operator_name == 'Advection':
+                        u_cal_new, u0_cal_new = solve_advection_pde(num_cal, length_scale=length_scale,
+                                                                     u0_cal=u0_cal_override)
+                    elif operator_name == 'RDiffusion':
+                        u_cal_new, u0_cal_new = solve_rdiffusion_pde(num_cal, length_scale=length_scale,
+                                                                      u0_cal=u0_cal_override)
+                    else:
+                        raise ValueError(f"Unknown PDE operator: {operator_name}")
 
-                if np.isnan(u_cal_new).any():
-                    print("Warning: NaN detected in solver output, skipping sample.")
+                    if np.isnan(u_cal_new).any():
+                        print("Warning: NaN detected in solver output, skipping sample.")
+                        continue
+
+                    u_cals.append(u_cal_new)
+                    u0_cals.append(u0_cal_new)
+                except Exception as e:
+                    print(f"Error solving PDE: {e}")
                     continue
 
-                u_cals.append(u_cal_new)
-                u0_cals.append(u0_cal_new)
-            except Exception as e:
-                print(f"Error solving PDE: {e}")
-                continue
-
-            # Save data periodically (only for the default sampler)
-            if input_sampler is None:
-                if (i + 1) % save_interval == 0 or i == total_needed - 1:
-                    np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
+                # Save data periodically (only for the default sampler)
+                if input_sampler is None:
+                    if (i + 1) % save_interval == 0 or i == total_needed - 1:
+                        np.savez(data_path, u_cals=u_cals, u0_cals=u0_cals)
 
     # 3. Dual-resolution interpolation
     print(f"Interpolating data:")
