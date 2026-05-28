@@ -86,11 +86,12 @@ for OP in "${OPERATORS[@]}"; do
             CURRENT_BATCH_SIZE=1
         fi
 
+        PIDS=()
         for SEED in "${SEEDS[@]}"; do
-            echo "  Running ${MODEL_DESC} | Size=[${NET_SIZE}] | Seed=${SEED}"
-            
-            # Execute Training
-            # Note: We pass ${EXTRA_ARGS} which is empty for Classical models
+            echo "  Launching ${MODEL_DESC} | Size=[${NET_SIZE}] | Seed=${SEED}"
+            LOG_FILE="${PREFIX}/log_${OP}_${MODEL}_seed${SEED}.log"
+            mkdir -p "${PREFIX}"
+
             python main.py \
                 --model_type "${MODEL}" \
                 --operator "${OP}" \
@@ -105,8 +106,20 @@ for OP in "${OPERATORS[@]}"; do
                 --prefix "${PREFIX}" \
                 ${GPU_FLAG} \
                 ${EXTRA_ARGS} \
-                > /dev/null 2>&1 || exit 1
+                > "${LOG_FILE}" 2>&1 &
+            PIDS+=($!)
         done
+
+        # Wait for all seeds to finish, check exit codes
+        FAILED=0
+        for PID in "${PIDS[@]}"; do
+            wait "$PID" || FAILED=$((FAILED + 1))
+        done
+        if [ $FAILED -gt 0 ]; then
+            echo "  ❌ ${FAILED} seed(s) failed for ${MODEL_DESC} / ${OP}, check logs in ${PREFIX}/"
+            exit 1
+        fi
+        echo "  ✅ All seeds done for ${MODEL_DESC} / ${OP}"
     done
 done
 
