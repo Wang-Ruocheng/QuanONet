@@ -34,6 +34,8 @@ autoray==0.6.12
 # Qiskit (Quantum backend: qiskit)
 qiskit==1.4.5
 qiskit-ibm-runtime==0.43.1
+# Note: qiskit-machine-learning requires numpy>=2.0 which conflicts with mindspore/pennylane (numpy<2.0);
+# install with --no-deps: pip install qiskit-machine-learning==0.8.4 --no-deps
 qiskit-machine-learning==0.8.4
 
 # Common dependencies
