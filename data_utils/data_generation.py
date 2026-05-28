@@ -8,6 +8,7 @@ from scipy.interpolate import RegularGridInterpolator
 from tqdm import tqdm
 import os
 from scipy.integrate import solve_ivp
+from multiprocessing import Pool, cpu_count
 from scipy.interpolate import interp1d
 import json
 
@@ -132,28 +133,37 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
         print(f"Generating {description} (Calculation Resolution: {num_cal})")
         total_needed = num_train + num_test - len(u_cals)
 
-        for i in range(total_needed):
-            # Sample u0 — use custom sampler or default GRF
+        # Sample all u0 first
+        samples = []
+        for _ in range(total_needed):
             if input_sampler is not None:
                 u0_fn, u0_cal_new = input_sampler(num_cal)
             else:
                 u0_fn, u0_cal_new = generate_random_gaussian_field(num_cal, length_scale=length_scale)
+            samples.append((u0_fn, u0_cal_new))
 
-            # Solve ODE
-            if operator_name == 'Identity':
-                u_cal_new = u0_cal_new.copy()
-            else:
+        if operator_name == 'Identity':
+            for u0_fn, u0_cal_new in samples:
+                u_cals.append(u0_cal_new.copy())
+                u0_cals.append(u0_cal_new)
+        else:
+            def _solve_one(args):
+                u0_fn, u0_cal_new = args
                 try:
                     ode_system = ode_func_generator(u0_fn)
-                    # Solve interval [0, 1], initial value u(0)=0
                     sol = solve_ivp(ode_system, [0, 1], [0], t_eval=x_cal, method='RK45')
-                    u_cal_new = sol.y[0]
-                except Exception as e:
-                    print(f"Warning: ODE solving failed: {e}")
-                    continue  # Skip failed samples
+                    return sol.y[0], u0_cal_new
+                except Exception:
+                    return None, None
 
-            u_cals.append(u_cal_new)
-            u0_cals.append(u0_cal_new)
+            n_workers = min(cpu_count(), total_needed)
+            with Pool(processes=n_workers) as pool:
+                results = list(tqdm(pool.imap(_solve_one, samples), total=total_needed))
+
+            for u_cal_new, u0_cal_new in results:
+                if u_cal_new is not None:
+                    u_cals.append(u_cal_new)
+                    u0_cals.append(u0_cal_new)
 
         # Save data only when using the default GRF sampler
         if input_sampler is None:
