@@ -70,8 +70,16 @@ The framework supports three quantum simulation backends and two classical backe
 ```bash
 conda create -n quanode python=3.9
 conda activate quanode
-pip install -r requirements.txt
+
+# Install most packages (skip torch if the instance has a pre-installed NVIDIA build)
+grep -v -E '^(torch(vision|audio)?|torchquantum|qiskit-machine-learning)==' requirements.txt | pip install -r /dev/stdin
+
+# Install packages with conflicting transitive dependencies individually
+pip install torchquantum==0.1.8 --no-deps          # dill==0.3.4 vs mindspore dill>=0.3.7
+pip install qiskit-machine-learning==0.8.4 --no-deps  # numpy>=2.0 vs mindspore numpy<2.0
 ```
+
+> **GPU instance note:** NVIDIA-provisioned instances often ship with a custom `torch` build (e.g. `torch==2.8.0a0+...nv25.6`). Reinstalling torch from PyPI will break it. Use the `grep` command above to skip torch/torchvision, and install them manually only if the instance has no pre-installed version.
 
 > **TorchQuantum compatibility note:** `torchquantum==0.1.8` has import-time incompatibilities with qiskit 1.x. Apply the following one-time patches after installation:
 >
@@ -83,7 +91,7 @@ pip install -r requirements.txt
 >
 > These patches disable only the optional IBM-Q connectivity plugin; local statevector simulation is unaffected. See `test_backends.py` for a ready-to-run verification.
 
-> **PennyLane compatibility note:** `pennylane>=0.38` requires `autoray>=0.6.7,<0.7`. `autoray>=0.7` removes an internal attribute used by PennyLane 0.38, causing an import error. The pin is included in `requirements.txt`.
+> **PennyLane compatibility note:** `pennylane==0.38` requires `autoray<0.7`. `autoray>=0.7` removes an internal attribute used by PennyLane 0.38, causing an import error. The pin is included in `requirements.txt`.
 
 ### Backend Matrix
 
@@ -254,7 +262,7 @@ The `main.py` script accepts the following primary configurations:
 | `--num_points`                 | Output resolution (Trunk/Target grid size).                                                           | `100`                        |
 | `--num_points_0`               | Input resolution (Branch/Source function size).                                                       | `100` (PDE) / `1000` (ODE) |
 | `--num_cal`                    | High-Fidelity resolution for Ground Truth data generation.                                            | `1000` (ODE) / `100` (PDE) |
-| `--num_epoch` | Model training rounds. | `1000` |
+| `--num_epochs` | Model training rounds. | `1000` |
 | `--learning_rate` | Model training learning rate. | `0.0001` |
 
 ### 2. Model Architecture (`--net_size`)
