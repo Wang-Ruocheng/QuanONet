@@ -26,7 +26,7 @@ from core.models_ms import QuanONetMS, HEAQNNMS, FNNMS, DeepONetMS
 from core.quantum_circuits_ms import generate_simple_hamiltonian, ham_diag_to_operator
 
 class MSSolver:
-    def __init__(self, config):
+    def __init__(self, config, input_sampler=None):
         if ms is None:
             raise ImportError("MindSpore is required for MSSolver but not found.")
             
@@ -55,15 +55,15 @@ class MSSolver:
         self.logger.info(f"Context: {device_target}, Mode: PyNative")
 
         # 2. Load Data (Unified Manager)
-        self.dm = DataManager(config, data_dir=os.path.join(prefix, "..", "data"), logger=self.logger)
+        self.input_sampler = input_sampler
+        self.dm = DataManager(config, data_dir=os.path.join(prefix, "..", "data"), logger=self.logger, input_sampler=input_sampler)
         self.data_dict_np = self.dm.get_data() 
         self._convert_data_to_ms() 
         
         # 3. Build Model
         self.model = self._create_model()
         
-        # Optimization Setup
-        self.optimizer = nn.Adam(self.model.trainable_params(), learning_rate=config['learning_rate'])
+        # Optimization Setup (optimizer built lazily in train())
         self.loss_fn = nn.MSELoss()
         
         self.best_loss = float('inf')
@@ -145,16 +145,46 @@ class MSSolver:
         self.logger.info(f"Model Parameters: {count_parameters(model)}")
         return model
 
+
+    def _build_optimizer(self, params, total_steps):
+        opt_name = self.config.get('optimizer', 'adam').lower()
+        lr       = self.config['learning_rate']
+        opt_kw   = self.config.get('optimizer_kwargs', {})
+
+        sched     = self.config.get('lr_scheduler', 'none').lower()
+        sched_kw  = self.config.get('lr_scheduler_kwargs', {})
+        if sched == 'cosine':
+            eta_min = sched_kw.get('eta_min', 0.0)
+            t = np.arange(total_steps)
+            lr_seq = (eta_min + 0.5 * (lr - eta_min) *
+                      (1 + np.cos(np.pi * t / total_steps))).tolist()
+        elif sched == 'exponential':
+            gamma  = sched_kw.get('gamma', 0.99)
+            lr_seq = [lr * gamma ** t for t in range(total_steps)]
+        elif sched == 'step':
+            step_size = sched_kw.get('step_size', 100)
+            gamma     = sched_kw.get('gamma', 0.5)
+            lr_seq = [lr * gamma ** (t // step_size) for t in range(total_steps)]
+        else:
+            lr_seq = lr
+
+        opt_map = {
+            'adam':   nn.Adam,
+            'adamw':  nn.AdamWeightDecay,
+            'sgd':    nn.SGD,
+            'rmsprop': nn.RMSProp,
+        }
+        opt_cls = opt_map.get(opt_name, nn.Adam)
+        self.logger.info(f"Optimizer: {opt_name}, LR scheduler: {sched}")
+        return opt_cls(params, learning_rate=lr_seq, **opt_kw)
+
     def train(self):
         if self.exp_logger.is_completed():
             print(f"⏩ [Resume] The experiment has been completed and the existing result file has been detected. Skip the training directly.")
             sys.exit(0)
             
         self.logger.info("Starting Training...")
-        net_with_loss = nn.WithLossCell(self.model, self.loss_fn)
-        train_net = nn.TrainOneStepCell(net_with_loss, self.optimizer)
-        train_net.set_train()
-        
+
         epochs = self.config['num_epochs']
         total_samples = len(self.train_output)
 
@@ -162,15 +192,19 @@ class MSSolver:
         if total_samples < current_bs:
             self.logger.warning(f"⚠️ Batch size {current_bs} > total samples {total_samples}. Reducing to {total_samples}.")
             self.config['batch_size'] = total_samples
-        
+
         batch_size = self.config.get('batch_size', 100)
-        
+
         if isinstance(self.train_input, tuple):
             num_samples = self.train_input[0].shape[0]
         else:
             num_samples = self.train_input.shape[0]
-            
+
         num_batches = max(1, num_samples // batch_size)
+        self.optimizer = self._build_optimizer(self.model.trainable_params(), epochs * num_batches)
+        net_with_loss = nn.WithLossCell(self.model, self.loss_fn)
+        train_net = nn.TrainOneStepCell(net_with_loss, self.optimizer)
+        train_net.set_train()
         history = {'loss_train': [], 'loss_test': []}
         
         if self.config.get('init_checkpoint'):

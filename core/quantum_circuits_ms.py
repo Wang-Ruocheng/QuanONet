@@ -201,7 +201,7 @@ def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size,
     if if_print_circuit:
         circuit.summary()
     
-    return circuit
+    return circuit, trunk, branch
 
 
 def HEAQNNwork_build(num_qubits, input_size, depth, linear_depth):

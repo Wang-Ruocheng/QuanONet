@@ -41,3 +41,6 @@ __pycache__/
 
 # === 5. 忽略已清空的 hardware_deployment 目录残留 ===
 hardware_deployment/
+# === local experiment scripts ===
+mem_cal.py
+test2/

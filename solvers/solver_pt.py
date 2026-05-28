@@ -24,8 +24,9 @@ class PTSolver:
 
     Used when quantum_backend is 'torchquantum' or 'qiskit'.
     """
-    def __init__(self, config):
+    def __init__(self, config, input_sampler=None):
         self.config = config
+        self.input_sampler = input_sampler
         self.model_type = config['model_type']
         self.operator_type = config['operator_type']
         self.quantum_backend = config.get('quantum_backend', 'torchquantum')
@@ -51,7 +52,7 @@ class PTSolver:
 
         # Data
         self.dm = DataManager(config, data_dir=os.path.join(prefix, "..", "data"),
-                              logger=self.logger)
+                              logger=self.logger, input_sampler=self.input_sampler)
         self.data_dict = self.dm.get_data()
         self._setup_data()
 
@@ -60,9 +61,7 @@ class PTSolver:
         self.logger.info(f"Model Parameters: {count_parameters(self.model)}")
 
         # Optimisation
-        self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=config['learning_rate']
-        )
+        self.optimizer, self.lr_scheduler = self._build_optimizer()
         self.loss_fn = nn.MSELoss()
         self.best_loss = float('inf')
         self.best_model_path = None
@@ -146,6 +145,49 @@ class PTSolver:
     # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
+
+    def _build_optimizer(self):
+        opt_name = self.config.get('optimizer', 'adam').lower()
+        lr       = self.config['learning_rate']
+        opt_kw   = self.config.get('optimizer_kwargs', {})
+
+        if opt_name == "lbfgs":
+            raise NotImplementedError("LBFGS requires a closure; not supported by the current training loop.")
+        opt_map = {
+            'adam':    torch.optim.Adam,
+            'adamw':   torch.optim.AdamW,
+            'sgd':     torch.optim.SGD,
+            'rmsprop': torch.optim.RMSprop,
+        }
+        optimizer = opt_map.get(opt_name, torch.optim.Adam)(
+            self.model.parameters(), lr=lr, **opt_kw
+        )
+
+        sched_name = self.config.get('lr_scheduler', 'none').lower()
+        sched_kw   = self.config.get('lr_scheduler_kwargs', {})
+        T_epochs   = self.config.get('num_epochs', 1000)
+        if sched_name == 'cosine':
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer,
+                T_max=sched_kw.get('T_max', T_epochs),
+                eta_min=sched_kw.get('eta_min', 0.0),
+            )
+        elif sched_name == 'step':
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer,
+                step_size=sched_kw.get('step_size', 100),
+                gamma=sched_kw.get('gamma', 0.5),
+            )
+        elif sched_name == 'exponential':
+            scheduler = torch.optim.lr_scheduler.ExponentialLR(
+                optimizer, gamma=sched_kw.get('gamma', 0.99)
+            )
+        else:
+            scheduler = None
+
+        self.logger.info(f"Optimizer: {opt_name}, LR scheduler: {sched_name}")
+        return optimizer, scheduler
+
     def train(self):
         if self.exp_logger.is_completed():
             print("⏩ [Resume] Experiment already completed. Skipping training.")
@@ -213,6 +255,9 @@ class PTSolver:
                     npz_path = self.best_model_path.replace('.pt', '.npz')
                     np.savez(npz_path,
                              **{k: v.cpu().numpy() for k, v in state_dict.items()})
+
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step()
 
             if epoch % 10 == 0:
                 print(f"Epoch {epoch} | MSE: {avg_loss:.6e} | Rel_L2: {avg_rel:.4%}")

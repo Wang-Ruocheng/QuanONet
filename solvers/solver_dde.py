@@ -5,6 +5,7 @@ import os
 import sys
 import torch
 import numpy as np
+os.environ.setdefault("DDE_BACKEND", "pytorch")
 import deepxde as dde
 from deepxde.data import Data
 from deepxde.data.sampler import BatchSampler 
@@ -13,6 +14,7 @@ from data_utils.data_manager import DataManager
 from utils.logger import ExperimentLogger, setup_logger, StreamToLogger
 from utils.metrics import compute_metrics
 from utils.common import set_random_seed
+from utils.utils import count_parameters
 
 class BestModelCheckpoint(dde.callbacks.Callback):
     """Custom DeepXDE callback to save the best model checkpoint based on training loss."""
@@ -77,8 +79,9 @@ class Double(Data):
 # Main Solver Class
 # ==========================================
 class DDESolver:
-    def __init__(self, config):
+    def __init__(self, config, input_sampler=None):
         self.config = config
+        self.input_sampler = input_sampler
         self.model_type = config['model_type']
         self.operator_type = config['operator_type']
         
@@ -96,7 +99,7 @@ class DDESolver:
         self.logger.info(f"Config: {config}")
 
         # 2. Load Data
-        self.dm = DataManager(config, data_dir=os.path.join(prefix, "..", "data"), logger=self.logger)
+        self.dm = DataManager(config, data_dir=os.path.join(prefix, "..", "data"), logger=self.logger, input_sampler=self.input_sampler)
         self.data_dict = self.dm.get_data()
         
         # 3. Build Model
@@ -156,7 +159,7 @@ class DDESolver:
             
             self.logger.info(f"DeepONet Config: Branch({b_depth}x{b_width}), Trunk({t_depth}x{t_width}), P={last_layer_size if last_layer_size else 'Auto'}")
             
-            net = dde.nn.DeepONet(layer_size_branch, layer_size_trunk, "relu", "Glorot normal")
+            net = dde.nn.DeepONet(layer_size_branch, layer_size_trunk, "tanh", "Glorot normal")
         elif self.model_type == 'FNO':
             X_train = self.data_dict['train_input'].astype(np.float32)
             y_train = self.data_dict['train_output'].astype(np.float32)
@@ -188,13 +191,12 @@ class DDESolver:
             
             layer_sizes = [input_dim] + hidden_layers + [output_dim]
             self.logger.info(f"FNN Structure: {layer_sizes}")
-            net = dde.nn.FNN(layer_sizes, "relu", "Glorot normal")
+            net = dde.nn.FNN(layer_sizes, "tanh", "Glorot normal")
             
         else:
             raise ValueError(f"Unknown model type: {self.model_type}")
 
-        pytorch_total_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
-        self.logger.info(f"Model Parameters: {pytorch_total_params}")
+        self.logger.info(f"Model Parameters: {count_parameters(net)}")
 
         dataset = Double(X_train, y_train, X_test, y_test)
         model = dde.Model(dataset, net)
@@ -228,11 +230,23 @@ class DDESolver:
         
         self.logger.info(f"Training Start. Epochs: {epochs}, BS: {batch_size}, Total Iter: {total_iterations}")
         
+        opt_name  = self.config.get("optimizer", "adam").lower()
+        sched     = self.config.get("lr_scheduler", "none").lower()
+        sched_kw  = self.config.get("lr_scheduler_kwargs", {})
+        decay = None
+        if sched == "step":
+            decay = ("step", sched_kw.get("decay_steps", 1000), sched_kw.get("gamma", 0.9))
+        elif sched == "exponential":
+            decay = ("exponential", sched_kw.get("decay_steps", 1000), sched_kw.get("gamma", 0.9))
+        elif sched == "cosine":
+            decay = ("cosine", sched_kw.get("T_max", total_iterations), sched_kw.get("alpha", 0.0))
+        self.logger.info(f"Optimizer: {opt_name}, LR scheduler: {sched}")
         self.model.compile(
-                            "adam", 
-                            lr=lr, 
-                            metrics=["l2 relative error"]
-                        )
+            opt_name,
+            lr=lr,
+            decay=decay,
+            metrics=["l2 relative error"],
+        )
         best_saver = BestModelCheckpoint(self) 
         losshistory, train_state = self.model.train(
             iterations=total_iterations, 

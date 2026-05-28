@@ -45,10 +45,12 @@ class QuanONetMS(nn.Cell):
 
         self.if_trainable_freq = if_trainable_freq
 
-        QuanONet_circuit = QuanONet_build(
+        QuanONet_circuit, trunk_circuit, branch_circuit = QuanONet_build(
             num_qubits, branch_input_size, trunk_input_size, net_size
         )
         self.circuit = QuanONet_circuit
+        self.trunk_circuit = trunk_circuit
+        self.branch_circuit = branch_circuit
         self.QuanONet = circuit2network(QuanONet_circuit, ham)
 
         if self.if_trainable_freq:
