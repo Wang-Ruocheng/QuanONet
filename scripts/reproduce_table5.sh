@@ -89,7 +89,7 @@ for OP in "${OPERATORS[@]}"; do
         PIDS=()
         for SEED in "${SEEDS[@]}"; do
             echo "  Launching ${MODEL_DESC} | Size=[${NET_SIZE}] | Seed=${SEED}"
-            LOG_FILE="${PREFIX}/log_${OP}_${MODEL}_seed${SEED}.log"
+            LOG_FILE="/dev/null"
             mkdir -p "${PREFIX}"
 
             python main.py \
