@@ -61,11 +61,36 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
     └── metrics.py           # L2 / MSE evaluation
 ```
 
+## System Requirements
+
+### Software Dependencies
+See `requirements.txt` for the full list of dependencies with pinned versions. Key packages:
+
+| Package | Version | Purpose |
+|---|---|---|
+| Python | 3.9 | Runtime |
+| mindspore | 2.8.0 | MindQuantum backend training |
+| mindquantum | 0.11.0 | Quantum circuit simulation |
+| torch | 2.8.0 | PyTorch backends (TQ, Qiskit, DeepXDE) |
+| DeepXDE | 1.15.0 | Classical operator learning |
+| pennylane | 0.38.0 | PennyLane backend |
+| qiskit | 1.4.5 | Qiskit backend |
+
+**Tested on:** Ubuntu 20.04 / 22.04 / 24.04, x86\_64. MindSpore does not support Windows.
+
+### Hardware
+- **CPU:** Any modern x86\_64 processor. Quantum simulation (MindQuantum/TorchQuantum/PennyLane) runs on CPU only. Multi-core CPUs benefit parallel seed experiments.
+- **RAM:** ≥ 16 GB recommended.
+- **GPU:** Optional. Used only for classical baselines (DeepONet/FNN/FNO via PyTorch/DeepXDE).
+- **Non-standard hardware (optional):** IBM Quantum processor — required only for `ibm_inference.py` (real-device deployment). All simulations run on standard hardware without a quantum device.
+
 ## Installation
 
 The framework supports three quantum simulation backends and two classical backends. All can coexist in a single environment.
 
-**Tested environment:** Python 3.9, conda.
+**Tested environment:** Python 3.9, conda, Ubuntu 22.04 x86\_64.
+
+**Typical install time:** 20–30 minutes on a standard desktop with a broadband connection (dominated by MindSpore and Qiskit package downloads).
 
 ```bash
 conda create -n quanode python=3.9
@@ -104,6 +129,29 @@ pip install qiskit-machine-learning==0.8.4 --no-deps  # numpy>=2.0 vs mindspore 
 | `--classical_backend pytorch` (default) | `torch`, `DeepXDE` | DeepONet / FNN / FNO |
 | `--classical_backend mindspore` | `mindspore` | MindSpore FNO / FNN / DeepONet |
 
+## Demo
+
+The fastest way to verify the installation is to run inference on the included pre-trained weights — no training required.
+
+```bash
+python infer.py \
+  --ckpt pretrained_weights/Antideriv/Antideriv_QuanONet_Net5-1-5-1_Q2_TF_S0.001_1000x100_Seed0/best_model.npz
+```
+
+**Expected output:**
+```
+Model : QuanONet  backend=mindspore
+Config: net_size=[5, 1, 5, 1]  num_qubits=2
+Output: (1000, 100)
+Rel-L2 : 0.0312  (3.12%)
+MSE    : 0.000285
+MAE    : 0.010341
+```
+
+**Expected run time:** ~1 minute on a standard desktop CPU (model loading + forward pass over 1000 test samples).
+
+> The exact metric values will vary slightly from the example above depending on the platform and NumPy version, but should remain in the same order of magnitude.
+
 ## Usage and Execution
 
 All model training and evaluation are executed through the unified `main.py` entry point.
@@ -124,6 +172,8 @@ python main.py \
   --num_qubits 5 \
   --num_epochs 1000
 ```
+
+Expected run time: ~80 minutes on a server-class CPU (e.g., Intel Xeon); ~90–120 minutes on a typical desktop CPU.
 
 **2. Train TF-QuanONet with TorchQuantum backend**
 
@@ -181,6 +231,8 @@ python main.py \
   --net_size 3 100 3 100 \
   --num_epochs 1000
 ```
+
+Expected run time: ~5 minutes on a standard desktop CPU; ~2 minutes with GPU.
 
 **7. Verify all backends**
 
