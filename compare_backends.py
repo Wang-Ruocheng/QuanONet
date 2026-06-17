@@ -25,7 +25,10 @@ import torch.nn as nn
 # ── tolerances ────────────────────────────────────────────────────────────────
 ATOL_PT   = 1e-4    # same circuit, same weights — PL/TQ are exact; Qiskit may differ ~1e-5
 ATOL_MSPT = 1e-4    # MindSpore ↔ PyTorch fp32 cross-framework
-ATOL_CLS  = 1e-5    # classical PT ↔ MS with identical weights
+ATOL_CLS      = 1e-5    # classical PT ↔ MS with identical weights
+ATOL_GRAD_PT  = 1e-4    # backward: PT-only backends (TQ / PL / Qiskit)
+ATOL_GRAD_MS  = 5e-4    # backward: MindSpore ↔ PyTorch quantum models
+ATOL_GRAD_CLS = 2e-5    # backward: classical PT ↔ MS
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 _GREEN = "\033[32m"
@@ -188,6 +191,26 @@ def test_quanonet_pt_backends():
     _ok("QuanONet  TQ == PennyLane", out_tq, out_pl, ATOL_PT)
     _ok("QuanONet  TQ == Qiskit",    out_tq, out_qk, ATOL_PT)
 
+    # ── Backward ──────────────────────────────────────────────────────────────
+    tgt = torch.tensor(RNG.random((batch, 1)).astype(np.float32))
+
+    model_tq.zero_grad()
+    ((model_tq(branch, trunk) - tgt) ** 2).mean().backward()
+    g_tq = model_tq.quantum_layer.ansatz_weights.grad.detach().numpy().copy()
+
+    model_pl.zero_grad()
+    ((model_pl(branch, trunk) - tgt) ** 2).mean().backward()
+    g_pl = model_pl.quantum_layer.ansatz_weights.grad.detach().numpy().copy()
+
+    _ok("QuanONet  TQ == PennyLane (grad ansatz)", g_tq, g_pl, ATOL_GRAD_PT)
+    try:
+        model_qk.zero_grad()
+        ((model_qk(branch, trunk) - tgt) ** 2).mean().backward()
+        g_qk = model_qk.quantum_layer.ansatz_weights.grad.detach().numpy().copy()
+        _ok("QuanONet  TQ == Qiskit    (grad ansatz)", g_tq, g_qk, ATOL_GRAD_PT)
+    except Exception as e:
+        _skip("QuanONet  TQ == Qiskit    (grad ansatz)", f"{e}")
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Part 2: HEAQNN — PyTorch backends (TQ / Qiskit / PennyLane)
@@ -236,6 +259,26 @@ def test_heaqnn_pt_backends():
 
     _ok("HEAQNN   TQ == PennyLane", out_tq, out_pl, ATOL_PT)
     _ok("HEAQNN   TQ == Qiskit",    out_tq, out_qk, ATOL_PT)
+
+    # ── Backward ──────────────────────────────────────────────────────────────
+    tgt = torch.tensor(RNG.random((batch, 1)).astype(np.float32))
+
+    model_tq.zero_grad()
+    ((model_tq(x) - tgt) ** 2).mean().backward()
+    g_tq = model_tq.quantum_layer.ansatz_weights.grad.detach().numpy().copy()
+
+    model_pl.zero_grad()
+    ((model_pl(x) - tgt) ** 2).mean().backward()
+    g_pl = model_pl.quantum_layer.ansatz_weights.grad.detach().numpy().copy()
+
+    _ok("HEAQNN   TQ == PennyLane (grad ansatz)", g_tq, g_pl, ATOL_GRAD_PT)
+    try:
+        model_qk.zero_grad()
+        ((model_qk(x) - tgt) ** 2).mean().backward()
+        g_qk = model_qk.quantum_layer.ansatz_weights.grad.detach().numpy().copy()
+        _ok("HEAQNN   TQ == Qiskit    (grad ansatz)", g_tq, g_qk, ATOL_GRAD_PT)
+    except Exception as e:
+        _skip("HEAQNN   TQ == Qiskit    (grad ansatz)", f"{e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -303,6 +346,35 @@ def test_quanonet_ms_vs_pt():
 
     _ok("QuanONet  MS == TQ (pretrained Antideriv)", out_ms, out_pt, ATOL_MSPT)
 
+    # ── Backward ──────────────────────────────────────────────────────────────
+    tgt_np  = RNG.random((16, 1)).astype(np.float32)
+    tgt_ms  = ms.Tensor(tgt_np)
+    tgt_pt  = torch.tensor(tgt_np)
+    b_t, t_t = ms.Tensor(b_np), ms.Tensor(t_np)
+
+    ms_params = model_ms.trainable_params()
+    def _fwd_ms_q(b, t):
+        return ((model_ms((b, t)) - tgt_ms) ** 2).mean()
+    model_ms.set_train(True)
+    _, ms_grads = ms.value_and_grad(_fwd_ms_q, grad_position=None, weights=ms_params)(b_t, t_t)
+    model_ms.set_train(False)
+    ms_gd = {p.name: g.asnumpy() for p, g in zip(ms_params, ms_grads)}
+
+    total_blocks = (cfg['net_size'][0] * cfg['net_size'][1] +
+                    cfg['net_size'][2] * cfg['net_size'][3])
+    model_pt.zero_grad()
+    ((model_pt(torch.tensor(b_np), torch.tensor(t_np)) - tgt_pt) ** 2).mean().backward()
+
+    _ok("QuanONet  MS == TQ (grad circuit,      pretrained)",
+        ms_gd['QuanONet.weight'].reshape(total_blocks, 3, cfg['num_qubits']),
+        model_pt.quantum_layer.ansatz_weights.grad.detach().numpy(), ATOL_GRAD_MS)
+    _ok("QuanONet  MS == TQ (grad branch_freq,  pretrained)",
+        ms_gd['branch_LinearLayer.Net2.weights'],
+        model_pt.branch_freq.weights.grad.detach().numpy(), ATOL_GRAD_MS)
+    _ok("QuanONet  MS == TQ (grad trunk_freq,   pretrained)",
+        ms_gd['trunk_LinearLayer.Net2.weights'],
+        model_pt.trunk_freq.weights.grad.detach().numpy(), ATOL_GRAD_MS)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Part 4: HEAQNN — MindSpore vs TorchQuantum  (random weights, manual transfer)
@@ -353,6 +425,30 @@ def test_heaqnn_ms_vs_pt():
 
     _ok("HEAQNN   MS == TQ (random weights)", out_ms, out_pt, ATOL_MSPT)
 
+    # ── Backward ──────────────────────────────────────────────────────────────
+    tgt_np_b  = RNG.random((8, 1)).astype(np.float32)
+    tgt_ms_b  = ms.Tensor(tgt_np_b)
+    tgt_pt_b  = torch.tensor(tgt_np_b)
+    x_ms_b    = ms.Tensor(x_np)
+
+    ms_params_b = model_ms.trainable_params()
+    def _fwd_ms_h(x):
+        return ((model_ms(x) - tgt_ms_b) ** 2).mean()
+    model_ms.set_train(True)
+    _, ms_grads_b = ms.value_and_grad(_fwd_ms_h, grad_position=None, weights=ms_params_b)(x_ms_b)
+    model_ms.set_train(False)
+    ms_gd_b = {p.name: g.asnumpy() for p, g in zip(ms_params_b, ms_grads_b)}
+
+    model_pt.zero_grad()
+    ((model_pt(torch.tensor(x_np)) - tgt_pt_b) ** 2).mean().backward()
+
+    _ok("HEAQNN   MS == TQ (grad circuit,      random)",
+        ms_gd_b['HEAQNN.weight'].reshape(total_blocks, 3, n_q),
+        model_pt.quantum_layer.ansatz_weights.grad.detach().numpy(), ATOL_GRAD_MS)
+    _ok("HEAQNN   MS == TQ (grad freq_weights, random)",
+        ms_gd_b['LinearLayer.Net2.weights'],
+        model_pt.freq.weights.grad.detach().numpy(), ATOL_GRAD_MS)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Part 5: FNN — PyTorch vs MindSpore
@@ -392,6 +488,27 @@ def test_fnn_ms_vs_pt():
     out_ms = model_ms(ms.Tensor(x_np)).asnumpy()
 
     _ok("FNN      PT == MS", out_pt, out_ms, ATOL_CLS)
+
+    # ── Backward ──────────────────────────────────────────────────────────────
+    tgt_np_f  = RNG.random((16, out_size)).astype(np.float32)
+    tgt_ms_f  = ms.Tensor(tgt_np_f)
+    tgt_pt_f  = torch.tensor(tgt_np_f)
+    x_ms_f    = ms.Tensor(x_np)
+    x_pt_f    = torch.tensor(x_np)
+
+    ms_params_f = model_ms.trainable_params()
+    def _fwd_ms_f(x):
+        return ((model_ms(x) - tgt_ms_f) ** 2).mean()
+    model_ms.set_train(True)
+    _, ms_grads_f = ms.value_and_grad(_fwd_ms_f, grad_position=None, weights=ms_params_f)(x_ms_f)
+    model_ms.set_train(False)
+    ms_gd_f = {p.name: g.asnumpy() for p, g in zip(ms_params_f, ms_grads_f)}
+
+    model_pt.zero_grad()
+    ((model_pt(x_pt_f) - tgt_pt_f) ** 2).mean().backward()
+
+    _ok("FNN      PT == MS (grad FNN.fc0.weight)",    model_pt.FNN.fc0.weight.grad.numpy(),    ms_gd_f.get('FNN.fc0.weight'),    ATOL_GRAD_CLS)
+    _ok("FNN      PT == MS (grad FNN.fc_out.weight)", model_pt.FNN.fc_out.weight.grad.numpy(), ms_gd_f.get('FNN.fc_out.weight'), ATOL_GRAD_CLS)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -436,6 +553,28 @@ def test_deeponet_ms_vs_pt():
 
     _ok("DeepONet PT == MS", out_pt, out_ms, ATOL_CLS)
 
+    # ── Backward ──────────────────────────────────────────────────────────────
+    tgt_np_d  = RNG.random((16, 1)).astype(np.float32)
+    tgt_ms_d  = ms.Tensor(tgt_np_d)
+    tgt_pt_d  = torch.tensor(tgt_np_d)
+    b_ms_d, t_ms_d = ms.Tensor(b_np), ms.Tensor(t_np)
+
+    ms_params_d = model_ms.trainable_params()
+    def _fwd_ms_d(b, t):
+        return ((model_ms((b, t)) - tgt_ms_d) ** 2).mean()
+    model_ms.set_train(True)
+    _, ms_grads_d = ms.value_and_grad(_fwd_ms_d, grad_position=None, weights=ms_params_d)(b_ms_d, t_ms_d)
+    model_ms.set_train(False)
+    ms_gd_d = {p.name: g.asnumpy() for p, g in zip(ms_params_d, ms_grads_d)}
+
+    model_pt.zero_grad()
+    ((model_pt(torch.tensor(b_np), torch.tensor(t_np)) - tgt_pt_d) ** 2).mean().backward()
+
+    _ok("DeepONet PT == MS (grad branch_net.fc0.weight)",
+        model_pt.branch_net.fc0.weight.grad.numpy(), ms_gd_d.get('branch_net.fc0.weight'), ATOL_GRAD_CLS)
+    _ok("DeepONet PT == MS (grad trunk_net.fc0.weight)",
+        model_pt.trunk_net.fc0.weight.grad.numpy(),  ms_gd_d.get('trunk_net.fc0.weight'),  ATOL_GRAD_CLS)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Part 7: FNO — PyTorch vs MindSpore
@@ -473,10 +612,30 @@ def test_fno_ms_vs_pt():
 
     x_np = RNG.random((4, n_pts, in_ch)).astype(np.float32)
     with torch.no_grad():
-        out_pt = model_pt(torch.tensor(x_np)).numpy().squeeze(-1)  # (4, n_pts)
-    out_ms = model_ms(ms.Tensor(x_np)).asnumpy()
+        out_pt = model_pt(torch.tensor(x_np)).numpy()          # (4, n_pts, 1)
+    out_ms = model_ms(ms.Tensor(x_np)).asnumpy()               # (4, n_pts, 1)
 
     _ok("FNO      PT == MS", out_pt, out_ms, ATOL_CLS)
+
+    # ── Backward ──────────────────────────────────────────────────────────────
+    tgt_np_fno  = RNG.random((4, n_pts, 1)).astype(np.float32)
+    tgt_ms_fno  = ms.Tensor(tgt_np_fno)
+    tgt_pt_fno  = torch.tensor(tgt_np_fno)
+    x_ms_fno    = ms.Tensor(x_np)
+
+    ms_params_fno = model_ms.trainable_params()
+    def _fwd_ms_fno(x):
+        return ((model_ms(x) - tgt_ms_fno) ** 2).mean()
+    model_ms.set_train(True)
+    _, ms_grads_fno = ms.value_and_grad(_fwd_ms_fno, grad_position=None, weights=ms_params_fno)(x_ms_fno)
+    model_ms.set_train(False)
+    ms_gd_fno = {p.name: g.asnumpy() for p, g in zip(ms_params_fno, ms_grads_fno)}
+
+    model_pt.zero_grad()
+    ((model_pt(torch.tensor(x_np)) - tgt_pt_fno) ** 2).mean().backward()
+
+    _ok("FNO      PT == MS (grad fc0.weight)", model_pt.fc0.weight.grad.numpy(), ms_gd_fno.get('fc0.weight'), ATOL_GRAD_CLS)
+    _ok("FNO      PT == MS (grad fc2.weight)", model_pt.fc2.weight.grad.numpy(), ms_gd_fno.get('fc2.weight'), ATOL_GRAD_CLS)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -18,7 +18,7 @@ from infer import _parse_path, evaluate
 from core.quantum_circuits_tq import _ham_params
 
 
-def create_circuit(branch_inputs, trunk_inputs, weights, coefficients, n_branch_layers, n_trunk_layers):
+def create_circuit(branch_inputs, trunk_inputs, trunk_weights, branch_weights, coefficients, n_branch_layers, n_trunk_layers):
     """Constructs the native QuanONet circuit architecture."""
     def entangle(qc, wires):
         n = len(wires)
@@ -36,23 +36,25 @@ def create_circuit(branch_inputs, trunk_inputs, weights, coefficients, n_branch_
             qc.rx(angle, j)
 
     branch_size, trunk_size = len(branch_inputs), len(trunk_inputs)
-    n_hidden_layers, n_wires = weights.shape[1], weights.shape[-1]
+    n_trunk_hidden  = trunk_weights.shape[1]
+    n_branch_hidden = branch_weights.shape[1]
+    n_wires = trunk_weights.shape[-1]
     qc = QuantumCircuit(n_wires)
 
     # Trunk Encoding & Evolution
     for i in range(n_trunk_layers):
         trunk = [trunk_inputs[(i * n_wires % trunk_size + j) % trunk_size] for j in range(n_wires)]
         encode(qc, coefficients[i], trunk, range(n_wires))
-        for h in range(n_hidden_layers):
-            ansatz(qc, weights[i][h], range(n_wires))
+        for h in range(n_trunk_hidden):
+            ansatz(qc, trunk_weights[i][h], range(n_wires))
             entangle(qc, range(n_wires))
 
     # Branch Encoding & Evolution
     for i in range(n_branch_layers):
         branch = [branch_inputs[(i * n_wires % branch_size + j) % branch_size] for j in range(n_wires)]
         encode(qc, coefficients[n_trunk_layers + i], branch, range(n_wires))
-        for h in range(n_hidden_layers):
-            ansatz(qc, weights[n_trunk_layers + i][h], range(n_wires))
+        for h in range(n_branch_hidden):
+            ansatz(qc, branch_weights[i][h], range(n_wires))
             entangle(qc, range(n_wires))
     return qc
 
@@ -145,10 +147,11 @@ def main():
     net_size = path_cfg.get('net_size', [5, 1, 5, 1])
     n_qubits        = args.n_qubits  if args.n_qubits  is not None else path_cfg.get('num_qubits', 2)
     n_branch_layers = args.n_branch  if args.n_branch  is not None else net_size[0]
-    n_hidden_layers = args.n_hidden  if args.n_hidden  is not None else net_size[1]
+    n_branch_hidden = args.n_hidden  if args.n_hidden  is not None else net_size[1]
     n_trunk_layers  = args.n_trunk   if args.n_trunk   is not None else net_size[2]
-    print(f"-> Architecture: branch={n_branch_layers}, hidden={n_hidden_layers}, "
-          f"trunk={n_trunk_layers}, qubits={n_qubits}")
+    n_trunk_hidden  = args.n_hidden  if args.n_hidden  is not None else net_size[3]
+    print(f"-> Architecture: branch=({n_branch_layers}x{n_branch_hidden}), "
+          f"trunk=({n_trunk_layers}x{n_trunk_hidden}), qubits={n_qubits}")
 
     # Hamiltonian rescaling coefficients
     ham_offset, ham_coeff = _ham_params(n_qubits, args.ham_bound[0], args.ham_bound[1])
@@ -156,7 +159,11 @@ def main():
     # 1. Load Pre-trained Weights
     data = np.load(weight_path)
     raw_weights = data["QuanONet.weight"]
-    weights = raw_weights.reshape(n_branch_layers + n_trunk_layers, n_hidden_layers, 3, n_qubits)
+    # circuit = trunk + branch, so trunk weights come first in the flat array
+    trunk_count  = n_trunk_layers  * n_trunk_hidden  * 3 * n_qubits
+    branch_count = n_branch_layers * n_branch_hidden * 3 * n_qubits
+    trunk_weights  = raw_weights[:trunk_count].reshape(n_trunk_layers,  n_trunk_hidden,  3, n_qubits)
+    branch_weights = raw_weights[trunk_count:trunk_count + branch_count].reshape(n_branch_layers, n_branch_hidden, 3, n_qubits)
     t_w = data["trunk_LinearLayer.Net2.weights"].reshape(n_trunk_layers, n_qubits)
     t_b = data["trunk_LinearLayer.Net2.bias"].reshape(n_trunk_layers, n_qubits)
     b_w = data["branch_LinearLayer.Net2.weights"].reshape(n_branch_layers, n_qubits)
@@ -184,7 +191,7 @@ def main():
     # 3. Construct Logical Circuit & Hamiltonian
     branch_param = ParameterVector('branch', num_points_0)
     trunk_param = ParameterVector('trunk', 1)
-    qc = create_circuit(branch_param, trunk_param, weights, coefficients, n_branch_layers, n_trunk_layers)
+    qc = create_circuit(branch_param, trunk_param, trunk_weights, branch_weights, coefficients, n_branch_layers, n_trunk_layers)
     hamiltonian = SparsePauliOp.from_sparse_list(
         [("Z", [i], 1.0) for i in range(n_qubits)], num_qubits=n_qubits
     )

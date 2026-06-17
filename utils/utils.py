@@ -34,5 +34,5 @@ def count_parameters(model):
     # 3. Fallback: Try to get length if possible
     try:
         return len(model)
-    except:
-        return "Unknown"
+    except Exception:
+        return -1

@@ -263,7 +263,8 @@ class FNOMS(nn.Cell):
     """
     Fourier Neural Operator (MindSpore). Mirrors FNOPT in models_pt.py.
 
-    Input format: (batch, n_points, in_channels).
+    Input  format: (batch, n_points, in_channels).
+    Output format: (batch, n_points, 1).
     Requires MindSpore >= 2.1 for fft_rfft / fft_irfft ops.
     """
 
@@ -300,4 +301,4 @@ class FNOMS(nn.Cell):
         x = x.transpose(0, 2, 1)     # (batch, n_points, width)
         x = self.relu(self.fc1(x))
         x = self.fc2(x)
-        return x.squeeze(-1)          # (batch, n_points)
+        return x                       # (batch, n_points, 1)
