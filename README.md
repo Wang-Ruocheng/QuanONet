@@ -400,21 +400,10 @@ If you utilize this framework, the implicit quadratic frame theory, or the real-
 
 ```bibtex
 @article{wang2026quantum,
-      author={Wang, Ruocheng and Xia, Zhuo and Zhong, Xiaoqiu and Yan, Junchi},
-      title={Quantum Neural Operators: Implicit Quadratic Frame and Expressivity Advantages with Adaptive Frequency Strategy},
-      journal={Nature Machine Intelligence (Under Review)},
+      author={Wang, Ruocheng and Zhong, Xiaoqiu and Xia, Zhuo and Yan, Junchi},
+      title={Quantum Neural Operators with Implicit Quadratic Frame and Expressivity Advantages},
+      journal={Nature Machine Intelligence},
       year={2026}
-}
-```
-
-For the preliminary conference version establishing the foundational QuanONet architecture, please cite:
-
-```bibtex
-@inproceedings{wang2025quanonet,
-  title={QuanONet: Quantum Neural Operator with Application to Differential Equation},
-  author={Wang, Ruocheng and Xia, Zhuo and Yan, Ge and Yan, Junchi},
-  booktitle={Forty-second International Conference on Machine Learning},
-  year={2025}
 }
 ```
 
