@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script Name: reproduce_table8.sh
+# Script Name: reproduce_circuit.sh
 # Description: Reproduce Table 8 benchmarks (Parameter Efficiency / Scalability).
 #              Dynamic Grid Search for TF-QuanONet based on Qubit counts.
 # Operator:    Antideriv (ODE)

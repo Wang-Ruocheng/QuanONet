@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script Name: reproduce_sec54.sh
+# Script Name: reproduce_hamiltonian.sh
 # Description: Reproduce Section 5.4 (Hamiltonian Ablation Studies).
 #              Includes: Pauli Basis (Fig 11), Spectral Radius (Fig 11), 
 #                        and Spectral Degeneracy (Fig 10).

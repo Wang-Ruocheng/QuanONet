@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script Name: reproduce_fig9_scaling.sh
+# Script Name: reproduce_scaling.sh
 # Description: Reproduce Fig 9 / Table 13 & 14 (High-Dimensional Scaling Limit).
 #              Sweeps latent dimension p from 4 to 256 for both models.
 # Operator:    Antideriv (ODE)

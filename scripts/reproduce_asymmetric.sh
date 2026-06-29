@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script Name: reproduce_table5.sh
+# Script Name: reproduce_asymmetric.sh
 # Description: Reproduce Table 5 benchmarks (Small Data Regime).
 #              Fixed Scale(0.001) & TF(true) for QuanONet.
 #              Specific Net Sizes for DeepONet & FNO.

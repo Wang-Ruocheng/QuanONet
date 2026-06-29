@@ -18,12 +18,12 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 ├── requirements.txt       # Project dependencies
 │
 ├── scripts/               # Automated reproduction bash scripts
-│   ├── reproduce_table4.sh
-│   ├── reproduce_table5.sh
-│   ├── reproduce_table7.sh
-│   ├── reproduce_fig9.sh
-│   ├── reproduce_table8.sh
-│   └── reproduce_sec54.sh
+│   ├── reproduce_benchmarks.sh
+│   ├── reproduce_asymmetric.sh
+│   ├── reproduce_capacity.sh
+│   ├── reproduce_scaling.sh
+│   ├── reproduce_circuit.sh
+│   └── reproduce_hamiltonian.sh
 │
 ├── visualization.ipynb    # Jupyter notebook for PDE results visualization
 │
@@ -281,17 +281,17 @@ For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.i
 The `scripts/` directory contains automated bash scripts to reproduce the primary experimental results reported in the manuscript.
 
 ```bash
-./scripts/reproduce_table4.sh
+./scripts/reproduce_benchmarks.sh
 ```
 
 | **Script**              | **Description**                                                                                                                                        | **Relevant Section** |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
-| `reproduce_table4.sh`       | **General Benchmarks**: Evaluates TF-QuanONet against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across ODE and PDE operator tasks. | Table 4 (Sec 5.2.2)        |
-| `reproduce_table5.sh`       | **Asymmetric Parameterization**: Compares compact TF-QuanONet (~1.2k params) against over-parameterized FNO and DeepONet (~10k params).                | Table 5 & 6 (Sec 5.2.3)    |
-| `reproduce_table7.sh`       | **Implicit Frame Capacity**: Grid search over network width and depth to verify the $\mathcal{O}(p^2)$ implicit frame and analyze error saturation.  | Table 7 (Sec 5.3.1)        |
-| `reproduce_fig9.sh` | **High-Dimensional Scaling Limit**: Sweeps the latent dimension $p$ from 4 to 256. Demonstrates optimization stability in high dimensions.           | Fig 9 (Sec 5.3.1)          |
-| `reproduce_table8.sh`       | **Circuit Architecture Ablation**: Investigates the trade-off between circuit width (qubits) and depth regarding expressivity vs. trainability.        | Table 8 (Sec 5.3.2)        |
-| `reproduce_sec54.sh`        | **Hamiltonian Ablation**: Evaluates the impact of Hamiltonian design (Pauli basis, spectral radii, and degeneracy) on model expressivity.              | Fig 10 & 11 (Sec 5.4)      |
+| `reproduce_benchmarks.sh`   | **General Benchmarks**: Evaluates TF-QuanONet against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across ODE and PDE operator tasks. | Table 4 (Sec 5.2.2)        |
+| `reproduce_asymmetric.sh`   | **Asymmetric Parameterization**: Compares compact TF-QuanONet (~1.2k params) against over-parameterized FNO and DeepONet (~10k params).                | Table 5 & 6 (Sec 5.2.3)    |
+| `reproduce_capacity.sh`     | **Implicit Frame Capacity**: Grid search over network width and depth to verify the $\mathcal{O}(p^2)$ implicit frame and analyze error saturation.  | Table 7 (Sec 5.3.1)        |
+| `reproduce_scaling.sh`      | **High-Dimensional Scaling Limit**: Sweeps the latent dimension $p$ from 4 to 256. Demonstrates optimization stability in high dimensions.           | Fig 9 (Sec 5.3.1)          |
+| `reproduce_circuit.sh`      | **Circuit Architecture Ablation**: Investigates the trade-off between circuit width (qubits) and depth regarding expressivity vs. trainability.        | Table 8 (Sec 5.3.2)        |
+| `reproduce_hamiltonian.sh`  | **Hamiltonian Ablation**: Evaluates the impact of Hamiltonian design (Pauli basis, spectral radii, and degeneracy) on model expressivity.              | Fig 10 & 11 (Sec 5.4)      |
 
 ## Configuration & Parameters
 

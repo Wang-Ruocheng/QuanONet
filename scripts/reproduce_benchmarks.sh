@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script Name: reproduce_table4.sh
+# Script Name: reproduce_benchmarks.sh
 # Description: Reproduce Table 4 benchmarks for QuanONet paper.
 #              Iterates over Models, Operators, Frequencies, Scales, and Seeds.
 # Usage:       ./scripts/reproduce_table4.sh [GPU_ID]

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script Name: reproduce_table7.sh
+# Script Name: reproduce_capacity.sh
 # Description: Reproduce Table 7 benchmarks (Parameter Efficiency Analysis).
 #              Grid search for TF-QuanONet (Hidden dims) & DeepONet (Width/Depth).
 # Operator:    Antideriv (ODE)
