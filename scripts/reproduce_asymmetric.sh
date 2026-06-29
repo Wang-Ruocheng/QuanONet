@@ -2,10 +2,10 @@
 
 # ==============================================================================
 # Script Name: reproduce_asymmetric.sh
-# Description: Reproduce Table 5 benchmarks (Small Data Regime).
+# Description: Reproduce aligned-parameter comparison (Tables 5 & 6).
+#              TF-QuanONet at matched parameter count vs DeepONet & FNO.
 #              Fixed Scale(0.001) & TF(true) for QuanONet.
-#              Specific Net Sizes for DeepONet & FNO.
-# Usage:       ./scripts/reproduce_table5.sh [GPU_ID]
+# Usage:       ./scripts/reproduce_asymmetric.sh [GPU_ID]
 # ==============================================================================
 
 # 1. Configuration
@@ -13,7 +13,7 @@
 GPU_ID=$1
 PREFIX="Table5_Reproduction"
 
-# Hyperparameters (Table 5 Specific: Small Data)
+# Hyperparameters
 NUM_TRAIN=100        # Reduced training functions
 TRAIN_SAMPLE=100     # Increased samples per function
 NUM_TEST=1000
@@ -37,7 +37,7 @@ else
     echo "🤖 For unspecified devices: Using smart default (Quantum->CPU, Classical->GPU)"
 fi
 
-echo "🚀 Starting Table 5 Reproduction (Small Data Regime)..."
+echo "🚀 Starting Aligned-Parameter Comparison (Tables 5 & 6)..."
 echo "📂 Output Directory: ${PREFIX}"
 
 # ==============================================================================
@@ -64,9 +64,9 @@ for OP in "${OPERATORS[@]}"; do
         CURRENT_BATCH_SIZE=${BATCH_SIZE}
         
         if [[ "$MODEL" == "QuanONet" ]]; then
-            # TF-QuanONet Setup
-            # Scale=0.001, Freq=True, Size=20 2 10 2
-            NET_SIZE="20 2 10 2"
+            # TF-QuanONet at aligned parameter count
+            # Scale=0.001, Freq=True, Size=160 2 90 2
+            NET_SIZE="160 2 90 2"
             SCALE="0.001"
             IF_TF="true"
             EXTRA_ARGS="--scale_coeff ${SCALE} --if_trainable_freq ${IF_TF}"
@@ -123,4 +123,4 @@ for OP in "${OPERATORS[@]}"; do
     done
 done
 
-echo "✅ Table 5 experiments completed."
+echo "✅ Aligned-parameter comparison experiments completed."
