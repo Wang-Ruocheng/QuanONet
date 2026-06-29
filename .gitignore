@@ -29,6 +29,7 @@ evaluate.py
 
 # === 3. 忽略结果 PDF ===
 hardware_inference_comparison*.pdf
+logical_circuit.pdf
 
 # === 4. 忽略 Python 缓存和系统文件 ===
 __pycache__/
