@@ -13,7 +13,6 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 ├── main.py                # Unified entry point (auto-backend selection)
 ├── infer.py               # Standalone inference — Python API and CLI
 ├── ibm_inference.py       # Real-device deployment on IBM Quantum hardware
-├── test_backends.py       # Backend integration test script
 ├── compare_backends.py    # Cross-backend consistency check (all models × all backends)
 ├── requirements.txt       # Project dependencies
 │
@@ -114,7 +113,7 @@ pip install qiskit-machine-learning==0.8.4 --no-deps  # numpy>=2.0 vs mindspore 
 > # torchquantum/util/utils.py  — wrap qiskit_ibm_runtime import in try/except
 > ```
 >
-> These patches disable only the optional IBM-Q connectivity plugin; local statevector simulation is unaffected. See `test_backends.py` for a ready-to-run verification.
+> These patches disable only the optional IBM-Q connectivity plugin; local statevector simulation is unaffected.
 
 > **PennyLane compatibility note:** `pennylane==0.38` requires `autoray<0.7`. `autoray>=0.7` removes an internal attribute used by PennyLane 0.38, causing an import error. The pin is included in `requirements.txt`.
 
@@ -233,12 +232,6 @@ python main.py \
 ```
 
 Expected run time: ~5 minutes on a standard desktop CPU; ~2 minutes with GPU.
-
-**7. Verify all backends**
-
-```bash
-python test_backends.py
-```
 
 **8. Cross-backend consistency check**
 
