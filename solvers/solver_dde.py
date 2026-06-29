@@ -235,9 +235,9 @@ class DDESolver:
         sched_kw  = self.config.get("lr_scheduler_kwargs", {})
         decay = None
         if sched == "step":
-            decay = ("step", sched_kw.get("decay_steps", 1000), sched_kw.get("gamma", 0.9))
+            decay = ("step", sched_kw.get("step_size", sched_kw.get("decay_steps", 1000)), sched_kw.get("gamma", 0.9))
         elif sched == "exponential":
-            decay = ("exponential", sched_kw.get("decay_steps", 1000), sched_kw.get("gamma", 0.9))
+            decay = ("exponential", sched_kw.get("step_size", sched_kw.get("decay_steps", 1000)), sched_kw.get("gamma", 0.9))
         elif sched == "cosine":
             decay = ("cosine", sched_kw.get("T_max", total_iterations), sched_kw.get("alpha", 0.0))
         self.logger.info(f"Optimizer: {opt_name}, LR scheduler: {sched}")

@@ -80,8 +80,8 @@ class DeepONet_PT(nn.Module):
     def __init__(self, branch_in, trunk_in, net_size):
         super().__init__()
         b_depth, b_width, t_depth, t_width = net_size
-        self.branch_net = _FNNLayerPT(branch_in, b_width, b_width, b_depth + 1)
-        self.trunk_net  = _FNNLayerPT(trunk_in,  t_width, t_width, t_depth + 1)
+        self.branch_net = _FNNLayerPT(branch_in, b_width, b_width, b_depth - 2)
+        self.trunk_net  = _FNNLayerPT(trunk_in,  t_width, t_width, t_depth - 2)
         self.bias = nn.Parameter(torch.zeros(1))
 
     def forward(self, branch, trunk):
@@ -409,7 +409,6 @@ def test_heaqnn_ms_vs_pt():
         'quantum_layer.ansatz_weights': torch.tensor(
             ms_params['HEAQNN.weight'].reshape(total_blocks, 3, n_q)
         ),
-        'bias': torch.zeros(1),
     }
 
     model_pt = HEAQNNPT(n_q, in_size, net_size=(depth, lin_d, 0, 0),

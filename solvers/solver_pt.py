@@ -209,7 +209,7 @@ class PTSolver:
             batch_size = num_samples
 
         epochs = self.config['num_epochs']
-        num_batches = max(1, num_samples // batch_size)
+        num_batches = max(1, int(np.ceil(num_samples / batch_size)))
         history = {'loss_train': [], 'loss_test': []}
 
         ckpt_path = self.exp_logger.get_ckpt_path(is_final=False)
@@ -219,7 +219,8 @@ class PTSolver:
             self.model.train()
             indices = np.random.permutation(num_samples)
             epoch_loss = 0.0
-            epoch_rel_err = 0.0
+            epoch_sse = 0.0
+            epoch_norm_sq = 0.0
 
             for i in range(num_batches):
                 idx = indices[i * batch_size: (i + 1) * batch_size]
@@ -236,12 +237,11 @@ class PTSolver:
 
                 loss_val = loss.item()
                 epoch_loss += loss_val
-                rel = (np.sqrt(loss_val * out_batch.numel()) /
-                       (out_batch.norm().item() + 1e-8))
-                epoch_rel_err += rel
+                epoch_sse += loss_val * out_batch.numel()
+                epoch_norm_sq += out_batch.norm().item() ** 2
 
             avg_loss = epoch_loss / num_batches
-            avg_rel  = epoch_rel_err / num_batches
+            avg_rel  = np.sqrt(epoch_sse) / (np.sqrt(epoch_norm_sq) + 1e-8)
             history['loss_train'].append(avg_loss)
 
             self.exp_logger.log_metric("Loss/train", avg_loss, epoch)

@@ -245,7 +245,7 @@ def main():
         else:
             # MODE: SUBMIT NEW JOB
             print("\n--- Searching for the least busy IBM Quantum backend ---")
-            backend = service.least_busy(operational=True, simulator=False, min_num_qubits=127)
+            backend = service.least_busy(operational=True, simulator=False, min_num_qubits=n_qubits)
             backend_name = backend.name
 
             best_pair = profile_hardware(backend)

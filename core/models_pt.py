@@ -201,7 +201,6 @@ class HEAQNNPT(nn.Module):
             total_input_size=enc_size,
             net_size=net_size, ham_bound=ham_bound, ham_diag=ham_diag,
         )
-        self.bias = nn.Parameter(torch.zeros(1))
 
     def forward(self, x):
         """
@@ -211,8 +210,7 @@ class HEAQNNPT(nn.Module):
             (batch, 1)
         """
         enc = self.freq(x)
-        out = self.quantum_layer(enc)
-        return out + self.bias
+        return self.quantum_layer(enc)
 
 
 # ── FNO (PyTorch) ─────────────────────────────────────────────────────────────

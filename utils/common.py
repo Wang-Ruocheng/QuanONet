@@ -76,7 +76,7 @@ def get_base_parser():
     parser.add_argument('--num_qubits', type=int, default=None, help='[Quantum] Number of qubits (default: 5)')
     parser.add_argument('--scale_coeff', type=float, help='[Quantum] Scaling coefficient')
     parser.add_argument('--if_trainable_freq', type=str, default=None, help='[Quantum] Trainable frequency (default: true)')
-    parser.add_argument('--ham_bound', type=int, nargs='+', default=None,
+    parser.add_argument('--ham_bound', type=float, nargs='+', default=None,
                     help='[Quantum] Hamiltonian bounds (e.g., --ham_bound -5 5) (default: -5 5)')
     parser.add_argument('--ham_pauli', type=str, default=None, choices=['X', 'Y', 'Z'],
                         help='Pauli observable basis for the Hamiltonian (default: Z).')

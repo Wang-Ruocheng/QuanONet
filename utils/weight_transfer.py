@@ -43,7 +43,8 @@ _MS_TO_PT = {
 }
 
 
-def ms_npz_to_pt_state_dict(npz_path, net_size=(40, 2, 20, 2), num_qubits=5):
+def ms_npz_to_pt_state_dict(npz_path, net_size=(40, 2, 20, 2), num_qubits=5,
+                             if_trainable_freq=True):
     """
     Load a MindSpore .npz checkpoint and return a PyTorch state_dict.
 
@@ -51,6 +52,8 @@ def ms_npz_to_pt_state_dict(npz_path, net_size=(40, 2, 20, 2), num_qubits=5):
         npz_path: path to .npz file produced by MSSolver
         net_size: (branch_depth, branch_linear_depth, trunk_depth, trunk_linear_depth)
         num_qubits: number of qubits
+        if_trainable_freq: must match training config. False checkpoints store
+            CoeffLayer weights instead of LinearLayer weights.
 
     Returns:
         state_dict: dict[str, torch.Tensor] ready for model.load_state_dict()
@@ -61,16 +64,23 @@ def ms_npz_to_pt_state_dict(npz_path, net_size=(40, 2, 20, 2), num_qubits=5):
     ms = np.load(npz_path)
     state_dict = {}
 
-    # ── Simple key renames ────────────────────────────────────────────────────
-    for ms_key, pt_key in _MS_TO_PT.items():
-        if ms_key not in ms:
-            raise KeyError(f"Expected key '{ms_key}' not found in {npz_path}. "
-                           f"Available: {list(ms.files)}")
-        val = ms[ms_key].astype(np.float32)
-        # MindSpore bias is scalar (); PyTorch bias is shape (1,)
-        if pt_key == 'bias':
-            val = val.reshape(1)
-        state_dict[pt_key] = torch.tensor(val)
+    # ── bias (always present) ─────────────────────────────────────────────────
+    val = ms['bias'].astype(np.float32).reshape(1)
+    state_dict['bias'] = torch.tensor(val)
+
+    # ── Frequency layer keys (only when if_trainable_freq=True) ──────────────
+    if if_trainable_freq:
+        tf_keys = {
+            'branch_LinearLayer.Net2.weights': 'branch_freq.weights',
+            'branch_LinearLayer.Net2.bias':    'branch_freq.bias',
+            'trunk_LinearLayer.Net2.weights':  'trunk_freq.weights',
+            'trunk_LinearLayer.Net2.bias':     'trunk_freq.bias',
+        }
+        for ms_key, pt_key in tf_keys.items():
+            if ms_key not in ms:
+                raise KeyError(f"Expected key '{ms_key}' not found in {npz_path}. "
+                               f"Available: {list(ms.files)}")
+            state_dict[pt_key] = torch.tensor(ms[ms_key].astype(np.float32))
 
     # ── Ansatz weights: (1800,) → (total_blocks, 3, num_qubits) ─────────────
     raw = ms['QuanONet.weight'].astype(np.float32)
@@ -91,7 +101,8 @@ def ms_npz_to_pt_state_dict(npz_path, net_size=(40, 2, 20, 2), num_qubits=5):
 def load_quanonet_pt(npz_path, quantum_backend='torchquantum',
                      branch_input_size=100, trunk_input_size=2,
                      net_size=(40, 2, 20, 2), num_qubits=5,
-                     scale_coeff=0.1, ham_bound=(-5.0, 5.0)):
+                     scale_coeff=0.01, ham_bound=(-5.0, 5.0),
+                     if_trainable_freq=True):
     """
     Convenience: build QuanONetPT, transfer weights, set eval mode.
 
@@ -104,6 +115,7 @@ def load_quanonet_pt(npz_path, quantum_backend='torchquantum',
         num_qubits: number of qubits
         scale_coeff: must match training config
         ham_bound: must match training config
+        if_trainable_freq: must match training config
 
     Returns:
         model: QuanONetPT ready for inference
@@ -116,11 +128,13 @@ def load_quanonet_pt(npz_path, quantum_backend='torchquantum',
         trunk_input_size=trunk_input_size,
         net_size=net_size,
         scale_coeff=scale_coeff,
-        if_trainable_freq=True,
+        if_trainable_freq=if_trainable_freq,
         quantum_backend=quantum_backend,
         ham_bound=ham_bound,
     )
-    state_dict = ms_npz_to_pt_state_dict(npz_path, net_size=net_size, num_qubits=num_qubits)
+    state_dict = ms_npz_to_pt_state_dict(npz_path, net_size=net_size,
+                                          num_qubits=num_qubits,
+                                          if_trainable_freq=if_trainable_freq)
     model.load_state_dict(state_dict)
     model.eval()
     return model

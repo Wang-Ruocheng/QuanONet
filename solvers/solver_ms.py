@@ -200,7 +200,7 @@ class MSSolver:
         else:
             num_samples = self.train_input.shape[0]
 
-        num_batches = max(1, num_samples // batch_size)
+        num_batches = max(1, int(np.ceil(num_samples / batch_size)))
         self.optimizer = self._build_optimizer(self.model.trainable_params(), epochs * num_batches)
         net_with_loss = nn.WithLossCell(self.model, self.loss_fn)
         train_net = nn.TrainOneStepCell(net_with_loss, self.optimizer)
@@ -217,12 +217,13 @@ class MSSolver:
 
         for epoch in tqdm(range(epochs)):
             epoch_loss = 0
-            epoch_rel_err = 0
+            epoch_sse = 0.0
+            epoch_norm_sq = 0.0
             indices = np.random.permutation(num_samples)
-            
+
             for i in range(num_batches):
                 idx = indices[i * batch_size : (i+1) * batch_size]
-                
+
                 if isinstance(self.train_input, tuple):
                     batch_in = (ms.Tensor(self.train_input[0][idx], ms.float32),
                                 ms.Tensor(self.train_input[1][idx], ms.float32))
@@ -230,19 +231,17 @@ class MSSolver:
                     batch_in = ms.Tensor(self.train_input[idx], ms.float32)
 
                 batch_out = ms.Tensor(self.train_output[idx], ms.float32)
-                
+
                 loss = train_net(batch_in, batch_out)
                 loss_val = float(loss.asnumpy())
                 epoch_loss += loss_val
-                
+
                 n_elements = batch_out.size
-                l2_diff = np.sqrt(loss_val * n_elements)
-                l2_true = np.linalg.norm(batch_out.asnumpy())
-                batch_rel = l2_diff / (l2_true + 1e-8)
-                epoch_rel_err += batch_rel
-            
+                epoch_sse += loss_val * n_elements
+                epoch_norm_sq += float(np.sum(batch_out.asnumpy() ** 2))
+
             avg_loss = epoch_loss / num_batches
-            avg_rel_err = epoch_rel_err / num_batches 
+            avg_rel_err = np.sqrt(epoch_sse) / (np.sqrt(epoch_norm_sq) + 1e-8)
             history['loss_train'].append(avg_loss)
             
             self.exp_logger.log_metric("Loss/train", avg_loss, epoch)

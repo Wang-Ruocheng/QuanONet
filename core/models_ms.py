@@ -95,7 +95,7 @@ class HEAQNNMS(nn.Cell):
     def __init__(self, num_qubits, input_size, net_size,
                  ham, scale_coeff=1, if_trainable_freq=False):
         super(HEAQNNMS, self).__init__()
-        (self.depth, self.linear_depth) = net_size
+        self.depth, self.linear_depth = net_size[0], net_size[1]
 
         self.if_trainable_freq = if_trainable_freq
         self.input_size = input_size
@@ -132,7 +132,7 @@ class FNNMS(nn.Cell):
     def __init__(self, input_size, output_size, net_size,
                  activation=nn.Tanh()):
         super(FNNMS, self).__init__()
-        (self.hidden_layer_depth, self.hidden_layer_width) = net_size
+        self.hidden_layer_depth, self.hidden_layer_width = net_size[0], net_size[1]
 
         self.FNN = FNNLayer(
             input_size, output_size,
@@ -155,11 +155,11 @@ class DeepONetMS(nn.Cell):
 
         self.branch_net = FNNLayer(
             branch_input_size, self.branch_width,
-            self.branch_width, self.branch_depth + 1, activation
+            self.branch_width, self.branch_depth - 2, activation
         )
         self.trunk_net = FNNLayer(
             trunk_input_size, self.trunk_width,
-            self.trunk_width, self.trunk_depth + 1, activation
+            self.trunk_width, self.trunk_depth - 2, activation
         )
 
         self.sum_layer = SumLayer()

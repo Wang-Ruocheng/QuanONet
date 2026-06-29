@@ -37,7 +37,7 @@ import numpy as np
 _NET_RE   = re.compile(r'Net(\d+)-(\d+)-(\d+)-(\d+)')
 _Q_RE     = re.compile(r'_Q(\d+)')
 _S_RE     = re.compile(r'_S([\d.]+)')
-_TF_RE    = re.compile(r'_(TF|NTF)_')
+_TF_RE    = re.compile(r'_(TF|FF|NTF)_')
 _MODEL_RE = re.compile(r'_(QuanONet|HEAQNN|DeepONet|FNN|FNO)_')
 _QB_RE    = re.compile(r'_(torchquantum|qiskit|pennylane)_')
 
