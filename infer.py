@@ -194,7 +194,18 @@ def load_model(ckpt_path: str, branch_in: int, trunk_in: int = 0, **overrides):
         model = _build_pt_model(cfg, branch_in, trunk_in)
         if ckpt_path.endswith('.npz'):
             d = np.load(ckpt_path)
-            sd = {k: torch.tensor(d[k]) for k in d.files}
+            # MindSpore-origin .npz uses MindSpore key names; detect by presence
+            # of 'QuanONet.weight' and convert via ms_npz_to_pt_state_dict.
+            if 'QuanONet.weight' in d.files:
+                from utils.weight_transfer import ms_npz_to_pt_state_dict
+                sd = ms_npz_to_pt_state_dict(
+                    ckpt_path,
+                    net_size=tuple(cfg['net_size']),
+                    num_qubits=int(cfg['num_qubits']),
+                    if_trainable_freq=bool(cfg['if_trainable_freq']),
+                )
+            else:
+                sd = {k: torch.tensor(d[k]) for k in d.files}
         else:
             sd = torch.load(ckpt_path, map_location='cpu')
         model.load_state_dict(sd)
