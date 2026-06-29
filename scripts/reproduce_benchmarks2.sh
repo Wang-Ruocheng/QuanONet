@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script Name: reproduce_asymmetric.sh
+# Script Name: reproduce_benchmarks2.sh
 # Description: Reproduce aligned-parameter comparison (Tables 5 & 6).
 #              TF-QuanONet at matched parameter count vs DeepONet & FNO.
 #              Fixed Scale(0.001) & TF(true) for QuanONet.
-# Usage:       ./scripts/reproduce_asymmetric.sh [GPU_ID]
+# Usage:       ./scripts/reproduce_benchmarks2.sh [GPU_ID]
 # ==============================================================================
 
 # 1. Configuration

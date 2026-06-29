@@ -18,8 +18,8 @@ QuanONet is a pure quantum neural operator framework designed for the Noisy Inte
 ├── requirements.txt       # Project dependencies
 │
 ├── scripts/               # Automated reproduction bash scripts
-│   ├── reproduce_benchmarks.sh
-│   ├── reproduce_asymmetric.sh
+│   ├── reproduce_benchmarks1.sh
+│   ├── reproduce_benchmarks2.sh
 │   ├── reproduce_capacity.sh
 │   ├── reproduce_scaling.sh
 │   ├── reproduce_circuit.sh
@@ -281,13 +281,13 @@ For quick qualitative evaluation, we provide a Jupyter Notebook `visualization.i
 The `scripts/` directory contains automated bash scripts to reproduce the primary experimental results reported in the manuscript.
 
 ```bash
-./scripts/reproduce_benchmarks.sh
+./scripts/reproduce_benchmarks1.sh
 ```
 
 | **Script**              | **Description**                                                                                                                                        | **Relevant Section** |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
-| `reproduce_benchmarks.sh`   | **General Benchmarks**: Evaluates TF-QuanONet against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across ODE and PDE operator tasks. | Table 4 (Sec 5.2.2)        |
-| `reproduce_asymmetric.sh`   | **Aligned Parameter Comparison**: Compares TF-QuanONet (net_size 160-2-90-2) against DeepONet and FNO at matched parameter counts.                    | Table 5 & 6 (Sec 5.2.3)    |
+| `reproduce_benchmarks1.sh`  | **General Benchmarks**: Evaluates TF-QuanONet against Quantum (HEA, TF-HEA) and Classical (DeepONet, FNN) baselines across ODE and PDE operator tasks. | Table 4 (Sec 5.2.2)        |
+| `reproduce_benchmarks2.sh`  | **Aligned Parameter Comparison**: Compares TF-QuanONet (net_size 160-2-90-2) against DeepONet and FNO at matched parameter counts.                    | Table 5 & 6 (Sec 5.2.3)    |
 | `reproduce_capacity.sh`     | **Implicit Frame Capacity**: Grid search over network width and depth to verify the $\mathcal{O}(p^2)$ implicit frame and analyze error saturation.  | Table 7 (Sec 5.3.1)        |
 | `reproduce_scaling.sh`      | **High-Dimensional Scaling Limit**: Sweeps the latent dimension $p$ from 4 to 256. Demonstrates optimization stability in high dimensions.           | Fig 9 (Sec 5.3.1)          |
 | `reproduce_circuit.sh`      | **Circuit Architecture Ablation**: Investigates the trade-off between circuit width (qubits) and depth regarding expressivity vs. trainability.        | Table 8 (Sec 5.3.2)        |
