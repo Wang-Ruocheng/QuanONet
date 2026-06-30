@@ -339,7 +339,7 @@ def main():
         print(f"[Auto] Generating test data for {operator} ...")
         dm = DataManager(data_cfg)
         data   = dm.get_data()
-        branch = data.get('test_branch_input') or data['test_input']
+        branch = data['test_branch_input'] if 'test_branch_input' in data else data['test_input']
         trunk  = data.get('test_trunk_input')
         y_true = data.get('test_output')
 
