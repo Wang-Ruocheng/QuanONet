@@ -111,12 +111,12 @@ def main():
             continue
         rels_pct = [r[2] * 100 for r in runs]
         mean = statistics.mean(rels_pct)
-        std  = statistics.stdev(rels_pct) if len(rels_pct) > 1 else 0.0
+        std  = statistics.pstdev(rels_pct) if len(rels_pct) > 1 else 0.0
         op_means.append(mean)
         print(f"  {op:15s}  {mean:.3f}% ± {std:.3f}%  (n={len(rels_pct)})")
     if op_means:
         overall_mean = statistics.mean(op_means)
-        overall_std  = statistics.stdev(op_means) if len(op_means) > 1 else 0.0
+        overall_std  = statistics.pstdev(op_means) if len(op_means) > 1 else 0.0
         print(f"  {'Overall (op avg)':15s}  {overall_mean:.3f}% ± {overall_std:.3f}%")
     print(f"{'='*60}\n")
 
