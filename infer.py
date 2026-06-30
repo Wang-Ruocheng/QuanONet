@@ -93,7 +93,12 @@ def _detect_backend(ckpt_path: str, cfg: dict) -> str:
     ext = os.path.splitext(ckpt_path)[1].lower()
     if ext == '.ckpt':
         return 'mindspore'
-    # .pt / .npz → PyTorch path; quantum_backend selects TQ or Qiskit
+    if ext == '.npz':
+        # MindSpore-exported .npz files contain MS-style weight keys
+        d = np.load(ckpt_path, allow_pickle=False)
+        if 'QuanONet.weight' in d.files or 'HEAQNN.weight' in d.files:
+            return 'mindspore'
+    # .pt or PT-native .npz → PyTorch path
     return cfg.get('quantum_backend', 'torchquantum')
 
 
@@ -187,9 +192,16 @@ def load_model(ckpt_path: str, branch_in: int, trunk_in: int = 0, **overrides):
     cfg['_backend'] = backend
 
     if backend == 'mindspore':
-        from mindspore.train.serialization import load_checkpoint, load_param_into_net
+        import mindspore as ms
+        from mindspore.train.serialization import load_param_into_net
         model = _build_ms_model(cfg, branch_in, trunk_in)
-        load_param_into_net(model, load_checkpoint(ckpt_path))
+        if ckpt_path.endswith('.ckpt'):
+            from mindspore.train.serialization import load_checkpoint
+            load_param_into_net(model, load_checkpoint(ckpt_path))
+        else:
+            d = np.load(ckpt_path)
+            param_dict = {k: ms.Parameter(ms.Tensor(d[k].astype(np.float32))) for k in d.files}
+            load_param_into_net(model, param_dict)
         model.set_train(False)
     else:
         import torch
