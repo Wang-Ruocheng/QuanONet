@@ -80,8 +80,8 @@ for OP in "${OPERATORS[@]}"; do
             
         elif [[ "$MODEL" == "FNO" ]]; then
             # FNO Setup
-            # Size=15 14 3 32 (modes, width, depth, fc_hidden)
-            NET_SIZE="15 14 3 32"
+            # Size=19 9 3 43 (modes, width, depth, fc_hidden) → 10005 real params
+            NET_SIZE="19 9 3 43"
             MODEL_DESC="FNO"
             CURRENT_BATCH_SIZE=1
         fi

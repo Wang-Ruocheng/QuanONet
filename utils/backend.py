@@ -1,8 +1,6 @@
 """
 Backend Manager: Handles dynamic imports and backend detection.
 """
-import sys
-import importlib.util
 
 class BackendManager:
     def __init__(self):
@@ -10,23 +8,43 @@ class BackendManager:
 
     @property
     def is_mindspore_available(self):
-        return importlib.util.find_spec("mindspore") is not None
+        try:
+            import mindspore  # noqa: F401
+            return True
+        except ImportError:
+            return False
 
     @property
     def is_torch_available(self):
-        return importlib.util.find_spec("torch") is not None
+        try:
+            import torch  # noqa: F401
+            return True
+        except ImportError:
+            return False
 
     @property
     def is_torchquantum_available(self):
-        return importlib.util.find_spec("torchquantum") is not None
+        try:
+            import torchquantum  # noqa: F401
+            return True
+        except ImportError:
+            return False
 
     @property
     def is_qiskit_ml_available(self):
-        return importlib.util.find_spec("qiskit_machine_learning") is not None
+        try:
+            import qiskit_machine_learning  # noqa: F401
+            return True
+        except ImportError:
+            return False
 
     @property
     def is_pennylane_available(self):
-        return importlib.util.find_spec("pennylane") is not None
+        try:
+            import pennylane  # noqa: F401
+            return True
+        except ImportError:
+            return False
 
     def check_compatibility(self, model_type, quantum_backend='mindquantum', classical_backend='pytorch'):
         """

@@ -10,7 +10,11 @@ import logging
 
 def count_parameters(model):
     """
-    Count the number of trainable parameters in a model.
+    Count the number of trainable real-valued parameters in a model.
+
+    Complex parameters (SpectralConv weights) are counted as 2 real numbers each:
+    - PyTorch: cfloat tensors → numel * 2
+    - MindSpore: SpectralConv1dMS stores (in, out, modes, 2) float32 → numel as-is
     """
     try:
         # 1. Try MindSpore
@@ -18,8 +22,8 @@ def count_parameters(model):
         if isinstance(model, nn.Cell):
             total_params = 0
             for param in model.trainable_params():
-                total_params += np.prod(param.shape)
-            return int(total_params)
+                total_params += int(np.prod(param.shape))
+            return total_params
     except Exception:
         pass
 
@@ -27,11 +31,14 @@ def count_parameters(model):
         # 2. Try PyTorch
         import torch
         if isinstance(model, torch.nn.Module):
-            return sum(p.numel() for p in model.parameters() if p.requires_grad)
+            total = 0
+            for p in model.parameters():
+                if p.requires_grad:
+                    total += p.numel() * 2 if p.is_complex() else p.numel()
+            return total
     except Exception:
         pass
 
-    # 3. Fallback: Try to get length if possible
     try:
         return len(model)
     except Exception:
