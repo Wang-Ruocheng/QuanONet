@@ -243,6 +243,12 @@ class SpectralConv1dMS(nn.Cell):
 
         w = ops.Complex()(self.weight[..., 0], self.weight[..., 1])
         freq_size = x_ft.shape[-1]
+        if self.modes1 > freq_size:
+            raise ValueError(
+                f"SpectralConv1dMS: modes1={self.modes1} exceeds Nyquist "
+                f"freq_size={freq_size} for signal length {signal_length}. "
+                f"Set modes < signal_length // 2 + 1."
+            )
         batch = x_ft.shape[0]
 
         modes_slice = x_ft[:, :, :self.modes1]

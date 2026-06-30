@@ -236,6 +236,13 @@ class SpectralConv1dPT(nn.Module):
 
     def forward(self, x):
         batchsize = x.shape[0]
+        freq_size = x.size(-1) // 2 + 1
+        if self.modes1 > freq_size:
+            raise ValueError(
+                f"SpectralConv1dPT: modes1={self.modes1} exceeds Nyquist "
+                f"freq_size={freq_size} for signal length {x.size(-1)}. "
+                f"Set modes < signal_length // 2 + 1."
+            )
         x_ft = torch.fft.rfft(x)
 
         out_ft = torch.zeros(batchsize, self.out_channels, x.size(-1) // 2 + 1,
