@@ -150,7 +150,7 @@ class DDESolver:
 
             
             # Branch Net Construction
-            if last_layer_size and len(net_config) == 5:
+            if last_layer_size is not None:
                 layer_size_branch = [m] + [b_width] * (b_depth - 1) + [last_layer_size]
                 layer_size_trunk  = [dim_x] + [t_width] * (t_depth - 1) + [last_layer_size]
             else:

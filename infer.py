@@ -35,6 +35,7 @@ import numpy as np
 # ── Config parsing from checkpoint path ──────────────────────────────────────
 
 _NET_RE   = re.compile(r'Net(\d+)-(\d+)-(\d+)-(\d+)')
+_NET2_RE  = re.compile(r'Net(\d+)-(\d+)(?:[^-]|$)')
 _Q_RE     = re.compile(r'_Q(\d+)')
 _S_RE     = re.compile(r'_S([\d.]+)')
 _TF_RE    = re.compile(r'_(TF|FF|NTF)_')
@@ -66,6 +67,10 @@ def _parse_path(ckpt_path: str) -> dict:
     m = _NET_RE.search(name)
     if m:
         cfg['net_size'] = [int(m.group(i)) for i in range(1, 5)]
+    else:
+        m = _NET2_RE.search(name)
+        if m:
+            cfg['net_size'] = [int(m.group(1)), int(m.group(2))]
     m = _Q_RE.search(name)
     if m:
         cfg['num_qubits'] = int(m.group(1))
@@ -94,11 +99,10 @@ def _detect_backend(ckpt_path: str, cfg: dict) -> str:
     if ext == '.ckpt':
         return 'mindspore'
     if ext == '.npz':
-        # MindSpore-exported .npz files contain MS-style weight keys
-        d = np.load(ckpt_path, allow_pickle=False)
-        if 'QuanONet.weight' in d.files or 'HEAQNN.weight' in d.files:
-            return 'mindspore'
-    # .pt or PT-native .npz → PyTorch path
+        # All .npz checkpoints in this codebase are MindSpore-generated (np.savez with param.name keys).
+        # PyTorch saves to .pt / .pth via torch.save(), never .npz.
+        return 'mindspore'
+    # .pt → PyTorch path
     return cfg.get('quantum_backend', 'torchquantum')
 
 
@@ -132,7 +136,7 @@ def _build_ms_model(cfg: dict, branch_in: int, trunk_in: int):
     if mt == 'DeepONet':
         return DeepONetMS(branch_in, trunk_in, net_size)
     if mt == 'FNN':
-        return FNNMS(branch_in, 1, net_size)
+        return FNNMS(branch_in + trunk_in, 1, net_size)
     if mt == 'FNO':
         from core.models_ms import FNOMS
         ns = list(cfg['net_size'])
@@ -245,31 +249,43 @@ def predict(model, branch_input: np.ndarray, trunk_input: np.ndarray = None,
     """
     backend    = (cfg or {}).get('_backend', 'mindspore')
     model_type = (cfg or {}).get('model_type', 'QuanONet')
-    has_trunk  = trunk_input is not None and model_type in ('QuanONet', 'DeepONet')
+    # QuanONet/DeepONet: forward((branch, trunk)); FNN/FNO: forward(concat(branch, trunk))
+    # HEAQNN: forward(branch) only
+    has_trunk_tuple = trunk_input is not None and model_type in ('QuanONet', 'DeepONet')
+    has_trunk_concat = trunk_input is not None and model_type in ('FNN', 'FNO')
     n          = branch_input.shape[0]
     preds      = []
 
     if backend == 'mindspore':
         import mindspore as ms
         for s in range(0, n, batch_size):
-            b = ms.Tensor(branch_input[s:s+batch_size].astype(np.float32))
-            if has_trunk:
-                t   = ms.Tensor(trunk_input[s:s+batch_size].astype(np.float32))
+            b_np = branch_input[s:s+batch_size].astype(np.float32)
+            if has_trunk_tuple:
+                b = ms.Tensor(b_np)
+                t = ms.Tensor(trunk_input[s:s+batch_size].astype(np.float32))
                 out = model((b, t))
+            elif has_trunk_concat:
+                t_np = trunk_input[s:s+batch_size].astype(np.float32)
+                out = model(ms.Tensor(np.concatenate([b_np, t_np], axis=1)))
             else:
-                out = model(b)
+                out = model(ms.Tensor(b_np))
             preds.append(out.asnumpy())
     else:
         import torch
         device = next(model.parameters()).device
         with torch.no_grad():
             for s in range(0, n, batch_size):
-                b = torch.tensor(branch_input[s:s+batch_size].astype(np.float32), device=device)
-                if has_trunk:
-                    t   = torch.tensor(trunk_input[s:s+batch_size].astype(np.float32), device=device)
+                b_np = branch_input[s:s+batch_size].astype(np.float32)
+                if has_trunk_tuple:
+                    b = torch.tensor(b_np, device=device)
+                    t = torch.tensor(trunk_input[s:s+batch_size].astype(np.float32), device=device)
                     out = model(b, t)
+                elif has_trunk_concat:
+                    t_np = trunk_input[s:s+batch_size].astype(np.float32)
+                    inp = torch.tensor(np.concatenate([b_np, t_np], axis=1), device=device)
+                    out = model(inp)
                 else:
-                    out = model(b)
+                    out = model(torch.tensor(b_np, device=device))
                 preds.append(out.cpu().numpy())
 
     return np.concatenate(preds, axis=0)
@@ -339,12 +355,15 @@ def main():
         if not operator or not m_op:
             raise SystemExit("Provide --data <file.npz> or --branch <file.npy>.")
         model_type_for_data = m_op.group(1)
-        # Infer num_points_0: capacity = num_qubits × branch_depth; cap at num_points
-        cfg_for_dims = _resolve_config(args.ckpt, {k: getattr(args, k, None)
-                                                    for k in ('num_qubits', 'net_size')})
-        branch_depth = cfg_for_dims['net_size'][0]
-        num_qubits   = cfg_for_dims['num_qubits']
-        inferred_p0  = min(num_points, num_qubits * branch_depth)
+        # Infer num_points_0: only quantum models have encoder capacity = num_qubits × branch_depth;
+        # classical models (FNN/DeepONet/FNO) have no such constraint.
+        quantum_models = ('QuanONet', 'HEAQNN')
+        if model_type_for_data in quantum_models:
+            branch_depth = cfg_for_dims['net_size'][0]
+            num_qubits   = cfg_for_dims['num_qubits']
+            inferred_p0  = min(num_points, num_qubits * branch_depth)
+        else:
+            inferred_p0  = num_points
         num_points_0 = args.num_points_0 if args.num_points_0 is not None else inferred_p0
         from data_utils.data_manager import DataManager
         data_cfg = {
@@ -364,7 +383,8 @@ def main():
         trunk  = data.get('test_trunk_input')
         y_true = data.get('test_output')
 
-    branch_in = branch.shape[1]
+    # For FNO, branch is 3D (N, n_pts, in_ch); use last dim as in_channels
+    branch_in = branch.shape[-1] if branch.ndim == 3 else branch.shape[1]
     trunk_in  = trunk.shape[1] if trunk is not None else 0
 
     # ── Load model ────────────────────────────────────────────────────────────

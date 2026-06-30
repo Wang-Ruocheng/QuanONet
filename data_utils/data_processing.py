@@ -4,19 +4,18 @@ This module provides MindSpore-free versions of data processing functions.
 """
 
 import numpy as np
+import inspect
 from scipy import interpolate
 
 def ode_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
     """
     Encode ODE operator data for DeepONet training.
     """
-    # Generate data - call with appropriate parameters
-    try:
-        # Try calling with operator_type first (for dde_data_generation functions)
-        u0_train, u_train, u0_test, u_test, x = generate_data(num_train, num_test, num_points, num_points_0)
-    except TypeError:
-        # Fall back to original signature with num_cal
+    sig = inspect.signature(generate_data)
+    if 'num_cal' in sig.parameters:
         u0_train, u_train, u0_test, u_test, x = generate_data(num_train, num_test, num_points, num_points_0, num_cal=num_cal)
+    else:
+        u0_train, u_train, u0_test, u_test, x = generate_data(num_train, num_test, num_points, num_points_0)
 
     # For ODEs, trunk input is just spatial coordinates
     x_trunk = x.reshape(-1, 1)  # (num_points, 1)
@@ -48,10 +47,11 @@ def ode_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
     Specialized data encoding for FNO.
     Vectorized version: strictly assumes full-grid evaluation (no subsampling).
     """
-    try:
-        train_v, train_u, test_v, test_u, x = generate_data(num_train, num_test, num_points, num_points)
-    except TypeError:
+    sig = inspect.signature(generate_data)
+    if 'num_cal' in sig.parameters:
         train_v, train_u, test_v, test_u, _ = generate_data(num_train, num_test, num_points, num_points, num_cal=num_cal)
+    else:
+        train_v, train_u, test_v, test_u, _ = generate_data(num_train, num_test, num_points, num_points)
     
     current_dim = train_v.shape[1]
     if current_dim != num_points:
@@ -85,13 +85,11 @@ def pde_encode(generate_data, num_train, num_test, num_points, num_points_0, tra
     Encode PDE operator data for DeepONet training.
     Structured identically to ode_encode.
     """
-    # Generate data - call with appropriate parameters
-    try:
-        # Try calling with operator_type first
-        u0_train, u_train, u0_test, u_test, x, t = generate_data(num_train, num_test, num_points, num_points_0)
-    except TypeError:
-        # Fall back to original signature with num_cal
+    sig = inspect.signature(generate_data)
+    if 'num_cal' in sig.parameters:
         u0_train, u_train, u0_test, u_test, x, t = generate_data(num_train, num_test, num_points, num_points_0, num_cal=num_cal)
+    else:
+        u0_train, u_train, u0_test, u_test, x, t = generate_data(num_train, num_test, num_points, num_points_0)
 
     # For PDEs, trunk input is spatial-temporal coordinates (X, T)
     x_repeat = np.repeat(x, len(t)).reshape(-1, 1)
@@ -130,12 +128,11 @@ def pde_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
     Specialized data encoding for FNO on 2D PDEs.
     Flattens the 2D spatial-temporal grid to match FNO1d expected structure.
     """
-    try:
-        # Try calling with operator_type first
-        train_v, train_u, test_v, test_u, x, t = generate_data(num_train, num_test, num_points, num_points)
-    except TypeError:
-        # Fall back to original signature with num_cal
+    sig = inspect.signature(generate_data)
+    if 'num_cal' in sig.parameters:
         train_v, train_u, test_v, test_u, x, t = generate_data(num_train, num_test, num_points, num_points, num_cal=num_cal)
+    else:
+        train_v, train_u, test_v, test_u, x, t = generate_data(num_train, num_test, num_points, num_points)
 
     batch_train = train_v.shape[0]
     batch_test = test_v.shape[0]

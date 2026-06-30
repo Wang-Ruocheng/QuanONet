@@ -91,7 +91,7 @@ class MSSolver:
     def _create_model(self):
         self.logger.info("Creating Quantum Model...")
         ham_bound = self.config.get('ham_bound')
-        if not ham_bound: ham_bound = [-5, 5] 
+        if ham_bound is None: ham_bound = [-5, 5]
         
         if self.config.get('ham_diag') is None:
             ham = generate_simple_hamiltonian(

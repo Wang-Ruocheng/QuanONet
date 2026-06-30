@@ -201,7 +201,7 @@ def generate_ode_operator_data(operator_type, num_train, num_test,
 
     # Randomly split into training and testing sets
     train_index = np.random.choice(num_train + num_test, num_train, replace=False)
-    test_index = np.array([i for i in range(num_train + num_test) if i not in train_index])
+    test_index = np.setdiff1d(np.arange(num_train + num_test), train_index)
 
     return np.array(u0s)[train_index].astype(np.float32), np.array(us)[train_index].astype(np.float32), np.array(u0s)[test_index].astype(np.float32), np.array(us)[test_index].astype(np.float32), x_target.astype(np.float32)
 
@@ -470,7 +470,7 @@ def generate_pde_operator_data(operator_type, num_train, num_test,
 
     # Randomly split into training and testing sets (Same logic as ODE)
     train_index = np.random.choice(num_train + num_test, num_train, replace=False)
-    test_index = np.array([i for i in range(num_train + num_test) if i not in train_index])
+    test_index = np.setdiff1d(np.arange(num_train + num_test), train_index)
 
     return (np.array(u0s)[train_index].astype(np.float32), 
             np.array(us)[train_index].astype(np.float32), 

@@ -1,4 +1,4 @@
-# QuanONet: Quantum Neural Operators with Adaptive Frequency Strategy
+# QuanONet: Quantum Neural Operators with Implicit Quadratic Frame and Expressivity Advantages
 
 **Official Implementation**
 
