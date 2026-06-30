@@ -153,6 +153,7 @@ class DeepONetMS(nn.Cell):
         (self.branch_depth, self.branch_width,
          self.trunk_depth, self.trunk_width) = net_size
 
+        self.activation = activation  # applied to trunk output (paper convention)
         self.branch_net = FNNLayer(
             branch_input_size, self.branch_width,
             self.branch_width, self.branch_depth - 2, activation
@@ -171,6 +172,7 @@ class DeepONetMS(nn.Cell):
 
         branch_output = self.branch_net(branch_input)
         trunk_output = self.trunk_net(trunk_input)
+        trunk_output = self.activation(trunk_output)  # paper convention: basis functions σ(trunk)
 
         output = branch_output * trunk_output
         output = self.sum_layer(output).expand_dims(1) + self.bias
@@ -227,22 +229,19 @@ class SpectralConv1dMS(nn.Cell):
         self.modes1 = modes1
 
         scale = 1.0 / (in_channels * out_channels)
-        w_real = ms.Tensor(
-            np.random.uniform(-scale, scale,
-                              (in_channels, out_channels, modes1)).astype(np.float32)
-        )
-        w_imag = ms.Tensor(
-            np.random.uniform(-scale, scale,
-                              (in_channels, out_channels, modes1)).astype(np.float32)
-        )
-        self.weight_real = Parameter(w_real, name='weight_real')
-        self.weight_imag = Parameter(w_imag, name='weight_imag')
+        # Store real and imaginary parts as last dim to match PyTorch complex numel count:
+        # PT: cfloat param shape (in, out, modes) → numel = in*out*modes (complex count)
+        # MS: float32 param shape (in, out, modes, 2) → numel = in*out*modes*2, so we
+        #     halve in count_parameters to align. Functionally identical to split params.
+        w_init = np.random.uniform(-scale, scale,
+                                   (in_channels, out_channels, modes1, 2)).astype(np.float32)
+        self.weight = Parameter(ms.Tensor(w_init), name='weight')
 
     def construct(self, x):
         signal_length = x.shape[-1]
         x_ft = _rfft(x)
 
-        w = ops.Complex()(self.weight_real, self.weight_imag)
+        w = ops.Complex()(self.weight[..., 0], self.weight[..., 1])
         freq_size = x_ft.shape[-1]
         batch = x_ft.shape[0]
 
@@ -279,7 +278,7 @@ class FNOMS(nn.Cell):
             [SpectralConv1dMS(width, width, modes) for _ in range(layers)]
         )
         self.ws = nn.CellList(
-            [nn.Conv1d(width, width, kernel_size=1, has_bias=True)
+            [nn.Conv1d(width, width, kernel_size=1, has_bias=True, weight_init='HeUniform')
              for _ in range(layers)]
         )
         self.fc1 = nn.Dense(width, fc_hidden)

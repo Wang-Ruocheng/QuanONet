@@ -9,6 +9,7 @@ import mindspore.nn as nn
 import mindspore.ops as ops
 import mindspore.numpy as mnp
 from mindspore import Parameter
+from mindspore.common.initializer import XavierNormal
 
 class LinearLayer(nn.Cell):
     """Linear transformation layer with bias."""
@@ -62,9 +63,9 @@ class FNNLayer(nn.Cell):
         self.depth = depth
         self.activation = activation
         
-        self.fc0 = nn.Dense(input_size, width)
-        self.hidden_layers = nn.CellList([nn.Dense(width, width) for _ in range(depth)])
-        self.fc_out = nn.Dense(width, output_size)
+        self.fc0 = nn.Dense(input_size, width, weight_init=XavierNormal())
+        self.hidden_layers = nn.CellList([nn.Dense(width, width, weight_init=XavierNormal()) for _ in range(depth)])
+        self.fc_out = nn.Dense(width, output_size, weight_init=XavierNormal())
 
     def construct(self, x):
         x = self.fc0(x)

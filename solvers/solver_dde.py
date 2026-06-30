@@ -150,7 +150,7 @@ class DDESolver:
 
             
             # Branch Net Construction
-            if last_layer_size is not None:
+            if last_layer_size is not None and (len(net_config) == 5 or b_width != t_width):
                 layer_size_branch = [m] + [b_width] * (b_depth - 1) + [last_layer_size]
                 layer_size_trunk  = [dim_x] + [t_width] * (t_depth - 1) + [last_layer_size]
             else:
@@ -187,8 +187,17 @@ class DDESolver:
             
             input_dim = X_train.shape[1]
             output_dim = 1
-            hidden_layers = self.config.get('net_size', [20, 20, 20])
-            
+            net_size_cfg = self.config.get('net_size', [])
+
+            # [depth, width] → expand to match FNNLayer(in, out, width, depth) which
+            # has depth+2 Dense layers: fc0 + depth×hidden + fc_out.
+            # DDE layer_sizes must be [in, width*(depth+1), out].
+            if len(net_size_cfg) == 2:
+                depth, width = int(net_size_cfg[0]), int(net_size_cfg[1])
+                hidden_layers = [width] * (depth + 1)
+            else:
+                hidden_layers = list(net_size_cfg) if net_size_cfg else [20, 20, 20]
+
             layer_sizes = [input_dim] + hidden_layers + [output_dim]
             self.logger.info(f"FNN Structure: {layer_sizes}")
             net = dde.nn.FNN(layer_sizes, "tanh", "Glorot normal")
