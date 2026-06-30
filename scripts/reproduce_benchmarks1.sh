@@ -149,6 +149,7 @@ for OP in "${OPERATORS[@]}"; do
                     --num_points ${PTS} --num_points_0 ${PTS_0} \
                     --seed "${SEED}" \
                     --prefix "${PREFIX}" \
+                    --classical_backend pytorch \
                     ${GPU_FLAG} \
                     > /dev/null 2>&1 || exit 1
             done

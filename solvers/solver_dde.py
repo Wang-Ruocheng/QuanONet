@@ -220,20 +220,14 @@ class DDESolver:
             
         lr = self.config.get('learning_rate', 0.0001)
         epochs = self.config.get('num_epochs', 1000)
-        total_samples = len(self.data_dict['train_output'])
-        if self.model_type == 'FNO':
-            total_samples = self.data_dict['train_output'].shape[0]
-        else:
-            total_samples = self.config['num_train'] * self.config.get('train_sample_num', 10)
 
-        current_bs = self.config.get('batch_size', 100)
-        if total_samples < current_bs:
-            self.logger.warning(f"⚠️ Batch size {current_bs} > total samples {total_samples}. Reducing to {total_samples}.")
-            self.config['batch_size'] = total_samples
-        
-        batch_size = self.config.get('batch_size', 100)
-        
         num_samples = self.data_dict['train_output'].shape[0]
+        current_bs = self.config.get('batch_size', 100)
+        if num_samples < current_bs:
+            self.logger.warning(f"⚠️ Batch size {current_bs} > total samples {num_samples}. Reducing to {num_samples}.")
+            self.config['batch_size'] = num_samples
+
+        batch_size = self.config.get('batch_size', 100)
         steps_per_epoch = max(1, int(np.ceil(num_samples / batch_size)))
         total_iterations = epochs * steps_per_epoch
         
