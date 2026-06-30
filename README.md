@@ -4,7 +4,7 @@
 
 ## Introduction
 
-QuanONet is a pure quantum neural operator framework designed for the Noisy Intermediate-Scale Quantum (NISQ) era to solve partial differential equations (PDEs).
+QuanONet is a pure quantum neural operator framework designed for the Noisy Intermediate-Scale Quantum (NISQ) era to solve differential equations (ODEs and PDEs).
 
 ## Repository Structure
 
@@ -236,7 +236,7 @@ python main.py \
 
 Expected run time: ~5 minutes on a standard desktop CPU; ~2 minutes with GPU.
 
-**8. Cross-backend consistency check**
+**7. Cross-backend consistency check**
 
 Verifies that all 5 backends (mindquantum, torchquantum, qiskit, pennylane, mindspore-classical) produce identical outputs for the same weights across all model types (QuanONet, HEAQNN, FNN, DeepONet, FNO):
 
@@ -308,7 +308,7 @@ The `main.py` script accepts the following primary configurations:
 | `--train_sample_num`           | Points sampled per function for training.                                                             | `10`                         |
 | `--test_sample_num`            | Points sampled per function for testing.                                                              | `100`                        |
 | `--num_points`                 | Output resolution (Trunk/Target grid size).                                                           | `100`                        |
-| `--num_points_0`               | Input resolution (Branch/Source function size).                                                       | `100` (PDE) / `1000` (ODE) |
+| `--num_points_0`               | Input resolution (Branch/Source function size).                                                       | `100`                      |
 | `--num_cal`                    | High-Fidelity resolution for Ground Truth data generation.                                            | `1000` (ODE) / `100` (PDE) |
 | `--num_epochs` | Model training rounds. | `1000` |
 | `--learning_rate` | Model training learning rate. | `0.0001` |
