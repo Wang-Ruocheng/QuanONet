@@ -233,7 +233,7 @@ class SpectralConv1dMS(nn.Cell):
         # PT: cfloat param shape (in, out, modes) → numel = in*out*modes (complex count)
         # MS: float32 param shape (in, out, modes, 2) → numel = in*out*modes*2, so we
         #     halve in count_parameters to align. Functionally identical to split params.
-        w_init = np.random.uniform(-scale, scale,
+        w_init = np.random.uniform(0, scale,
                                    (in_channels, out_channels, modes1, 2)).astype(np.float32)
         self.weight = Parameter(ms.Tensor(w_init), name='weight')
 

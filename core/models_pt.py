@@ -226,8 +226,8 @@ class SpectralConv1dPT(nn.Module):
 
         self.scale = 1 / (in_channels * out_channels)
         self.weights1 = nn.Parameter(
-            self.scale * (torch.rand(in_channels, out_channels, self.modes1,
-                                     dtype=torch.cfloat) - 0.5)
+            self.scale * torch.rand(in_channels, out_channels, self.modes1,
+                                    dtype=torch.cfloat)
         )
 
     def compl_mul1d(self, input, weights):
