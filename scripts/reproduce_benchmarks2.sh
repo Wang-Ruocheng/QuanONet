@@ -11,7 +11,7 @@
 # 1. Configuration
 # ----------------
 GPU_ID=$1
-PREFIX="Table5_Reproduction"
+PREFIX="benchmarks2_reproduction"
 
 # Hyperparameters
 NUM_TRAIN=100        # Reduced training functions

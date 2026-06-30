@@ -17,7 +17,7 @@ NUM_TRAIN=1000
 NUM_TEST=1000
 BATCH_SIZE=100
 LR=0.0001
-PREFIX="Table4_Reproduction"
+PREFIX="benchmarks1_reproduction"
 SEEDS=(0 1 2 3 4)
 
 # Iteration Lists

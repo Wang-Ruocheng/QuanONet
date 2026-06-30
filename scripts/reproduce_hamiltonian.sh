@@ -9,7 +9,7 @@
 # ==============================================================================
 
 GPU_ID=$1
-PREFIX="Sec54_Reproduction"
+PREFIX="hamiltonian_reproduction"
 
 # Common Hyperparameters
 OPERATOR="Antideriv"

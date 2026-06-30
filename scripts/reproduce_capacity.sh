@@ -11,7 +11,7 @@
 # 1. Configuration
 # ----------------
 GPU_ID=$1
-PREFIX="Table7_Reproduction"
+PREFIX="capacity_reproduction"
 
 # Fixed Hyperparameters
 OPERATOR="Antideriv"

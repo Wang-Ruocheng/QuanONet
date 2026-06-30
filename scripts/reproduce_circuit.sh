@@ -11,7 +11,7 @@
 # 1. Configuration
 # ----------------
 GPU_ID=$1
-PREFIX="Table8_Reproduction"
+PREFIX="circuit_reproduction"
 
 # Common Hyperparameters
 OPERATOR="Antideriv"

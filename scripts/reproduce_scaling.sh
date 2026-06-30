@@ -11,7 +11,7 @@
 # 1. Configuration
 # ----------------
 GPU_ID=$1
-PREFIX="Fig9_Scaling_Reproduction"
+PREFIX="scaling_reproduction"
 
 # Fixed Hyperparameters
 OPERATOR="Antideriv"
