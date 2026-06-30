@@ -97,6 +97,27 @@ def main():
         print(f"  Overall ({len(all_mse)} runs, {len(by_op)} operator(s))")
         print(f"    avg MSE : {sum(all_mse)/len(all_mse):.6f}")
         print(f"    avg rel : {sum(all_rel)/len(all_rel)*100:.6f}%")
+
+    # ── Per-operator mean ± std of rel_err ───────────────────────────────────
+    import statistics
+    print(f"\n{'─'*60}")
+    print(f"  Relative Error (%) per Operator  [mean ± std, 3 d.p.]")
+    print(f"{'─'*60}")
+    op_means = []
+    for op in OPERATORS:
+        runs = by_op.get(op, [])
+        if not runs:
+            print(f"  {op:15s}  [NO DATA]")
+            continue
+        rels_pct = [r[2] * 100 for r in runs]
+        mean = statistics.mean(rels_pct)
+        std  = statistics.stdev(rels_pct) if len(rels_pct) > 1 else 0.0
+        op_means.append(mean)
+        print(f"  {op:15s}  {mean:.3f}% ± {std:.3f}%  (n={len(rels_pct)})")
+    if op_means:
+        overall_mean = statistics.mean(op_means)
+        overall_std  = statistics.stdev(op_means) if len(op_means) > 1 else 0.0
+        print(f"  {'Overall (op avg)':15s}  {overall_mean:.3f}% ± {overall_std:.3f}%")
     print(f"{'='*60}\n")
 
     # ── Excel output ──────────────────────────────────────────────────────────
