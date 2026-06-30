@@ -299,6 +299,8 @@ def _parser():
                    help='.npz data file with test_branch_input / test_trunk_input / test_output')
     p.add_argument('--branch',  default=None, help='Branch input .npy (alternative to --data)')
     p.add_argument('--trunk',   default=None, help='Trunk input .npy (optional)')
+    p.add_argument('--num_points_0', type=int, default=None,
+                   help='Branch input resolution for auto data generation (default: inferred from num_qubits × branch_depth)')
     p.add_argument('--output',  default=None, help='Save predictions to .npy or .npz')
     p.add_argument('--batch_size', type=int, default=128)
     # Model config overrides (all optional — auto-parsed from path if omitted)
@@ -337,6 +339,13 @@ def main():
         if not operator or not m_op:
             raise SystemExit("Provide --data <file.npz> or --branch <file.npy>.")
         model_type_for_data = m_op.group(1)
+        # Infer num_points_0: capacity = num_qubits × branch_depth; cap at num_points
+        cfg_for_dims = _resolve_config(args.ckpt, {k: getattr(args, k, None)
+                                                    for k in ('num_qubits', 'net_size')})
+        branch_depth = cfg_for_dims['net_size'][0]
+        num_qubits   = cfg_for_dims['num_qubits']
+        inferred_p0  = min(num_points, num_qubits * branch_depth)
+        num_points_0 = args.num_points_0 if args.num_points_0 is not None else inferred_p0
         from data_utils.data_manager import DataManager
         data_cfg = {
             'operator':         operator,
@@ -344,11 +353,11 @@ def main():
             'num_train':        num_train,
             'num_test':         1000,
             'num_points':       num_points,
-            'num_points_0':     num_points,
+            'num_points_0':     num_points_0,
             'train_sample_num': 10,
             'test_sample_num':  100,
         }
-        print(f"[Auto] Generating test data for {operator} ...")
+        print(f"[Auto] Generating test data for {operator} (num_points={num_points}, num_points_0={num_points_0}) ...")
         dm = DataManager(data_cfg)
         data   = dm.get_data()
         branch = data['test_branch_input'] if 'test_branch_input' in data else data['test_input']
