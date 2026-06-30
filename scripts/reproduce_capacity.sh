@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Script Name: reproduce_capacity.sh
-# Description: Reproduce Table 7 benchmarks (Parameter Efficiency Analysis).
+# Description: Reproduce parameter efficiency analysis benchmarks.
 #              Grid search for TF-QuanONet (Hidden dims) & DeepONet (Width/Depth).
 # Operator:    Antideriv (ODE)
 # Usage:       ./scripts/reproduce_table7.sh [GPU_ID]
@@ -44,7 +44,7 @@ else
     echo "🤖 For unspecified devices: Using smart default (Quantum->CPU, Classical->GPU)"
 fi
 
-echo "🚀 Starting Table 7 Reproduction (Architecture Search)..."
+echo "🚀 Starting Parameter Efficiency Analysis..."
 echo "📂 Output Directory: ${PREFIX}"
 
 # ==============================================================================
@@ -124,4 +124,4 @@ for DEPTH in "${DEPTH_LIST[@]}"; do
     done
 done
 
-echo "✅ Table 7 experiments completed."
+echo "✅ Parameter efficiency experiments completed."

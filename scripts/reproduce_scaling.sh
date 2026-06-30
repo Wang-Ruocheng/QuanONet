@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Script Name: reproduce_scaling.sh
-# Description: Reproduce Fig 9 / Table 13 & 14 (High-Dimensional Scaling Limit).
+# Description: Reproduce high-dimensional scaling limit experiments.
 #              Sweeps latent dimension p from 4 to 256 for both models.
 # Operator:    Antideriv (ODE)
 # Usage:       ./scripts/reproduce_fig9_scaling.sh [GPU_ID]
@@ -38,11 +38,11 @@ else
     echo "🤖 For unspecified devices: Using smart default (Quantum->CPU, Classical->GPU)"
 fi
 
-echo "🚀 Starting Figure 9 Reproduction (High-Dimensional Scaling)..."
+echo "🚀 Starting High-Dimensional Scaling Experiments..."
 echo "📂 Output Directory: ${PREFIX}"
 
 # ==============================================================================
-# 3. Experiment Loop 1: TF-QuanONet (Table 13)
+# 3. Experiment Loop 1: TF-QuanONet
 # ==============================================================================
 MODEL="QuanONet"
 IF_TF="true"
@@ -63,7 +63,7 @@ for P in "${DIM_P_LIST[@]}"; do
         256) NUM_QUBITS=8 ;;
     esac
 
-    # Determine Grid Search boundaries based on Table 13
+    # Determine Grid Search boundaries
     if [ "$P" -eq 4 ]; then
         HB_LIST=(50 100 150 200)
         HT_LIST=(10 20 30 40 50 60 100 150 200 300)
@@ -74,7 +74,7 @@ for P in "${DIM_P_LIST[@]}"; do
         HB_LIST=(100 200)
         HT_LIST=(50 100)
     else
-        # For p >= 32, the table shows a sparse/targeted search
+        # For p >= 32, sparse/targeted search
         HB_LIST=(100)
         HT_LIST=(50 100)
     fi
@@ -108,7 +108,7 @@ for P in "${DIM_P_LIST[@]}"; do
 done
 
 # ==============================================================================
-# 4. Experiment Loop 2: DeepONet (Table 14)
+# 4. Experiment Loop 2: DeepONet
 # ==============================================================================
 MODEL="DeepONet"
 DEPTH_LIST=(2 3 4 5)
@@ -120,7 +120,7 @@ echo "----------------------------------------------------------------"
 for P in "${DIM_P_LIST[@]}"; do
     OUTPUT_DIM=$P
     
-    # DeepONet Width logic from Table 14: starts at p, doubles up to 1024
+    # DeepONet Width logic: starts at p, doubles up to 1024
     WIDTH_LIST=()
     W=$P
     while [ "$W" -le 1024 ]; do
@@ -155,4 +155,4 @@ for P in "${DIM_P_LIST[@]}"; do
     done
 done
 
-echo "✅ Figure 9 (High-Dimensional Scaling) experiments completed."
+echo "✅ High-Dimensional Scaling experiments completed."

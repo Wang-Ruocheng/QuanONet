@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Script Name: reproduce_circuit.sh
-# Description: Reproduce Table 8 benchmarks (Parameter Efficiency / Scalability).
+# Description: Reproduce qubit scalability benchmarks (Parameter Efficiency / Scalability).
 #              Dynamic Grid Search for TF-QuanONet based on Qubit counts.
 # Operator:    Antideriv (ODE)
 # Usage:       ./scripts/reproduce_table8.sh [GPU_ID]
@@ -43,7 +43,7 @@ else
     echo "🤖 For unspecified devices: Using smart default (Quantum->CPU)"
 fi
 
-echo "🚀 Starting Table 8 Reproduction (Qubit Scalability Analysis)..."
+echo "🚀 Starting Qubit Scalability Analysis..."
 echo "📂 Output Directory: ${PREFIX}"
 
 # ==============================================================================
@@ -101,4 +101,4 @@ for N_Q in "${QUBIT_CASES[@]}"; do
     done
 done
 
-echo "✅ Table 8 Qubit experiments completed."
+echo "✅ Qubit scalability experiments completed."

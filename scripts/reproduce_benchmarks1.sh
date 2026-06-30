@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Script Name: reproduce_benchmarks1.sh
-# Description: Reproduce Table 4 benchmarks for QuanONet paper.
+# Description: Reproduce main QuanONet benchmarks.
 #              Iterates over Models, Operators, Frequencies, Scales, and Seeds.
 # Usage:       ./scripts/reproduce_benchmarks1.sh [GPU_ID]
 # Example:     ./scripts/reproduce_table4.sh 0
@@ -37,7 +37,7 @@ else
     echo "🤖 For unspecified devices: The smart default policy of main.py will be used (Quantum->CPU, Classical->GPU)"
 fi
 
-echo "🚀 Starting Table 4 Reproduction Experiment on GPU ${GPU_ID}..."
+echo "🚀 Starting Main Benchmark Experiments on GPU ${GPU_ID}..."
 
 for OP in "${OPERATORS[@]}"; do
     

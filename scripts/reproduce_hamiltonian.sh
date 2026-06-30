@@ -2,9 +2,9 @@
 
 # ==============================================================================
 # Script Name: reproduce_hamiltonian.sh
-# Description: Reproduce Section 5.4 (Hamiltonian Ablation Studies).
-#              Includes: Pauli Basis (Fig 11), Spectral Radius (Fig 11), 
-#                        and Spectral Degeneracy (Fig 10).
+# Description: Reproduce Hamiltonian Ablation Studies.
+#              Includes: Pauli Basis, Spectral Radius,
+#                        and Spectral Degeneracy ablations.
 # Usage:       ./scripts/reproduce_sec54.sh [GPU_ID]
 # ==============================================================================
 
@@ -32,10 +32,10 @@ else
     echo "🤖 Using default device (CPU for Quantum)"
 fi
 
-echo "🚀 Starting Section 5.4 Hamiltonian Ablation Experiments..."
+echo "🚀 Starting Hamiltonian Ablation Experiments..."
 
 # ==============================================================================
-# Experiment 1: Pauli Basis Ablation (Fig 11 Left)
+# Experiment 1: Pauli Basis Ablation
 # Qubits: 5 | Net Size: 20 2 10 2 | Sweep: ham_pauli
 # ==============================================================================
 N_Q_1=5
@@ -64,7 +64,7 @@ for PAULI in "${PAULI_LIST[@]}"; do
 done
 
 # ==============================================================================
-# Experiment 2: Spectral Radius Ablation (Fig 11 Right)
+# Experiment 2: Spectral Radius Ablation
 # Qubits: 5 | Net Size: 20 2 10 2 | Sweep: ham_bound [-1, 1] to [-10, 10]
 # ==============================================================================
 echo "----------------------------------------------------------------"
@@ -89,7 +89,7 @@ for BOUND in {1..10}; do
 done
 
 # ==============================================================================
-# Experiment 3: Spectral Degeneracy Ablation (Fig 10)
+# Experiment 3: Spectral Degeneracy Ablation
 # Qubits: 2 | Net Size: 50 2 50 2 | Sweep: ham_diag
 # ==============================================================================
 N_Q_3=2
@@ -128,4 +128,4 @@ for DIAG in "${DIAG_LIST[@]}"; do
     ((IDX++))
 done
 
-echo "✅ Section 5.4 Ablation experiments completed."
+echo "✅ Hamiltonian Ablation experiments completed."
