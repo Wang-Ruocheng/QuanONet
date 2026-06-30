@@ -141,13 +141,13 @@ python infer.py \
 
 **Expected output:**
 ```
-[Auto] Generating test data for Antideriv ...
+[Auto] Generating test data for Antideriv (num_points=100, num_points_0=10) ...
 Model : QuanONet  backend=mindspore
 Config: net_size=[5, 1, 5, 1]  num_qubits=2
 Output: (100000, 1)
-Rel-L2 : 0.0312  (3.12%)
-MSE    : 0.000285
-MAE    : 0.010341
+Rel-L2 : 0.1192  (11.92%)
+MSE    : 0.002609
+MAE    : 0.037747
 ```
 
 **Expected run time:** ~1 minute on a standard desktop CPU (model loading + forward pass over 1000 test samples).
