@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # Script Name: reproduce_benchmarks2.sh
-# Description: Reproduce aligned-parameter comparison (Tables 5 & 6).
+# Description: Reproduce aligned-parameter comparison.
 #              TF-QuanONet at matched parameter count vs DeepONet & FNO.
 #              Fixed Scale(0.001) & TF(true) for QuanONet.
 # Usage:       ./scripts/reproduce_benchmarks2.sh [GPU_ID]
@@ -37,7 +37,7 @@ else
     echo "🤖 For unspecified devices: Using smart default (Quantum->CPU, Classical->GPU)"
 fi
 
-echo "🚀 Starting Aligned-Parameter Comparison (Tables 5 & 6)..."
+echo "🚀 Starting Aligned-Parameter Comparison..."
 echo "📂 Output Directory: ${PREFIX}"
 
 # ==============================================================================
@@ -46,7 +46,7 @@ echo "📂 Output Directory: ${PREFIX}"
 
 for OP in "${OPERATORS[@]}"; do
     
-    # Table 5 only focuses on ODEs
+    # Only ODE operators
     PROB_TYPE="ODE"
     EPOCHS=1000
     PTS=100
