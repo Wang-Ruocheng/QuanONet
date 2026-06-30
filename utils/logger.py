@@ -104,7 +104,7 @@ def get_experiment_id(config):
     # 4. Backend suffix (only when non-default, to prevent directory collisions)
     qb = config.get('quantum_backend', 'mindquantum') or 'mindquantum'
     if model in ['QuanONet', 'HEAQNN'] and qb != 'mindquantum':
-        backend_abbr = {'torchquantum': 'TQ', 'qiskit': 'Qiskit'}.get(qb, qb)
+        backend_abbr = {'torchquantum': 'TQ', 'qiskit': 'Qiskit', 'pennylane': 'PL'}.get(qb, qb)
         exp_id += f"_{backend_abbr}"
 
     cb = config.get('classical_backend', 'pytorch') or 'pytorch'

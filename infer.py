@@ -39,7 +39,8 @@ _Q_RE     = re.compile(r'_Q(\d+)')
 _S_RE     = re.compile(r'_S([\d.]+)')
 _TF_RE    = re.compile(r'_(TF|FF|NTF)_')
 _MODEL_RE = re.compile(r'_(QuanONet|HEAQNN|DeepONet|FNN|FNO)_')
-_QB_RE    = re.compile(r'_(torchquantum|qiskit|pennylane)_')
+_QB_RE    = re.compile(r'_(TQ|Qiskit|PL|torchquantum|qiskit|pennylane)_')
+_QB_MAP   = {'TQ': 'torchquantum', 'Qiskit': 'qiskit', 'PL': 'pennylane'}
 
 _DEFAULTS = {
     'model_type':        'QuanONet',
@@ -75,7 +76,7 @@ def _parse_path(ckpt_path: str) -> dict:
         cfg['if_trainable_freq'] = (m.group(1) == 'TF')
     m = _QB_RE.search(name)
     if m:
-        cfg['quantum_backend'] = m.group(1)
+        cfg['quantum_backend'] = _QB_MAP.get(m.group(1), m.group(1))
     return cfg
 
 

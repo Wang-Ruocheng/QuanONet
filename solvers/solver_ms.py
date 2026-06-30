@@ -4,6 +4,7 @@ Refactored from original train.py.
 """
 import os
 import sys
+import gc
 import numpy as np
 import json
 from datetime import datetime
@@ -243,7 +244,9 @@ class MSSolver:
             avg_loss = epoch_loss / num_batches
             avg_rel_err = np.sqrt(epoch_sse) / (np.sqrt(epoch_norm_sq) + 1e-8)
             history['loss_train'].append(avg_loss)
-            
+
+            gc.collect()
+
             self.exp_logger.log_metric("Loss/train", avg_loss, epoch)
             self.exp_logger.log_metric("Error/rel_l2", avg_rel_err, epoch)
             
