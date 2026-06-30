@@ -124,7 +124,7 @@ def generate_ham_spectrum_uniform(num_qubits, rank, seed=None):
 
     return arr
 
-def Encode_layer(num_qubits, input_size, e_name_list, PauliRotGate=RX):
+def encode_layer(num_qubits, input_size, e_name_list, PauliRotGate=RX):
     """Create encoding layer for quantum circuit."""
     circ = Circuit()
     if e_name_list != []:
@@ -134,7 +134,7 @@ def Encode_layer(num_qubits, input_size, e_name_list, PauliRotGate=RX):
     return circ
     
 
-def Entangle_layer(num_qubits):
+def entangle_layer(num_qubits):
     """Create entanglement layer with CNOT gates."""
     circ = Circuit()
     if num_qubits > 1:
@@ -144,7 +144,7 @@ def Entangle_layer(num_qubits):
     return circ
 
 
-def Ansatz_layer(num_qubits, a_name_list, PauliRotGate=RY):
+def ansatz_layer(num_qubits, a_name_list, PauliRotGate=RY):
     """Create ansatz layer with parameterized rotations."""
     circ = Circuit()
     for i in range(num_qubits):
@@ -161,7 +161,7 @@ def params_update(a_num_list, num_para, add_num):
     return a_num_list, num_para
 
 
-def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size, 
+def quanonet_build(num_qubits, branch_input_size, trunk_input_size, net_size, 
                    if_print_circuit=False):
     """Build quantum circuit for QuanONet."""
     circuit = Circuit()
@@ -174,24 +174,24 @@ def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size,
     # Build trunk network
     for j in range(trunk_depth):
         e_num_list = [f"nu_l{j}" for _ in range(num_qubits)]
-        trunk += Encode_layer(num_qubits, num_qubits, e_num_list, PauliRotGate=RX)
+        trunk += encode_layer(num_qubits, num_qubits, e_num_list, PauliRotGate=RX)
         for _ in range(trunk_linear_depth):
             a_num_list, num_para = params_update(a_num_list, num_para, 3*num_qubits)
-            trunk += Ansatz_layer(num_qubits, a_num_list[-3*num_qubits:-2*num_qubits], RY)
-            trunk += Ansatz_layer(num_qubits, a_num_list[-2*num_qubits:-num_qubits], RZ)
-            trunk += Ansatz_layer(num_qubits, a_num_list[-num_qubits:], RY)
-            trunk += Entangle_layer(num_qubits)
+            trunk += ansatz_layer(num_qubits, a_num_list[-3*num_qubits:-2*num_qubits], RY)
+            trunk += ansatz_layer(num_qubits, a_num_list[-2*num_qubits:-num_qubits], RZ)
+            trunk += ansatz_layer(num_qubits, a_num_list[-num_qubits:], RY)
+            trunk += entangle_layer(num_qubits)
 
     # Build branch network
     for j in range(branch_depth):
         e_num_list = [f"xi_l{j}" for _ in range(num_qubits)]
-        branch += Encode_layer(num_qubits, num_qubits, e_num_list, PauliRotGate=RX)
+        branch += encode_layer(num_qubits, num_qubits, e_num_list, PauliRotGate=RX)
         for _ in range(branch_linear_depth):
             a_num_list, num_para = params_update(a_num_list, num_para, 3*num_qubits)
-            branch += Ansatz_layer(num_qubits, a_num_list[-3*num_qubits:-2*num_qubits], RY)
-            branch += Ansatz_layer(num_qubits, a_num_list[-2*num_qubits:-num_qubits], RZ)
-            branch += Ansatz_layer(num_qubits, a_num_list[-num_qubits:], RY)
-            branch += Entangle_layer(num_qubits)
+            branch += ansatz_layer(num_qubits, a_num_list[-3*num_qubits:-2*num_qubits], RY)
+            branch += ansatz_layer(num_qubits, a_num_list[-2*num_qubits:-num_qubits], RZ)
+            branch += ansatz_layer(num_qubits, a_num_list[-num_qubits:], RY)
+            branch += entangle_layer(num_qubits)
 
     circuit = trunk + branch
 
@@ -204,7 +204,7 @@ def QuanONet_build(num_qubits, branch_input_size, trunk_input_size, net_size,
     return circuit, trunk, branch
 
 
-def HEAQNNwork_build(num_qubits, input_size, depth, linear_depth):
+def heaqnnwork_build(num_qubits, input_size, depth, linear_depth):
     """Build Hardware Efficient Ansatz Quantum Neural Network."""
     circuit = Circuit()
     a_num_list = []
@@ -212,13 +212,13 @@ def HEAQNNwork_build(num_qubits, input_size, depth, linear_depth):
     
     for j in range(depth):
         e_num_list = [f"x_l{j}" for _ in range(num_qubits)]
-        circuit += Encode_layer(num_qubits, num_qubits, e_num_list)
+        circuit += encode_layer(num_qubits, num_qubits, e_num_list)
         for _ in range(linear_depth):
             a_num_list, num_para = params_update(a_num_list, num_para, 3*num_qubits)
-            circuit += Ansatz_layer(num_qubits, a_num_list[-3*num_qubits:-2*num_qubits], RY)
-            circuit += Ansatz_layer(num_qubits, a_num_list[-2*num_qubits:-num_qubits], RZ)
-            circuit += Ansatz_layer(num_qubits, a_num_list[-num_qubits:], RY)
-            circuit += Entangle_layer(num_qubits)
+            circuit += ansatz_layer(num_qubits, a_num_list[-3*num_qubits:-2*num_qubits], RY)
+            circuit += ansatz_layer(num_qubits, a_num_list[-2*num_qubits:-num_qubits], RZ)
+            circuit += ansatz_layer(num_qubits, a_num_list[-num_qubits:], RY)
+            circuit += entangle_layer(num_qubits)
     
     if num_qubits * depth < input_size:
         print("The number of encoder params is not enough for the input size.")

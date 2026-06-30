@@ -131,7 +131,7 @@ def main():
     parser.add_argument('--ham_bound', type=float, nargs=2, default=[-5.0, 5.0],
                         help="Hamiltonian lower/upper bounds (default: -5 5).")
     # Manual architecture overrides (auto-parsed from path by default)
-    parser.add_argument('--n_qubits', type=int, default=None)
+    parser.add_argument('--num_qubits', type=int, default=None)
     parser.add_argument('--n_branch', type=int, default=None)
     parser.add_argument('--n_trunk', type=int, default=None)
     parser.add_argument('--n_hidden', type=int, default=None)
@@ -145,29 +145,29 @@ def main():
     # Parse architecture from path, with CLI overrides
     path_cfg = _parse_path(weight_path)
     net_size = path_cfg.get('net_size', [5, 1, 5, 1])
-    n_qubits        = args.n_qubits  if args.n_qubits  is not None else path_cfg.get('num_qubits', 2)
+    num_qubits      = args.num_qubits if args.num_qubits is not None else path_cfg.get('num_qubits', 2)
     n_branch_layers = args.n_branch  if args.n_branch  is not None else net_size[0]
     n_branch_hidden = args.n_hidden  if args.n_hidden  is not None else net_size[1]
     n_trunk_layers  = args.n_trunk   if args.n_trunk   is not None else net_size[2]
     n_trunk_hidden  = args.n_hidden  if args.n_hidden  is not None else net_size[3]
     print(f"-> Architecture: branch=({n_branch_layers}x{n_branch_hidden}), "
-          f"trunk=({n_trunk_layers}x{n_trunk_hidden}), qubits={n_qubits}")
+          f"trunk=({n_trunk_layers}x{n_trunk_hidden}), qubits={num_qubits}")
 
     # Hamiltonian rescaling coefficients
-    ham_offset, ham_coeff = _ham_params(n_qubits, args.ham_bound[0], args.ham_bound[1])
+    ham_offset, ham_coeff = _ham_params(num_qubits, args.ham_bound[0], args.ham_bound[1])
 
     # 1. Load Pre-trained Weights
     data = np.load(weight_path)
     raw_weights = data["QuanONet.weight"]
     # circuit = trunk + branch, so trunk weights come first in the flat array
-    trunk_count  = n_trunk_layers  * n_trunk_hidden  * 3 * n_qubits
-    branch_count = n_branch_layers * n_branch_hidden * 3 * n_qubits
-    trunk_weights  = raw_weights[:trunk_count].reshape(n_trunk_layers,  n_trunk_hidden,  3, n_qubits)
-    branch_weights = raw_weights[trunk_count:trunk_count + branch_count].reshape(n_branch_layers, n_branch_hidden, 3, n_qubits)
-    t_w = data["trunk_LinearLayer.Net2.weights"].reshape(n_trunk_layers, n_qubits)
-    t_b = data["trunk_LinearLayer.Net2.bias"].reshape(n_trunk_layers, n_qubits)
-    b_w = data["branch_LinearLayer.Net2.weights"].reshape(n_branch_layers, n_qubits)
-    b_b = data["branch_LinearLayer.Net2.bias"].reshape(n_branch_layers, n_qubits)
+    trunk_count  = n_trunk_layers  * n_trunk_hidden  * 3 * num_qubits
+    branch_count = n_branch_layers * n_branch_hidden * 3 * num_qubits
+    trunk_weights  = raw_weights[:trunk_count].reshape(n_trunk_layers,  n_trunk_hidden,  3, num_qubits)
+    branch_weights = raw_weights[trunk_count:trunk_count + branch_count].reshape(n_branch_layers, n_branch_hidden, 3, num_qubits)
+    t_w = data["trunk_LinearLayer.Net2.weights"].reshape(n_trunk_layers, num_qubits)
+    t_b = data["trunk_LinearLayer.Net2.bias"].reshape(n_trunk_layers, num_qubits)
+    b_w = data["branch_LinearLayer.Net2.weights"].reshape(n_branch_layers, num_qubits)
+    b_b = data["branch_LinearLayer.Net2.bias"].reshape(n_branch_layers, num_qubits)
     coefficients = np.stack([np.concatenate([t_w, b_w], axis=0),
                               np.concatenate([t_b, b_b], axis=0)], axis=1)
     global_bias = float(data["bias"])
@@ -193,7 +193,7 @@ def main():
     trunk_param = ParameterVector('trunk', 1)
     qc = create_circuit(branch_param, trunk_param, trunk_weights, branch_weights, coefficients, n_branch_layers, n_trunk_layers)
     hamiltonian = SparsePauliOp.from_sparse_list(
-        [("Z", [i], 1.0) for i in range(n_qubits)], num_qubits=n_qubits
+        [("Z", [i], 1.0) for i in range(num_qubits)], num_qubits=num_qubits
     )
 
     try:
@@ -245,7 +245,7 @@ def main():
         else:
             # MODE: SUBMIT NEW JOB
             print("\n--- Searching for the least busy IBM Quantum backend ---")
-            backend = service.least_busy(operational=True, simulator=False, min_num_qubits=n_qubits)
+            backend = service.least_busy(operational=True, simulator=False, min_num_qubits=num_qubits)
             backend_name = backend.name
 
             best_pair = profile_hardware(backend)

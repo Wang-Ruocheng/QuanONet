@@ -15,10 +15,10 @@ import mindspore.common.dtype as mstype
 
 try:
     from layers import *
-    from quantum_circuits_ms import circuit2network, QuanONet_build, HEAQNNwork_build
+    from quantum_circuits_ms import circuit2network, quanonet_build, heaqnnwork_build
 except ImportError:
     from .layers import *
-    from .quantum_circuits_ms import circuit2network, QuanONet_build, HEAQNNwork_build
+    from .quantum_circuits_ms import circuit2network, quanonet_build, heaqnnwork_build
 
 try:
     from mindspore.ops import fft_rfft, fft_irfft
@@ -45,7 +45,7 @@ class QuanONetMS(nn.Cell):
 
         self.if_trainable_freq = if_trainable_freq
 
-        QuanONet_circuit, trunk_circuit, branch_circuit = QuanONet_build(
+        QuanONet_circuit, trunk_circuit, branch_circuit = quanonet_build(
             num_qubits, branch_input_size, trunk_input_size, net_size
         )
         self.circuit = QuanONet_circuit
@@ -100,7 +100,7 @@ class HEAQNNMS(nn.Cell):
         self.if_trainable_freq = if_trainable_freq
         self.input_size = input_size
 
-        HEAQNN_circuit = HEAQNNwork_build(
+        HEAQNN_circuit = heaqnnwork_build(
             num_qubits, self.input_size, self.depth, self.linear_depth
         )
         self.HEAQNN = circuit2network(HEAQNN_circuit, ham)

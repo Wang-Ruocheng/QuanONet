@@ -144,8 +144,8 @@ def load_config(args):
             config[key] = default_val
 
     # 4. Ensure essential keys exist
-    if 'operator_type' not in config:
-        config['operator_type'] = args.operator
+    if 'operator' not in config:
+        config['operator'] = args.operator
     if 'model_type' not in config:
         config['model_type'] = args.model_type
         

@@ -32,7 +32,7 @@ class MSSolver:
             raise ImportError("MindSpore is required for MSSolver but not found.")
             
         self.config = config
-        self.operator_type = config['operator_type']
+        self.operator_type = config['operator']
         self.model_type = config['model_type']
         
         prefix = config.get('prefix') or "outputs"
@@ -46,7 +46,7 @@ class MSSolver:
         
         # Context Setup
         device_target = "GPU" if config.get('gpu') is not None else "CPU"
-        mode = ms.PYNATIVE_MODE 
+        mode = ms.PYNATIVE_MODE  # MQOps only supports PyNative; use segmented training to manage memory
         gpu_val = config.get('gpu')
         if gpu_val is not None:
              ms.context.set_context(device_id=int(gpu_val))

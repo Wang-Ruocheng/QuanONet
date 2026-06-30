@@ -28,7 +28,7 @@ def main():
     )
 
     print(f"\n===========================================================")
-    print(f" QuanONet Launcher | Model: {model_type} | Operator: {config['operator_type']}")
+    print(f" QuanONet Launcher | Model: {model_type} | Operator: {config['operator']}")
     print(f" Quantum backend: {quantum_backend} | Classical backend: {classical_backend}")
     print(f" Resolved target: {target_backend}")
     print(f"===========================================================")

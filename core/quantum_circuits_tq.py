@@ -129,7 +129,7 @@ class _TQHEACircuit(nn.Module):
 
 def _make_block_configs(num_qubits, trunk_depth, trunk_linear_depth,
                         branch_depth, branch_linear_depth):
-    """Build block_configs list matching MindQuantum QuanONet_build layout."""
+    """Build block_configs list matching MindQuantum quanonet_build layout."""
     configs = []
     for _ in range(trunk_depth):
         configs.append((num_qubits, trunk_linear_depth))
@@ -151,7 +151,7 @@ def build_quanonet_tq(num_qubits, branch_input_size, trunk_input_size, net_size,
     """
     Build a TorchQuantum QuanONet circuit.
 
-    Mirrors QuanONet_build() + circuit2network() from quantum_circuits_ms.py.
+    Mirrors quanonet_build() + circuit2network() from quantum_circuits_ms.py.
 
     Args:
         num_qubits: number of qubits
@@ -180,7 +180,7 @@ def build_heaqnn_tq(num_qubits, input_size, net_size,
     """
     Build a TorchQuantum HEAQNN circuit.
 
-    Mirrors HEAQNNwork_build() from quantum_circuits_ms.py.
+    Mirrors heaqnnwork_build() from quantum_circuits_ms.py.
 
     Args:
         num_qubits: number of qubits

@@ -28,7 +28,7 @@ class PTSolver:
         self.config = config
         self.input_sampler = input_sampler
         self.model_type = config['model_type']
-        self.operator_type = config['operator_type']
+        self.operator_type = config['operator']
         self.quantum_backend = config.get('quantum_backend', 'torchquantum')
 
         prefix = config.get('prefix') or "outputs"

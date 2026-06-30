@@ -6,7 +6,7 @@ This module provides MindSpore-free versions of data processing functions.
 import numpy as np
 from scipy import interpolate
 
-def ODE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
+def ode_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
     """
     Encode ODE operator data for DeepONet training.
     """
@@ -43,7 +43,7 @@ def ODE_encode(generate_data, num_train, num_test, num_points, num_points_0, tra
 
     return train_branch_input, train_trunk_input, train_output, test_branch_input, test_trunk_input, test_output
 
-def ODE_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
+def ode_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
     """
     Specialized data encoding for FNO.
     Vectorized version: strictly assumes full-grid evaluation (no subsampling).
@@ -80,10 +80,10 @@ def ODE_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
     return train_input.astype(np.float32), None, train_output.astype(np.float32), \
            test_input.astype(np.float32), None, test_output.astype(np.float32)
 
-def PDE_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
+def pde_encode(generate_data, num_train, num_test, num_points, num_points_0, train_sample_num, test_sample_num, num_cal=None):
     """
     Encode PDE operator data for DeepONet training.
-    Structured identically to ODE_encode.
+    Structured identically to ode_encode.
     """
     # Generate data - call with appropriate parameters
     try:
@@ -125,7 +125,7 @@ def PDE_encode(generate_data, num_train, num_test, num_points, num_points_0, tra
     return train_branch_input, train_trunk_input, train_output, test_branch_input, test_trunk_input, test_output
 
 
-def PDE_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
+def pde_fncode(generate_data, num_train, num_test, num_points, num_cal=None):
     """
     Specialized data encoding for FNO on 2D PDEs.
     Flattens the 2D spatial-temporal grid to match FNO1d expected structure.

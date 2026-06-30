@@ -141,9 +141,10 @@ python infer.py \
 
 **Expected output:**
 ```
+[Auto] Generating test data for Antideriv ...
 Model : QuanONet  backend=mindspore
 Config: net_size=[5, 1, 5, 1]  num_qubits=2
-Output: (1000, 100)
+Output: (100000, 1)
 Rel-L2 : 0.0312  (3.12%)
 MSE    : 0.000285
 MAE    : 0.010341

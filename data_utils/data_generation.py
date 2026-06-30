@@ -16,7 +16,7 @@ import json
 
 
 # RBF kernel for Gaussian process
-def RBF(X1, X2, gp_params):
+def rbf(X1, X2, gp_params):
     """
     Radial Basis Function (squared exponential) kernel.
 
@@ -51,7 +51,7 @@ def generate_random_gaussian_field(m, length_scale=0.2):
     gp_params = (1.0, length_scale)
 
     X = np.linspace(0, 1, N)[:, None]
-    K = RBF(X, X, gp_params)
+    K = rbf(X, X, gp_params)
     L = np.linalg.cholesky(K + jitter * np.eye(N))
     key_train = np.random.randn(N)
     gp_sample = np.dot(L, key_train)
@@ -84,7 +84,7 @@ ODE_SYSTEMS = {
 }
 
 
-def generate_ODE_Operator_data(operator_type, num_train, num_test,
+def generate_ode_operator_data(operator_type, num_train, num_test,
                                num_points,      # Controls output u(x) resolution (Trunk/Output)
                                num_points_0,    # Controls input u0(x) resolution (Branch Input)
                                length_scale=0.2,
@@ -205,20 +205,20 @@ def generate_ODE_Operator_data(operator_type, num_train, num_test,
 
     return np.array(u0s)[train_index].astype(np.float32), np.array(us)[train_index].astype(np.float32), np.array(u0s)[test_index].astype(np.float32), np.array(us)[test_index].astype(np.float32), x_target.astype(np.float32)
 
-def generate_Identity_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
-    return generate_ODE_Operator_data('Identity', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
+def generate_identity_operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
+    return generate_ode_operator_data('Identity', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
 
 
-def generate_Antideriv_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
-    return generate_ODE_Operator_data('Antideriv', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
+def generate_antideriv_operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
+    return generate_ode_operator_data('Antideriv', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
 
 
-def generate_Homogeneous_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
-    return generate_ODE_Operator_data('Homogeneous', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
+def generate_homogeneous_operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
+    return generate_ode_operator_data('Homogeneous', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
 
 
-def generate_Nonlinear_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
-    return generate_ODE_Operator_data('Nonlinear', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
+def generate_nonlinear_operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=1000, input_sampler=None):
+    return generate_ode_operator_data('Nonlinear', num_train, num_test, num_points, num_points_0, length_scale, num_cal, input_sampler=input_sampler)
 
 # PDE Systems (simplified versions)
 def solve_darcy_pde(num_cal, length_scale=1.0, K=0.1, f=-1.0, u0_cal=None):
@@ -352,7 +352,7 @@ def solve_rdiffusion_pde(num_cal, length_scale, D=0.01, k=0.01, u0_cal=None):
     return u_cal_sampled, u0_cal
 
 
-def generate_PDE_Operator_data(operator_type, num_train, num_test,
+def generate_pde_operator_data(operator_type, num_train, num_test,
                                num_points,      # Controls output u(x,t) resolution (Trunk/Output)
                                num_points_0,    # Controls input u0(x) resolution (Branch Input)
                                length_scale=0.2,
@@ -360,11 +360,11 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
                                input_sampler=None):
     """
     Generate data for PDE operator problems with decoupled input/output resolutions.
-    Structured identically to generate_ODE_Operator_data.
+    Structured identically to generate_ode_operator_data.
 
     Args:
         input_sampler: optional callable ``f(num_cal) -> (u0_fn, u0_cal)``
-            Same contract as in generate_ODE_Operator_data.  For PDE operators
+            Same contract as in generate_ode_operator_data.  For PDE operators
             only ``u0_cal`` (the 1-D array) is used as the boundary / initial /
             source term; ``u0_fn`` may be ``None``.  Disk caching is bypassed
             when this argument is provided.
@@ -480,16 +480,16 @@ def generate_PDE_Operator_data(operator_type, num_train, num_test,
             t_target.astype(np.float32))
 
 
-def generate_RDiffusion_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
-    return generate_PDE_Operator_data('RDiffusion', num_train, num_test, num_points, num_points_0,
+def generate_rdiffusion_operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
+    return generate_pde_operator_data('RDiffusion', num_train, num_test, num_points, num_points_0,
                                       length_scale=length_scale, num_cal=num_cal, input_sampler=input_sampler)
 
 
-def generate_Advection_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
-    return generate_PDE_Operator_data('Advection', num_train, num_test, num_points, num_points_0,
+def generate_advection_operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
+    return generate_pde_operator_data('Advection', num_train, num_test, num_points, num_points_0,
                                       length_scale=length_scale, num_cal=num_cal, input_sampler=input_sampler)
 
 
-def generate_Darcy_Operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
-    return generate_PDE_Operator_data('Darcy', num_train, num_test, num_points, num_points_0,
+def generate_darcy_operator_data(num_train, num_test, num_points, num_points_0, length_scale=0.2, num_cal=100, input_sampler=None):
+    return generate_pde_operator_data('Darcy', num_train, num_test, num_points, num_points_0,
                                       length_scale=length_scale, num_cal=num_cal, input_sampler=input_sampler)

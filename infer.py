@@ -41,6 +41,7 @@ _TF_RE    = re.compile(r'_(TF|FF|NTF)_')
 _MODEL_RE = re.compile(r'_(QuanONet|HEAQNN|DeepONet|FNN|FNO)_')
 _QB_RE    = re.compile(r'_(TQ|Qiskit|PL|torchquantum|qiskit|pennylane)_')
 _QB_MAP   = {'TQ': 'torchquantum', 'Qiskit': 'qiskit', 'PL': 'pennylane'}
+_DATA_RE  = re.compile(r'_(\d+)x(\d+)_Seed')
 
 _DEFAULTS = {
     'model_type':        'QuanONet',
@@ -107,21 +108,21 @@ def _build_ms_model(cfg: dict, branch_in: int, trunk_in: int):
 
     mt        = cfg['model_type']
     net_size  = tuple(cfg['net_size'])
-    n_q       = int(cfg['num_qubits'])
+    num_qubits = int(cfg['num_qubits'])
     scale     = float(cfg['scale_coeff'])
     if_tf     = bool(cfg['if_trainable_freq'])
     ham_bound = cfg['ham_bound']
 
     if mt in ('QuanONet', 'HEAQNN'):
         if cfg.get('ham_diag') is not None:
-            ham = ham_diag_to_operator(cfg['ham_diag'], n_q)
+            ham = ham_diag_to_operator(cfg['ham_diag'], num_qubits)
         else:
-            ham = generate_simple_hamiltonian(n_q, lower_bound=ham_bound[0],
+            ham = generate_simple_hamiltonian(num_qubits, lower_bound=ham_bound[0],
                                               upper_bound=ham_bound[1])
         if mt == 'QuanONet':
-            return QuanONetMS(n_q, branch_in, trunk_in, net_size, ham, scale, if_tf)
+            return QuanONetMS(num_qubits, branch_in, trunk_in, net_size, ham, scale, if_tf)
         else:
-            return HEAQNNMS(n_q, branch_in, net_size, ham, scale, if_tf)
+            return HEAQNNMS(num_qubits, branch_in, net_size, ham, scale, if_tf)
 
     if mt == 'DeepONet':
         return DeepONetMS(branch_in, trunk_in, net_size)
@@ -143,19 +144,19 @@ def _build_pt_model(cfg: dict, branch_in: int, trunk_in: int):
 
     mt       = cfg['model_type']
     net_size = tuple(cfg['net_size'])
-    n_q      = int(cfg['num_qubits'])
+    num_qubits = int(cfg['num_qubits'])
     scale    = float(cfg['scale_coeff'])
     if_tf    = bool(cfg['if_trainable_freq'])
     hb       = tuple(cfg['ham_bound'])
     qb       = cfg.get('quantum_backend', 'torchquantum')
 
     if mt == 'QuanONet':
-        return QuanONetPT(n_q, branch_in, trunk_in, net_size,
+        return QuanONetPT(num_qubits, branch_in, trunk_in, net_size,
                           scale_coeff=scale, if_trainable_freq=if_tf,
                           quantum_backend=qb, ham_bound=hb,
                           ham_diag=cfg.get('ham_diag'))
     if mt == 'HEAQNN':
-        return HEAQNNPT(n_q, branch_in, net_size,
+        return HEAQNNPT(num_qubits, branch_in, net_size,
                         scale_coeff=scale, if_trainable_freq=if_tf,
                         quantum_backend=qb, ham_bound=hb,
                         ham_diag=cfg.get('ham_diag'))
@@ -197,7 +198,7 @@ def load_model(ckpt_path: str, branch_in: int, trunk_in: int = 0, **overrides):
             d = np.load(ckpt_path)
             # MindSpore-origin .npz uses MindSpore key names; detect by presence
             # of 'QuanONet.weight' and convert via ms_npz_to_pt_state_dict.
-            if 'QuanONet.weight' in d.files:
+            if 'QuanONet.weight' in d.files or 'HEAQNN.weight' in d.files:
                 from utils.weight_transfer import ms_npz_to_pt_state_dict
                 sd = ms_npz_to_pt_state_dict(
                     ckpt_path,
@@ -314,7 +315,33 @@ def main():
         branch = np.load(args.branch)
         trunk  = np.load(args.trunk) if args.trunk else None
     else:
-        raise SystemExit("Provide --data <file.npz> or --branch <file.npy>.")
+        # Auto-generate test data from checkpoint path when no data is provided
+        dir_name = os.path.basename(os.path.dirname(os.path.abspath(args.ckpt)))
+        m_op    = _MODEL_RE.search(dir_name)
+        m_data  = _DATA_RE.search(dir_name)
+        operator = dir_name.split('_')[0] if dir_name else None
+        num_train  = int(m_data.group(1)) if m_data else 1000
+        num_points = int(m_data.group(2)) if m_data else 100
+        if not operator or not m_op:
+            raise SystemExit("Provide --data <file.npz> or --branch <file.npy>.")
+        model_type_for_data = m_op.group(1)
+        from data_utils.data_manager import DataManager
+        data_cfg = {
+            'operator':         operator,
+            'model_type':       model_type_for_data,
+            'num_train':        num_train,
+            'num_test':         1000,
+            'num_points':       num_points,
+            'num_points_0':     num_points,
+            'train_sample_num': 10,
+            'test_sample_num':  100,
+        }
+        print(f"[Auto] Generating test data for {operator} ...")
+        dm = DataManager(data_cfg)
+        data   = dm.get_data()
+        branch = data.get('test_branch_input') or data['test_input']
+        trunk  = data.get('test_trunk_input')
+        y_true = data.get('test_output')
 
     branch_in = branch.shape[1]
     trunk_in  = trunk.shape[1] if trunk is not None else 0

@@ -57,11 +57,11 @@ def get_experiment_id(config):
     Generates a highly detailed, unique descriptor string for filenames.
     Prevents parameter ablation experiments from overwriting each other.
     """
-    op = config.get('operator_type', config.get('operator', 'Unknown'))
+    op = config.get('operator', 'Unknown')
     model = config.get('model_type', 'Unknown')
     nt = config.get('num_train', '?')
     np_ = config.get('num_points', '?')
-    seed = config.get('random_seed', config.get('seed', 0))
+    seed = config.get('seed', 0)
     
     # 1. Basic Identifier: Operator + Model
     exp_id = f"{op}_{model}"
@@ -125,7 +125,7 @@ class ExperimentLogger:
     """
     def __init__(self, config, base_output_dir="outputs"):
         self.config = config
-        self.operator_name = config.get('operator_type', config.get('operator', 'Unknown'))
+        self.operator_name = config.get('operator', 'Unknown')
         
         self.exp_name = get_experiment_id(config)
         

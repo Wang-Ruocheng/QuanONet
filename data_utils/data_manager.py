@@ -7,30 +7,30 @@ import os
 import numpy as np
 import logging
 from .data_generation import (
-    generate_Identity_Operator_data,
-    generate_Antideriv_Operator_data,
-    generate_Homogeneous_Operator_data,
-    generate_Nonlinear_Operator_data,
-    generate_RDiffusion_Operator_data,
-    generate_Advection_Operator_data,
-    generate_Darcy_Operator_data,
-    generate_ODE_Operator_data,
-    generate_PDE_Operator_data
+    generate_identity_operator_data,
+    generate_antideriv_operator_data,
+    generate_homogeneous_operator_data,
+    generate_nonlinear_operator_data,
+    generate_rdiffusion_operator_data,
+    generate_advection_operator_data,
+    generate_darcy_operator_data,
+    generate_ode_operator_data,
+    generate_pde_operator_data
 )
-from .data_processing import ODE_encode, PDE_encode, ODE_fncode, PDE_fncode
+from .data_processing import ode_encode, pde_encode, ode_fncode, pde_fncode
 
 # Map operator names to their generator functions
 GENERATOR_MAP = {
-    'Identity': generate_Identity_Operator_data,
-    'Antideriv': generate_Antideriv_Operator_data,
-    'Homogeneous': generate_Homogeneous_Operator_data,
-    'Nonlinear': generate_Nonlinear_Operator_data,
-    'RDiffusion': generate_RDiffusion_Operator_data,
-    'Advection': generate_Advection_Operator_data,
-    'Darcy': generate_Darcy_Operator_data,
+    'Identity': generate_identity_operator_data,
+    'Antideriv': generate_antideriv_operator_data,
+    'Homogeneous': generate_homogeneous_operator_data,
+    'Nonlinear': generate_nonlinear_operator_data,
+    'RDiffusion': generate_rdiffusion_operator_data,
+    'Advection': generate_advection_operator_data,
+    'Darcy': generate_darcy_operator_data,
     # Generic fallbacks
-    'ODE': generate_ODE_Operator_data,
-    'PDE': generate_PDE_Operator_data
+    'ODE': generate_ode_operator_data,
+    'PDE': generate_pde_operator_data
 }
 
 class DataManager:
@@ -53,7 +53,7 @@ class DataManager:
         self.logger = logger or logging.getLogger(__name__)
         self.input_sampler = input_sampler
 
-        self.operator_type = config['operator_type']
+        self.operator_type = config['operator']
         self.model_type = config.get('model_type', 'DeepONet')
         
         # Ensure critical parameters exist with defaults
@@ -150,7 +150,7 @@ class DataManager:
             # FNO enforces sample_num == num_points usually
 
             is_pde = self.operator_type in ['RDiffusion', 'Advection', 'Darcy']
-            encoder = PDE_fncode if is_pde else ODE_fncode
+            encoder = pde_fncode if is_pde else ode_fncode
             train_in, _, train_out, test_in, _, test_out = encoder(
                 gen_func_wrapper, 
                 c['num_train'], c['num_test'], 
@@ -166,9 +166,9 @@ class DataManager:
             
         else:
             # === DeepONet / FNN / QuanONet Path ===
-            # Use ODE_encode or PDE_encode based on operator category
+            # Use ode_encode or pde_encode based on operator category
             is_pde = self.operator_type in ['RDiffusion', 'Advection', 'Darcy']
-            encoder = PDE_encode if is_pde else ODE_encode
+            encoder = pde_encode if is_pde else ode_encode
             
             train_branch, train_trunk, train_out, test_branch, test_trunk, test_out = encoder(
                 gen_func_wrapper,
