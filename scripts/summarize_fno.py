@@ -1,7 +1,11 @@
 """
-Temporary script: compute average MSE and relative L2 error for FNO
-across three ODE operators in the benchmarks3_reproduction output folder.
-Missing results are skipped; averages are computed over available runs only.
+Summarize FNO results from a reproduction output folder.
+
+Outputs:
+  - Console summary (avg MSE / rel_l2 per operator)
+  - Excel file with one row per (operator, model, seed, metric):
+      columns: operator | model | seed | metric | value
+      rel_err is multiplied by 100 (percentage points)
 
 Usage:
     python scripts/summarize_fno.py [--dir benchmarks3_reproduction]
@@ -9,10 +13,16 @@ Usage:
 
 import json
 import os
+import re
 import argparse
 from collections import defaultdict
 
 OPERATORS = ["Antideriv", "Homogeneous", "Nonlinear"]
+
+
+def parse_seed(exp_name):
+    m = re.search(r"[Ss]eed(\d+)", exp_name)
+    return int(m.group(1)) if m else -1
 
 
 def find_fno_metrics(base_dir):
@@ -22,7 +32,7 @@ def find_fno_metrics(base_dir):
         op_dir = os.path.join(base_dir, op)
         if not os.path.isdir(op_dir):
             continue
-        for exp_name in os.listdir(op_dir):
+        for exp_name in sorted(os.listdir(op_dir)):
             if "FNO" not in exp_name:
                 continue
             metric_path = os.path.join(op_dir, exp_name, "metric.json")
@@ -36,7 +46,8 @@ def find_fno_metrics(base_dir):
             if mse is None or rel_l2 is None:
                 print(f"  [WARN] Missing MSE or rel_l2 in {metric_path}")
                 continue
-            records.append((op, exp_name, mse, rel_l2))
+            seed = parse_seed(exp_name)
+            records.append((op, seed, mse, rel_l2))
     return records
 
 
@@ -56,42 +67,76 @@ def main():
         print("No FNO metric.json files found.")
         return
 
-    # Group by operator
+    # ── Console summary ───────────────────────────────────────────────────────
     by_op = defaultdict(list)
-    for op, name, mse, rel_l2 in records:
-        by_op[op].append((name, mse, rel_l2))
+    for op, seed, mse, rel_l2 in records:
+        by_op[op].append((seed, mse, rel_l2))
 
     print(f"\n{'='*60}")
     print(f"  FNO Results Summary  ({base_dir})")
     print(f"{'='*60}")
 
     all_mse, all_rel = [], []
-
     for op in OPERATORS:
         runs = by_op.get(op, [])
         if not runs:
             print(f"\n  {op:15s}  [NO DATA]")
             continue
-        mses   = [r[1] for r in runs]
-        rels   = [r[2] for r in runs]
-        avg_mse = sum(mses) / len(mses)
-        avg_rel = sum(rels) / len(rels)
+        mses = [r[1] for r in runs]
+        rels = [r[2] for r in runs]
         all_mse.extend(mses)
         all_rel.extend(rels)
-
-        print(f"\n  {op}")
-        print(f"    runs      : {len(runs)}")
-        for name, mse, rel in sorted(runs, key=lambda x: x[0]):
-            print(f"    {name[-30:]:30s}  MSE={mse:.6f}  rel_L2={rel:.4%}")
-        print(f"    ── avg MSE : {avg_mse:.6f}")
-        print(f"    ── avg rel : {avg_rel:.4%}")
+        print(f"\n  {op}  ({len(runs)} runs)")
+        for seed, mse, rel in sorted(runs):
+            print(f"    Seed{seed}  MSE={mse:.6f}  rel_err={rel*100:.6f}%")
+        print(f"    ── avg MSE : {sum(mses)/len(mses):.6f}")
+        print(f"    ── avg rel : {sum(rels)/len(rels)*100:.6f}%")
 
     if all_mse:
         print(f"\n{'─'*60}")
-        print(f"  Overall ({len(all_mse)} runs across {len(by_op)} operator(s))")
+        print(f"  Overall ({len(all_mse)} runs, {len(by_op)} operator(s))")
         print(f"    avg MSE : {sum(all_mse)/len(all_mse):.6f}")
-        print(f"    avg rel : {sum(all_rel)/len(all_rel):.4%}")
+        print(f"    avg rel : {sum(all_rel)/len(all_rel)*100:.6f}%")
     print(f"{'='*60}\n")
+
+    # ── Excel output ──────────────────────────────────────────────────────────
+    try:
+        import openpyxl
+    except ImportError:
+        print("[INFO] openpyxl not installed, falling back to CSV.")
+        _write_csv(records, base_dir)
+        return
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "FNO Results"
+    ws.append(["operator", "model", "seed", "metric", "value"])
+
+    for op in OPERATORS:
+        runs = by_op.get(op, [])
+        for seed, mse, rel_l2 in sorted(runs):
+            ws.append([op, "FNO", seed, "MSE",     mse])
+            ws.append([op, "FNO", seed, "rel_err", rel_l2 * 100])
+
+    out_path = os.path.join(base_dir, "fno_results.xlsx")
+    wb.save(out_path)
+    print(f"Excel saved to: {out_path}")
+
+
+def _write_csv(records, base_dir):
+    import csv
+    out_path = os.path.join(base_dir, "fno_results.csv")
+    by_op = defaultdict(list)
+    for op, seed, mse, rel_l2 in records:
+        by_op[op].append((seed, mse, rel_l2))
+    with open(out_path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["operator", "model", "seed", "metric", "value"])
+        for op in OPERATORS:
+            for seed, mse, rel_l2 in sorted(by_op.get(op, [])):
+                w.writerow([op, "FNO", seed, "MSE",     mse])
+                w.writerow([op, "FNO", seed, "rel_err", rel_l2 * 100])
+    print(f"CSV saved to: {out_path}")
 
 
 if __name__ == "__main__":
