@@ -5,7 +5,7 @@
 # Description: Reproduce high-dimensional scaling limit experiments.
 #              Sweeps latent dimension p from 4 to 256 for both models.
 # Operator:    Antideriv (ODE)
-# Usage:       ./scripts/reproduce_fig9_scaling.sh [GPU_ID]
+# Usage:       ./scripts/reproduce_scaling.sh [GPU_ID]
 # ==============================================================================
 
 # 1. Configuration

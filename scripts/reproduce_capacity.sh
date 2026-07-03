@@ -5,7 +5,7 @@
 # Description: Reproduce parameter efficiency analysis benchmarks.
 #              Grid search for TF-QuanONet (Hidden dims) & DeepONet (Width/Depth).
 # Operator:    Antideriv (ODE)
-# Usage:       ./scripts/reproduce_table7.sh [GPU_ID]
+# Usage:       ./scripts/reproduce_capacity.sh [GPU_ID]
 # ==============================================================================
 
 # 1. Configuration

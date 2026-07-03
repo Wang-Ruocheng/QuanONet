@@ -5,7 +5,7 @@
 # Description: Reproduce Hamiltonian Ablation Studies.
 #              Includes: Pauli Basis, Spectral Radius,
 #                        and Spectral Degeneracy ablations.
-# Usage:       ./scripts/reproduce_sec54.sh [GPU_ID]
+# Usage:       ./scripts/reproduce_hamiltonian.sh [GPU_ID]
 # ==============================================================================
 
 GPU_ID=$1

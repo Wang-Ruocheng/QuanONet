@@ -5,7 +5,7 @@
 # Description: Reproduce qubit scalability benchmarks (Parameter Efficiency / Scalability).
 #              Dynamic Grid Search for TF-QuanONet based on Qubit counts.
 # Operator:    Antideriv (ODE)
-# Usage:       ./scripts/reproduce_table8.sh [GPU_ID]
+# Usage:       ./scripts/reproduce_circuit.sh [GPU_ID]
 # ==============================================================================
 
 # 1. Configuration
